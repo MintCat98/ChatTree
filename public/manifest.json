@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Chat Navigator",  // TODO: Need to come up with a better name
+  "name": "Chat Navigator",
   "version": "0.1.0",
   "description": "Tree-map navigation for Claude.ai chat sessions",
   "permissions": [
