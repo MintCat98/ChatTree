@@ -1,0 +1,78 @@
+name: Feature Request
+description: Propose a new feature or an improvement to existing functionality.
+title: "[FEAT] "
+labels: ["enhancement", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For open-ended design discussion, consider opening a [Discussion](../../discussions) before filing this issue.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One sentence describing the feature being requested.
+      placeholder: e.g. Add a keyword filter to the navigation tree map to quickly locate specific nodes.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: affected_area
+    attributes:
+      label: Affected Area
+      description: Select all that apply.
+      options:
+        - label: Chat Navigation Tree Map
+        - label: Chatbox Branch Tracking
+        - label: Node Summarization / AI Integration
+        - label: UI / UX
+        - label: Performance
+        - label: Accessibility
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: |
+        Describe the problem this feature addresses. Focus on the user's pain point, not the solution.
+      placeholder: e.g. When a chat session has more than 30 nodes, there is no way to filter by keyword, making it time-consuming to locate a specific prompt.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed approach. Mockups, diagrams, or code snippets are welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: List any alternative approaches you evaluated and why you ruled them out.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope Estimate
+      options:
+        - "Small — isolated change, a few hours"
+        - "Medium — touches multiple components, 1–2 days"
+        - "Large — architectural impact, 3+ days"
+    validations:
+      required: true
+
+  - type: input
+    id: related
+    attributes:
+      label: Related Issues / PRs
+      placeholder: e.g. Closes #12, Related to #8
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context

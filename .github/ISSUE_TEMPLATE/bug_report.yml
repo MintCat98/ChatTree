@@ -1,0 +1,110 @@
+name: Bug Report
+description: Report a reproducible bug or unexpected behavior in the extension.
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before submitting, please search [existing issues](../../issues) to avoid duplicates.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the issue.
+      placeholder: Describe what went wrong.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: affected_area
+    attributes:
+      label: Affected Area
+      description: Select all that apply.
+      options:
+        - label: Chat Navigation Tree Map
+        - label: Chatbox Branch Tracking
+        - label: Node Click & Scroll Behavior
+        - label: Extension Popup / UI
+        - label: Content Script Injection
+        - label: Background Service Worker
+        - label: Options Page
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Provide step-by-step instructions to reliably reproduce the issue.
+      placeholder: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      placeholder: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: Attach screenshots or a screen recording if applicable.
+      placeholder: What actually happened?
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: e.g. macOS 14.5 / Windows 11
+    validations:
+      required: true
+
+  - type: input
+    id: chrome_version
+    attributes:
+      label: Chrome Version
+      placeholder: e.g. 125.0.6422.112
+    validations:
+      required: true
+
+  - type: input
+    id: extension_version
+    attributes:
+      label: Extension Version
+      placeholder: e.g. v0.2.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Target AI Platform
+      options:
+        - ChatGPT
+        - Claude.ai
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: console_logs
+    attributes:
+      label: Console Output
+      description: Open DevTools (F12) > Console and paste any relevant errors.
+      render: shell
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      placeholder: Was this working in a previous version? Did it break after a Chrome or platform update?

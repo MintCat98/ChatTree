@@ -1,0 +1,52 @@
+name: Chore / Refactor / Docs
+description: Non-feature work such as refactoring, documentation updates, or maintenance tasks.
+title: "[CHORE] "
+labels: ["chore"]
+
+body:
+  - type: checkboxes
+    id: task_type
+    attributes:
+      label: Task Type
+      options:
+        - label: Documentation  (README, CONTRIBUTING, inline comments, wiki)
+        - label: Refactor       (structural change with no behavior change)
+        - label: Dependency     (package updates, version pins)
+        - label: Build / CI     (Webpack config, GitHub Actions, linting rules)
+        - label: Style          (formatting, naming conventions)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs to be changed and why? Describe the current state and the desired end state.
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected_files
+    attributes:
+      label: Affected Files / Modules
+      description: List the files, directories, or modules involved.
+      placeholder: |
+        - src/content/treeMap.ts
+        - README.md
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Define what "done" looks like. Each item should be independently verifiable.
+      placeholder: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: References, related issues, or any information that would help an assignee get started.
