@@ -8,12 +8,23 @@ interface PanelStore {
   tree: TreeData | null;
   settings: UserSettings;
   activeNodeId: string | null;
-  // TODO: add action signatures (setTree, setSettings, setActiveNode)
+  setTree: (tree: TreeData | null) => void;
+  setSettings: (patch: Partial<UserSettings>) => void;
+  setActiveNode: (nodeId: string | null) => void;
 }
 
-export const usePanelStore = create<PanelStore>(() => ({
+export const usePanelStore = create<PanelStore>((set) => ({
   tree: null,
   settings: DEFAULT_SETTINGS,
   activeNodeId: null,
-  // TODO: implement actions
+  setTree: (_tree) => {
+    // TODO: implement
+    void set;
+  },
+  setSettings: (_patch) => {
+    // TODO: implement
+  },
+  setActiveNode: (_nodeId) => {
+    // TODO: implement
+  },
 }));
