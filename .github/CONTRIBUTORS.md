@@ -9,9 +9,9 @@ Thank you to everyone who has contributed to **ChatTree**!
 | GitHub | Role | Description |
 |---|---|---|
 | [@MintCat98](https://github.com/MintCat98) | PM & Lead Developer | Project planning, architecture, and core development |
-| [@Do-yun](https://github.com/Do-yun) | Collaborator | TBD |
-| [@ignisytb](https://github.com/ignisytb) | Collaborator | TBD |
-| [@jglJGL000304](https://github.com/jglJGL000304) | Collaborator | TBD |
+| [@Do-yun](https://github.com/Do-yun) | Collaborator | Development, and code-reviewing (main) |
+| [@ignisytb](https://github.com/ignisytb) | Collaborator | Development, CI/CD management, and code-reviewing (sub) |
+| [@jglJGL000304](https://github.com/jglJGL000304) | Collaborator | Development, and managing AI/Automation |
 
 ---
 
