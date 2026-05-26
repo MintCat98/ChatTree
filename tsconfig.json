@@ -10,7 +10,8 @@
     "paths": {
       "@shared/*": ["./src/shared/*"],
       "@content/*": ["./src/content/*"]
-    }
+    },
+    "types": ["chrome"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
