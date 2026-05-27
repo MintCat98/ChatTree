@@ -7,7 +7,8 @@
     "dev": "webpack --mode development --watch",
     "build": "webpack --mode production",
     "test": "jest",
-    "lint": "eslint src/**/*.ts src/**/*.tsx"
+    "lint": "eslint src/**/*.ts src/**/*.tsx",
+    "format": "prettier --write src/**/*.{ts,tsx}"
   },
   "main": "webpack.config.js",
   "directories": {
@@ -50,6 +51,5 @@
   "dependencies": {
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
-  },
-  "format": "prettier --write src/**/*.{ts,tsx}"
+  }
 }
