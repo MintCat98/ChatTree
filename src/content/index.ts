@@ -4,6 +4,7 @@ import { startObserving, stopObserving } from './observer';
 import { watchPageChanges } from './page-watcher';
 import { injectPanel, destroyPanel } from './ui-injector';
 import { CHAT_URL_PATTERN } from '@shared/constants';
+//import './_test-tracker';
 
 function onChatPageEntered(): void {
   // TODO: reset Tracker, update session ID, re-start observing
