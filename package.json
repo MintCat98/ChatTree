@@ -29,6 +29,7 @@
   "homepage": "https://github.com/MintCat98/enhanced-navigation-for-ai-chatbots#readme",
   "devDependencies": {
     "@types/chrome": "^0.1.42",
+    "@types/d3": "^7.4.3",
     "@types/jest": "^30.0.0",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
@@ -51,7 +52,9 @@
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
+    "d3": "^7.9.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "zustand": "^5.0.13"
   }
 }

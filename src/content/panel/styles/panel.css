@@ -1,0 +1,29 @@
+/* Shadow DOM scoped styles. All variables use the --nav-* namespace. */
+
+:host {
+  /* TODO: define host positioning */
+}
+
+:root,
+:host {
+  /* Layout */
+  --nav-panel-width: /* TODO */ 0px;
+  --nav-panel-height: /* TODO */ 0px;
+  --nav-panel-padding: /* TODO */ 0px;
+
+  /* Colours */
+  --nav-bg: /* TODO */ transparent;
+  --nav-border: /* TODO */ transparent;
+  --nav-text-primary: /* TODO */ inherit;
+  --nav-text-secondary: /* TODO */ inherit;
+  --nav-node-fill: /* TODO */ transparent;
+  --nav-node-active: /* TODO */ transparent;
+  --nav-edge-stroke: /* TODO */ transparent;
+
+  /* Typography */
+  --nav-font-size-sm: /* TODO */ 0px;
+  --nav-font-size-base: /* TODO */ 0px;
+
+  /* Animation */
+  --nav-transition: /* TODO */ none;
+}
