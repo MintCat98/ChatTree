@@ -1,15 +1,11 @@
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsparser from '@typescript-eslint/parser';
+import tseslint from 'typescript-eslint';
 import prettierConfig from 'eslint-config-prettier';
 
-export default [
+export default tseslint.config(
+	{ ignores: ['dist/'] },
 	{
-		files: ["src/**/*.ts", "src/**/*.tsx"],
-		languageOptions: { parser: tsparser },
-		plugins: { "@typescript-eslint": tseslint },
-		rules: {
-			...tseslint.configs.recommended.rules,
-		},
+		files: ['**/*.ts', '**/*.tsx'],
+		extends: [...tseslint.configs.recommended],
 	},
 	prettierConfig,
-];
+);

@@ -7,7 +7,8 @@
     "dev": "webpack --mode development --watch",
     "build": "webpack --mode production",
     "test": "jest",
-    "lint": "eslint src/**/*.ts src/**/*.tsx",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write src/**/*.{ts,tsx}"
   },
   "main": "webpack.config.js",
@@ -44,6 +45,7 @@
     "ts-jest": "^29.4.11",
     "ts-loader": "^9.5.7",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.0",
     "webpack": "^5.107.1",
     "webpack-cli": "^7.0.2",
     "webpack-merge": "^6.0.1"
