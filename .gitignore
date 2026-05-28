@@ -3,3 +3,7 @@ dist/
 .env
 *.local
 .DS_Store
+
+# VS Code
+.vscode/launch.json
+.vscode/*.code-snippets
