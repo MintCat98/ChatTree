@@ -16,11 +16,16 @@
 
 <!-- Start from here -->
 
-### AI Usage Log | 2026-05-28 (By @MintCat98)
-- **What**: hotfix — `constants.ts` selector fix, `message-types.ts` key rename & `BridgeMessage<T>` wrapper 도입
-- **Request**: "아래와 같은 문제가 있었는데 핫픽스 부탁해." (Task spec 전달, 셀렉터 불일치 + 메시지 키 이름 불일치 수정 요청)
-- **AI Suggestion**: 4개 파일 수정 플랜 제시 — `constants.ts` (셀렉터 3개 수정·5개 추가·3개 제거), `message-types.ts` (키 2개 리네임·1개 제거·`BridgeMessage<T>` 추가), `message-handler.ts` / `message-bridge.ts` (import 타입 교체)
+### AI Usage Log | 2026-05-28 (By @jglJGL000304)
+- **What**: Panel UI Skeleton 블로커 ① — panel-store.ts 액션 완성 + persist + 단위 테스트
+- **Request**: "이슈 #12 본문의 panel-store.ts 코드 그대로 반영 + AC 1:1 테스트 작성"
+- **AI Suggestion**:
+    - panel-store.ts: 4 액션 + persist + partialize(settings only)
+    - tests/unit/panel-store.test.ts: AC 6항목 1:1 케이스 + jsdom docblock
+    - 인접 변경: shared/types.ts에 summaryEnabled 필드 추가
 - **Human Review**:
-    - 클로드에 의한 즉시 수정 전, plan을 받아본 뒤 문제 없음 확인 후 진행
-    - 수정내용에 대해 직접 npm build를 통해 에러 없음 확인
-- **Reflected**: 플랜대로 4개 파일 수정, `tsc --noEmit` 오류 없음, `webpack` 빌드 성공 확인
+    - zustand 미설치 → npm install
+    - 테스트 위치 오류 → tests/unit/으로 이동
+    - localStorage 미정의 → jest-environment-jsdom 설치 + docblock
+    - 6/6 passed, tsc clean
+- **Reflected**: 3파일 + 2의존성 도입.
