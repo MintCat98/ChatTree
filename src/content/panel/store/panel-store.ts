@@ -1,5 +1,5 @@
 // Zustand store for panel UI state (tree data, settings, active/hovered node).
-// 이슈 #12 (W4 Skeleton) — 스토어 액션 완전 구현 + settings localStorage 영속화.
+// Implements all actions and persists settings via localStorage (issue #12).
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -42,7 +42,8 @@ export const usePanelStore = create<PanelState>()(
     {
       name:       'chat-nav-settings',
       storage:    createJSONStorage(() => localStorage),
-      // tree는 세션 데이터라 영속화하지 않음 — 페이지 로드마다 DOM에서 재구성
+      // Only `settings` is persisted; `tree` is reconstructed from the DOM on each
+      // page load, so persisting it would surface stale data before the observer runs.
       partialize: (s) => ({ settings: s.settings }),
     },
   ),

@@ -1,6 +1,6 @@
 // Root component of the tree-map panel rendered inside Shadow DOM.
-// 이슈 #12 — chrome.runtime.onMessage TREE_READY 리스너 shell + slot placeholders.
-// 시각적 컴포넌트는 W4-2(treemap) / W4-3(header, controlbar)에서 채워짐.
+// Sets up the chrome.runtime.onMessage TREE_READY listener and exposes
+// data-slot placeholders for follow-up component PRs to fill in.
 
 import { useEffect } from 'react';
 import { MessageType } from '@shared/message-types';
@@ -21,14 +21,15 @@ export default function App() {
     return () => chrome.runtime.onMessage.removeListener(handler);
   }, [setTree]);
 
-  // 패널 비활성화 상태면 아무것도 렌더하지 않음
+  // Render nothing when the panel is hidden; the message listener above
+  // stays registered so the store keeps catching updates in the background.
   if (!settings.panelVisible) return null;
 
   return (
     <div data-testid="panel-root">
-      <div data-slot="header"     /> {/* 채워지는 위치: W4-3 */}
-      <div data-slot="treemap"    /> {/* 채워지는 위치: W4-2 */}
-      <div data-slot="controlbar" /> {/* 채워지는 위치: W4-3 */}
+      <div data-slot="header"     /> {/* Filled by a follow-up component PR */}
+      <div data-slot="treemap"    /> {/* Filled by a follow-up component PR */}
+      <div data-slot="controlbar" /> {/* Filled by a follow-up component PR */}
     </div>
   );
 }

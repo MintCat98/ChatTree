@@ -1,20 +1,20 @@
 /**
  * @jest-environment jsdom
  */
-// ↑ 이 docblock은 이 파일에만 jsdom 환경 적용 (localStorage 사용 가능).
-//   리포 전체 jest.config의 testEnvironment를 건드리지 않아 다른 테스트에 영향 없음.
+// Scopes the jsdom environment to this file only so localStorage is available,
+// while leaving the repo-wide jest.config testEnvironment (node) untouched.
 
-// 이슈 #12 Acceptance Criteria — usePanelStore 단위 테스트.
-// 위치: tests/unit/panel-store.test.ts  (팀 컨벤션: Jest testMatch = tests/unit/**/*.test.ts)
-// 실행: `npm test -- panel-store`  (Jest + jsdom 환경 가정)
+// Acceptance Criteria unit tests for usePanelStore (issue #12).
+// Location: tests/unit/panel-store.test.ts (matches Jest testMatch = tests/unit/**/*.test.ts).
+// Run: `npm test -- panel-store` (Jest + jsdom).
 //
-// 검증 항목:
-//   1. setTree({...})            → store.tree 업데이트
-//   2. updateSettings({...})     → 해당 필드만 머지, 나머지 유지
-//   3. setActiveNode('chatbox-3') → activeNodeId === 'chatbox-3'
+// Verifies:
+//   1. setTree({...})              → store.tree updated
+//   2. updateSettings({...})       → only the patched fields merge, others preserved
+//   3. setActiveNode('chatbox-3')  → activeNodeId === 'chatbox-3'
 //   4. setHoveredNode('chatbox-1') → hoveredNodeId === 'chatbox-1'
-//   5. 스토어 재초기화 후 settings 유지 (localStorage 영속화)
-//   6. 스토어 재초기화 후 tree === null (영속화 제외)
+//   5. settings persisted across re-init (localStorage)
+//   6. tree NOT persisted across re-init
 
 import { usePanelStore } from '../../src/content/panel/store/panel-store';
 import type { TreeData } from '@shared/types';
@@ -28,7 +28,7 @@ const SAMPLE_TREE: TreeData = {
   lastUpdated: 1717000000000,
 };
 
-// 각 테스트 전 스토어 상태와 localStorage를 동시에 초기화 — 테스트 격리 보장.
+// Reset both the store state and localStorage before each test to guarantee isolation.
 function resetStore() {
   localStorage.clear();
   usePanelStore.setState({
