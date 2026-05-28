@@ -7,7 +7,7 @@ export const SELECTORS = {
   BRANCH_ACTIONS_WRAPPER: '[aria-label="Message actions"]',
   BRANCH_PREV_BTN:        'button[aria-label="이전 버전"]',
   BRANCH_NEXT_BTN:        'button[aria-label="다음 버전"]',
-  BRANCH_INDICATOR:       'span.self-center.shrink-0.select-none.font-small.text-text-500',
+  BRANCH_INDICATOR:       'span.self-center.shrink-0.select-none.font-small.text-muted',
   STREAMING_ATTR:         'data-is-streaming',
   AI_TURN:                '[data-testid="assistant-turn"]',
   AI_RESPONSE:            '[data-testid="ai-response"]',
