@@ -16,15 +16,14 @@
 
 <!-- Start from here -->
 ### AI Usage Log | 2026-05-28 (By @jglJGL000304)
-- **What**: Panel UI Skeleton 블로커 ② — `App.tsx`에 `chrome.runtime.onMessage` `TREE_READY` 리스너 shell + `data-slot` placeholder 3개 (header/treemap/controlbar) 추가. default export로 전환.
-- **Request**: "이슈 #12 본문의 App.tsx 코드 그대로 `src/content/panel/App.tsx`에 반영. useEffect 안 리스너 + cleanup + panelVisible 가드 + data-slot placeholder 구조."
+- **What**: Panel UI Skeleton 블로커 ③ — `src/content/panel/index.css` 신규 생성. Shadow DOM `:host`에 디자인 토큰 11종 정의 (배경/노드 5색/엣지/텍스트/테두리/폰트/레이아웃/애니메이션) + `prefers-reduced-motion` 미디어 쿼리로 접근성 보강.
+- **Request**: "이슈 #12 본문의 index.css 코드 그대로 `src/content/panel/index.css`로 신규 생성. 다크 모드(Claude.ai 기본 테마) 기준."
 - **AI Suggestion**:
-    - `useEffect`에서 `chrome.runtime.onMessage.addListener(handler)` 등록, return 함수에서 `removeListener`로 cleanup (React strict mode 이중 등록 방지)
-    - `handler`는 `msg.type === MessageType.TREE_READY && msg.payload`일 때만 `setTree(msg.payload)` 호출
-    - `settings.panelVisible === false`면 `return null` (리스너는 useEffect 안이라 등록은 유지)
-    - 본문은 `<div data-testid="panel-root">` + `data-slot="header" | "treemap" | "controlbar"` placeholder
+    - `:host` 한 블록에 토큰 11종: `--nav-color-bg`, `--nav-color-node` 5종(기본/active/branch/hover/inactive), `--nav-color-edge`, `--nav-color-text` 2종, `--nav-color-border`, `--nav-font-*` 3종, `--nav-border-radius`, `--nav-panel-shadow`, `--nav-z-index`, `--nav-duration-*` 3종
+    - `@media (prefers-reduced-motion: reduce)` 블록으로 `--nav-duration-*` 0ms 오버라이드
+    - prefix `--nav-`로 충돌 회피, `--nav-z-index: 2147483647` (max int)으로 모달 가림 방지
 - **Human Review**:
-    - default export 전환으로 인한 import 사이트 영향 점검 — `Get-ChildItem` 으로 named import 사용처 검색 후 (있으면) 동일 commit에서 수정
-    - `npx tsc --noEmit` 무에러 확인
-    - `PanelShell` import 제거됨 — 컴포넌트 파일은 보존 (W4-3 PanelShell 드래그 작업에서 부활)
-- **Reflected**: `src/content/panel/App.tsx` 1파일 + (해당되면) import 사이트 1~2파일. DevTools 콘솔 TREE_READY 검증은 블로커 ③까지 끝나고 일괄 실시.
+    - 마운트 코드의 import 사이트 점검 — `Get-ChildItem -Path src` 검색 결과 (결과에 맞게 기술: "이미 import됨" / "panel.css만 있음 → import 추가" / "마운트 코드 부재 → W3-1 머지 대기")
+    - 기존 `styles/panel.css`는 미정리(별도 PR). 변수명 prefix가 다르므로 충돌 없음
+    - CSS 파일이라 tsc/jest 영향 없음
+- **Reflected**: `src/content/panel/index.css` 신규 1파일 + (해당되면) 마운트 파일 import 한 줄. DevTools Computed 검증은 단계 F-4에서 빌드 후 일괄 실시.
