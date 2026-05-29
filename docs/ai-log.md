@@ -15,7 +15,6 @@
 ---
 
 <!-- Start from here -->
-
 ### AI Usage Log | 2026-05-29 (By @Do-yun)
 - **What**: feat — `chatbox-tracker.ts` 함수 (assignChatboxIds, detectBranch, buildTree) 구현 및 `_test-tracker.ts` 수정
 - **Request**: "Claude의 DOM의 구조와 각 함수의 task를 제공해줄게. 이를 기반으로, assignChatboxIds, detectBranch, buildTree를 구현해줘." (Claude의 DOM 구조 및 task 요약본 전달)
