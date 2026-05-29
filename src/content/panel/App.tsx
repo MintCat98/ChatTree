@@ -24,7 +24,7 @@ export default function App() {
 
   // Render nothing when the panel is hidden; the message listener above
   // stays registered so the store keeps catching updates in the background.
- ───────────────────────────────────────────────
+ // ───────────────────────────────────────────────
 
   if (!settings.panelVisible) return null;
 
