@@ -25,17 +25,17 @@ export function assignChatboxIds(): ChatboxNode[] {
   const nodes:  ChatboxNode[] = [];
 
   bubbles.forEach((el, index) => {
-    // data-nav-id 재사용 or 새로 주입
+    // reuse data-nav-id or provide new id
     let id = el.getAttribute(SELECTORS.NAV_ID_ATTR);
     if (!id) {
       id = `chatbox-${index}`;
       el.setAttribute(SELECTORS.NAV_ID_ATTR, id);
     }
 
-    // 텍스트 추출
+    // extract text
     const text = el.querySelector(SELECTORS.USER_MESSAGE)?.textContent ?? '';
 
-    // 브랜치 정보
+    // branch info
     const { hasBranch, current, total } = detectBranch(el as HTMLElement);
 
     nodes.push({
