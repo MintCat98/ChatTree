@@ -16,15 +16,6 @@
 
 <!-- Start from here -->
 
-### AI Usage Log | 2026-05-28 (By @MintCat98)
-- **What**: hotfix — `constants.ts` selector fix, `message-types.ts` key rename & `BridgeMessage<T>` wrapper 도입
-- **Request**: "아래와 같은 문제가 있었는데 핫픽스 부탁해." (Task spec 전달, 셀렉터 불일치 + 메시지 키 이름 불일치 수정 요청)
-- **AI Suggestion**: 4개 파일 수정 플랜 제시 — `constants.ts` (셀렉터 3개 수정·5개 추가·3개 제거), `message-types.ts` (키 2개 리네임·1개 제거·`BridgeMessage<T>` 추가), `message-handler.ts` / `message-bridge.ts` (import 타입 교체)
-- **Human Review**:
-    - 클로드에 의한 즉시 수정 전, plan을 받아본 뒤 문제 없음 확인 후 진행
-    - 수정내용에 대해 직접 npm build를 통해 에러 없음 확인
-- **Reflected**: 플랜대로 4개 파일 수정, `tsc --noEmit` 오류 없음, `webpack` 빌드 성공 확인
-
 
 ### AI Usage Log | 2026-05-28 (By @jglJGL000304)
 - **What**: 이슈 #12 리뷰 피드백 반영 — (1) 코드 내 한글 주석 영어로 변환 (`panel-store.ts`, `panel-store.test.ts`, `App.tsx`, `index.css` 4파일), (2) Wn 표기(W4-2, W4-3 등) 제거, (3) PR 본문에서 템플릿 hint 주석(`<!-- ... -->`) 제거, (4) PR 제목을 의미 담은 형태로 교체.
@@ -79,3 +70,13 @@
     - `ReferenceError: localStorage is not defined` → Jest 28+ jsdom 환경 분리 → `npm install -D jest-environment-jsdom` + 테스트 파일 최상단 docblock 추가.
     - 최종 `npm test -- panel-store` 6/6 passed, `npx tsc --noEmit` 무에러 확인.
 - **Reflected**: 변경 파일 3개(`panel-store.ts`, `panel-store.test.ts`, `types.ts`) + 의존성 2개(`zustand`, `jest-environment-jsdom`) 도입. 
+
+
+### AI Usage Log | 2026-05-28 (By @MintCat98)
+- **What**: hotfix — `constants.ts` selector fix, `message-types.ts` key rename & `BridgeMessage<T>` wrapper 도입
+- **Request**: "아래와 같은 문제가 있었는데 핫픽스 부탁해." (Task spec 전달, 셀렉터 불일치 + 메시지 키 이름 불일치 수정 요청)
+- **AI Suggestion**: 4개 파일 수정 플랜 제시 — `constants.ts` (셀렉터 3개 수정·5개 추가·3개 제거), `message-types.ts` (키 2개 리네임·1개 제거·`BridgeMessage<T>` 추가), `message-handler.ts` / `message-bridge.ts` (import 타입 교체)
+- **Human Review**:
+    - 클로드에 의한 즉시 수정 전, plan을 받아본 뒤 문제 없음 확인 후 진행
+    - 수정내용에 대해 직접 npm build를 통해 에러 없음 확인
+- **Reflected**: 플랜대로 4개 파일 수정, `tsc --noEmit` 오류 없음, `webpack` 빌드 성공 확인
