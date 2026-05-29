@@ -101,15 +101,6 @@ export function buildTree(_nodes: ChatboxNode[]): TreeData {
     activeBranchPath: linked.map((node)=>node.id),
     lastUpdated:Date.now(),
   }
-
-
-  
-  return {
-    sessionId: 'unknown',
-    nodes: [],
-    activeBranchPath: [],
-    lastUpdated: Date.now(),
-  };
 }
 
 /**
