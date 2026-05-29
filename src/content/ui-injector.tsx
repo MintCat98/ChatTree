@@ -1,18 +1,16 @@
 import ReactDOM from 'react-dom/client';
 
 let shadowHost: HTMLElement | null = null;
-let shadowRoot: ShadowRoot | null = null;
 let reactRoot: ReactDOM.Root | null = null;
 
 export function injectPanel(): void {
-  if (shadowHost) return;
+  if (shadowHost) destroyPanel();
 
   const host = document.createElement('div');
   host.id = 'chat-nav-root';
 
   const shadow = host.attachShadow({ mode: 'closed' });
   shadowHost = host;
-  shadowRoot = shadow;
 
   document.body.appendChild(host);
 
@@ -27,6 +25,4 @@ export function destroyPanel(): void {
 
   shadowHost?.remove();
   shadowHost = null;
-
-  shadowRoot = null;
 }
