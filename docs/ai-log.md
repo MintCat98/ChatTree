@@ -13,9 +13,19 @@
 - **Reflected**: Final PR body with 4 verified elements + corrected Issue number
 
 ---
-
+### AI Usage Log | 2026-05-29 (By @jglJGL000304)
+- **What**: 이슈 #27 — `data-slot="header"` / `data-slot="controlbar"` 자리를 PanelShell · Header · Tooltip · ControlBar로 교체. 드래그 이동 / 투명도 / 위치 / 정렬 / hover Tooltip 구현. 컴포넌트 4개 신규 + App.tsx를 PanelShell로 래핑.
+- **Request**: "드래그는 mousedown=Header(Shadow DOM)·mousemove/up=document로 분리. Tooltip은 hover 300ms 지연 후 Portal 렌더. ControlBar는 updateSettings에 연결. 애니메이션은 #12의 --nav-duration-* 토큰 사용."
+- **AI Suggestion**:
+    - PanelShell(위치/투명도/드래그 관리), Header(드래그 핸들+닫기 버튼), Tooltip(300ms 지연+Portal 렌더), ControlBar(방향 disabled/위치/투명도/정렬)
+    - 드래그 좌표는 viewport 클램핑(`Math.max/min`)으로 화면 밖 이탈 방지
+    - 닫기 버튼은 `updateSettings({ panelVisible: false })`만 호출 (메시지 발행 X)
+    - 드래그 offset은 `useRef`(렌더 불필요), 위치는 `useState`(시각 갱신)
+- **Human Review**: Mock tree로 드래그·투명도·정렬·Tooltip 시나리오 시각 확인. tsc·build 통과. 닫기 후 재오픈은 #28 Popup이 담당함을 확인.
+- **Reflected**: 4 신규 컴포넌트 + App.tsx 래핑. 드래그 좌표 영속화 / Left-Right 방향은 후속 작업. 실제 데이터 흐름은 Background `TREE_READY` 발행 PR 머지 후 자동 연결.
 <!-- Start from here -->
-### AI Usage Log | 2026-MM-DD (By @jglJGL000304)
+
+### AI Usage Log | 2026-05-29 (By @jglJGL000304)
 - **What**: 이슈 #25 — `data-slot="treemap"` 자리를 GitLens 스타일 SVG 세로 트리로 교체. 7개 컴포넌트 신규 + App.tsx 한 줄 교체.
 - **Request**: "GitLens 브랜치 그래프 스타일. index * NODE_STEP 단순 좌표, plain SVG, 브랜치 포인트만 점선 레인. D3 사용 X."
 - **AI Suggestion**:
