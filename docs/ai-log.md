@@ -24,7 +24,8 @@
     - .tsx 변환 여부 및 React.createElement vs JSX 방식 직접 판단
     - stub 스타일링 단순화 (dark box 스타일 제거)
     - reactRoot 변수 추가 및 unmount() 처리는 리뷰어 피드백 후 직접 반영
-- **Reflected**: ui-injector.tsx로 rename, injectPanel()·destroyPanel() 구현 완료, `tsc --noEmit` 및 `npm run build` 성공 확인
+    - 리뷰어 피드백 반영: shadowRoot 불필요 변수 제거, `if (shadowHost) return` → `destroyPanel()` 호출로 변경
+- **Reflected**: ui-injector.tsx로 rename, injectPanel()·destroyPanel() 구현 완료, 리뷰 피드백 2건 반영, `tsc --noEmit` 및 `npm run build` 성공 확인
 
 ---
 
