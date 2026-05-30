@@ -22,7 +22,6 @@ function handleDOMChange(): void {
 }
 
 export function startObserving(): void {
-  // TODO: implement — create MutationObserver, attach to chat container
   const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
   if (!container) return;
 
@@ -58,7 +57,6 @@ export function startObserving(): void {
 }
 
 export function stopObserving(): void {
-  // TODO: implement — disconnect and null out observer
   observer?.disconnect();
   observer = null;
 }
