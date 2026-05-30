@@ -1,7 +1,7 @@
 // Tracks which chatbox is currently visible in the viewport via IntersectionObserver.
 
-import { SELECTORS, TIMING } from "@shared/constants";
-import { MessageType } from "@shared/message-types";
+import { SELECTORS, TIMING } from '@shared/constants';
+import { MessageType } from '@shared/message-types';
 
 let intersectionObserver: IntersectionObserver | null = null;
 const visibleNodes = new Map<string, number>();
@@ -41,16 +41,16 @@ export function startTracking(_onActiveChange: (navId: string) => void): void {
           console.log(MessageType.ACTIVE_NODE_CHANGED, bestId);
           _onActiveChange(bestId);
         }
-      }, 50)
+      }, 50);
     },
     {
-      threshold: TIMING.INTERSECTION_THRESHOLD
+      threshold: TIMING.INTERSECTION_THRESHOLD,
     }
-  )
-  
+  );
+
   document
     .querySelectorAll(`[${SELECTORS.NAV_ID_ATTR}]`)
-    .forEach((el)=>intersectionObserver!.observe(el));
+    .forEach((el) => intersectionObserver!.observe(el));
 }
 
 export function stopTracking(): void {
