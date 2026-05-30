@@ -16,6 +16,18 @@
 
 <!-- Start from here -->
 
+### AI Usage Log | 2026-05-31 (By @ignisytb)
+- **What**: Implement `scrollToNode()` — scroll navigation with highlight effect (Issue #24)
+- **Request**: Issue #24의 scroll-navigator.ts 구현 순서 질문 및 navId, querySelector, classList, highlight 개념 학습
+- **AI Suggestion**: querySelector로 data-nav-id 요소 탐색, scrollIntoView smooth, nav-highlight 클래스 1.5s 후 제거, content_styles.css 생성 및 manifest 등록 방식 제안
+- **Human Review**:
+    - 코드 직접 작성, 순서 안내만 참고
+    - webpack.config.js 수정은 범위 초과로 직접 판단하여 Known Limitations으로 처리
+    - content_styles.css staging 여부 직접 결정
+- **Reflected**: scrollToNode() 구현 완료, content_styles.css 생성, manifest.json css 등록, `npm run build` 성공 확인
+
+---
+
 ### AI Usage Log | 2026-05-30 (By @ignisytb)
 - **What**: Implement `startTracking()`, `stopTracking()`, `observeNode()` — IntersectionObserver active node tracking (Issue #23)
 - **Request**: Issue #23의 active-node-tracker.ts 구현 방법 질문 및 IntersectionObserver, throttle, Map 상태 관리 개념 학습
