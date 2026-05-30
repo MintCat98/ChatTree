@@ -2,7 +2,7 @@ import { assignChatboxIds, detectBranch, buildTree, reloadFromNode } from './cha
 //import { MessageType } from '@shared/message-types';
 import { startObserving } from './observer';
 
-
+/*
 console.log('[test] assignChatboxIds:', assignChatboxIds());
 console.log('[test] detectBranch:', detectBranch(document.body));
 console.log('[test] buildTree:', buildTree([]));
@@ -14,6 +14,7 @@ setTimeout(() => {
   console.log('[test] buildTree:', buildTree(assignChatboxIds()));
   console.log('[test] reloadFromNode:', reloadFromNode('node-1', []));
 }, 3000);
+*/
 
 // Test for handleDOM
 /*
@@ -30,4 +31,4 @@ setTimeout(() => {
 */
 
 // test for startObserving()
-startObserving();
+//startObserving();
