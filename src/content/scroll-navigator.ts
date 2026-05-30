@@ -1,6 +1,6 @@
 // Scrolls the page to the chatbox element identified by navId.
 
-import { SELECTORS } from '../shared/constants';
+import { SELECTORS, TIMING } from '../shared/constants';
 
 export function scrollToNode(navId: string): void {
   const el = document.querySelector(`[${SELECTORS.NAV_ID_ATTR}="${navId}"]`);
@@ -16,5 +16,5 @@ export function scrollToNode(navId: string): void {
   });
 
   el.classList.add('nav-highlight');
-  setTimeout(() => el.classList.remove('nav-highlight'), 1500);
+  setTimeout(() => el.classList.remove('nav-highlight'), TIMING.HIGHLIGHT_DURATION);
 }
