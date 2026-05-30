@@ -5,7 +5,10 @@ import { SELECTORS } from '../shared/constants';
 export function scrollToNode(navId: string): void {
   const el = document.querySelector(`[${SELECTORS.NAV_ID_ATTR}="${navId}"]`);
 
-  if (!el) return;
+  if (!el) {
+    console.warn(`[scroll-navigator] element not found for navId: ${navId}`);
+    return;
+  }
 
   el.scrollIntoView({
     behavior: 'smooth',
