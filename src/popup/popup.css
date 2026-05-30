@@ -1,0 +1,102 @@
+/* src/popup/popup.css — 확장 팝업(popup.html) 스타일 */
+
+.cn-popup {
+  width: 320px;
+  min-height: 360px;
+  padding: 16px;
+  background-color: #11111b;
+  color: #f1f5f9;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+/* Header */
+.cn-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.cn-title { font-size: 16px; font-weight: 700; margin: 0; }
+.cn-version { font-size: 11px; color: #94a3b8; }
+
+/* Loading */
+.cn-loading { padding: 24px 0; text-align: center; color: #94a3b8; }
+
+/* Unsupported notice */
+.cn-unsupported {
+  padding: 32px 16px;
+  text-align: center;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+.cn-unsupported__icon { font-size: 32px; margin-bottom: 12px; }
+.cn-unsupported__title { color: #f1f5f9; }
+.cn-unsupported p { margin-top: 8px; }
+.cn-unsupported code { color: #a78bfa; }
+
+/* Settings form */
+.cn-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.cn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cn-row__label { color: #94a3b8; min-width: 80px; }
+.cn-row__control {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.cn-divider { border: 0; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+
+.cn-select {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+.cn-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Opacity slider */
+.cn-opacity { display: flex; align-items: center; flex: 1; gap: 8px; }
+.cn-opacity__range { flex: 1; }
+.cn-opacity__value { min-width: 36px; text-align: right; }
+
+/* Toggle switch */
+.cn-toggle {
+  width: 44px;
+  height: 24px;
+  background: #374151;
+  border: none;
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background 150ms;
+}
+.cn-toggle--on { background: #7c3aed; }
+.cn-toggle__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #f1f5f9;
+  border-radius: 50%;
+  transition: left 150ms;
+}
+.cn-toggle__knob--on { left: 22px; }
