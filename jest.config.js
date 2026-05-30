@@ -8,6 +8,7 @@ module.exports = {
   moduleNameMapper: {
     '^@shared/(.*)$': path.resolve(__dirname, 'src/shared/$1'),
     '^@content/(.*)$': path.resolve(__dirname, 'src/content/$1'),
+    '^@background/(.*)$': path.resolve(__dirname, 'src/background/$1'),
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { tsconfig: './tsconfig.test.json' }],

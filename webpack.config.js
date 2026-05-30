@@ -31,6 +31,7 @@ module.exports = {
     alias: {
       '@shared': path.resolve(__dirname, 'src/shared'),
       '@content': path.resolve(__dirname, 'src/content'),
+      '@background': path.resolve(__dirname, 'src/background'),
     },
   },
   plugins: [
