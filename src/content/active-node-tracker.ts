@@ -4,6 +4,9 @@ import { SELECTORS, TIMING } from '@shared/constants';
 import { MessageType } from '@shared/message-types';
 
 let intersectionObserver: IntersectionObserver | null = null;
+// Tracks all currently visible nodes and their ratios across callbacks.
+// Needed because IntersectionObserver only delivers *changed* entries per tick,
+// not the full visible set — so we maintain state ourselves.
 const visibleNodes = new Map<string, number>();
 let throttleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -12,6 +15,7 @@ export function startTracking(_onActiveChange: (navId: string) => void): void {
 
   intersectionObserver = new IntersectionObserver(
     (entries) => {
+      // Update visibility map with latest ratios
       for (const entry of entries) {
         const navId = entry.target.getAttribute(SELECTORS.NAV_ID_ATTR);
         if (!navId) continue;
@@ -23,10 +27,12 @@ export function startTracking(_onActiveChange: (navId: string) => void): void {
         }
       }
 
+      // Throttle to avoid firing on every scroll tick
       if (throttleTimer) return;
       throttleTimer = setTimeout(() => {
         throttleTimer = null;
 
+        // Pick the node with the highest visibility ratio
         let bestId: string | null = null;
         let bestRatio = -1;
 
@@ -48,6 +54,7 @@ export function startTracking(_onActiveChange: (navId: string) => void): void {
     }
   );
 
+  // Register chatboxes already in the DOM at tracking start
   document
     .querySelectorAll(`[${SELECTORS.NAV_ID_ATTR}]`)
     .forEach((el) => intersectionObserver!.observe(el));
@@ -58,12 +65,14 @@ export function stopTracking(): void {
   intersectionObserver = null;
   visibleNodes.clear();
 
+  // Cancel pending throttle to prevent stale callbacks after teardown
   if (throttleTimer) {
     clearTimeout(throttleTimer);
     throttleTimer = null;
   }
 }
 
+// Called by observer.ts when a new chatbox is added to the DOM dynamically
 export function observeNode(el: Element): void {
   intersectionObserver?.observe(el);
 }
