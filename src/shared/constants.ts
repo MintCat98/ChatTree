@@ -24,6 +24,7 @@ export const TIMING = {
   OBSERVER_DEBOUNCE:      100,
   // IntersectionObserver threshold for active-node detection
   INTERSECTION_THRESHOLD: 0.5,
+  HIGHLIGHT_DURATION: 1500,
 } as const;
 
 export const CHAT_URL_PATTERN = /\/chat\/([0-9a-f-]{36})/;
