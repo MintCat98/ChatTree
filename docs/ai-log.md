@@ -24,7 +24,8 @@
     - 코드 직접 작성, 순서 안내만 참고
     - webpack.config.js 수정은 범위 초과로 직접 판단하여 Known Limitations으로 처리
     - content_styles.css staging 여부 직접 결정
-- **Reflected**: scrollToNode() 구현 완료, content_styles.css 생성, manifest.json css 등록, `npm run build` 성공 확인
+    - 리뷰어 피드백 반영: .nav-highlight 선택자를 [data-nav-id].nav-highlight로 변경, console.warn 추가, 불필요 주석 제거
+- **Reflected**: scrollToNode() 구현 완료, content_styles.css 생성, manifest.json css 등록, 리뷰 피드백 반영, `npm run build` 성공 확인
 
 ---
 
