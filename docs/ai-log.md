@@ -12,33 +12,6 @@
     - Changed "perfectly" → "working as expected"
 - **Reflected**: Final PR body with 4 verified elements + corrected Issue number
 
-<!-- Start from here -->
-### AI Usage Log | 2026-05-31 (By @jglJGL000304)
-- **What**: 이슈 #28 / PR #34 — MintCat98 리뷰 코멘트 5건 반영. (1) inline style → `popup.css` 분리, (2) 삭제됐던 `ReactDOM.createRoot` 마운트 복원, (3) `export default` → named `export function Popup` 복원, (4) 불필요한 storage read를 `status === 'supported'`일 때만 로드하도록 게이트, (5) 순수 로직 분리 + 단위 테스트 추가. 코드 주석 전부 영어로 작성.
-- **Request**: "MintCat 리뷰 코멘트(스타일 하드코딩 / createRoot 삭제 / export 변경 / storage read / unit test) 반영해서 정확히 수정하고 깃헙에 올릴 수 있게 해줘. 코드 주석은 영어로."
-- **AI Suggestion**:
-    - 원인 검증: `webpack.config.js`에서 popup entry가 `Popup.tsx` 자신 → 마운트 삭제 시 팝업이 빈 화면. `grep -rn Popup src/` 결과 import 사용처 없음 → named export로 복원해도 안전.
-    - `src/popup/popup.css` 신규 + `cn-*` className 전환 (기존 style-loader/css-loader 설정 활용).
-    - 순수 로직을 `src/popup/popup-logic.ts`로 분리: `isSupportedPage` / `mergeSettings` / `applyPatch` / `buildSettingsMessage`.
-    - `tests/unit/popup-logic.test.ts` 8 케이스 (URL 판별·설정 병합·patch 불변·SETTINGS_CHANGE 메시지 래핑).
-    - settings 로드를 `useEffect([status])`로 옮겨 `status === 'supported'`일 때만 `chrome.storage.local.get` 실행.
-- **Human Review**:
-    - 빌드 중 `TS2882` (CSS side-effect import 타입 부재) 발견 → `src/types/css.d.ts`(`declare module '*.css';`) 추가.
-    - `chrome.storage.local.get` 결과 타입이 `unknown` → `mergeSettings(result.settings as Partial<UserSettings> | undefined)`로 캐스팅.
-    - `npm run build` 성공, `npm test` 전체 통과(5 suites, 14 passed / 10 todo, 그중 popup-logic 8/8), 신규 4파일 `eslint` 무에러 확인.
-    - Dropbox가 `.git`을 실시간 동기화하며 객체 파일을 잠가 `git add` 시 `Permission denied` → `.git`에 `com.dropbox.ignored=1` 설정 + 읽기전용 속성 정리 후 staging 성공.
-- **Reflected**: 코드 4파일(`Popup.tsx` 수정 + `popup-logic.ts`·`popup.css`·`types/css.d.ts` 신규) + 테스트 1파일(`tests/unit/popup-logic.test.ts`). Background의 SETTINGS_CHANGE forward / Panel의 수신 처리는 기존 계획대로 후속(#3) 의존.
-
-### AI Usage Log | 2026-05-29 (By @jglJGL000304)
-- **What**: 이슈 #28 — popup/Popup.tsx 완성. 현재 탭 URL 검사 후 설정 UI 또는 미지원 안내 표시. chrome.storage.local 영속화 + SETTINGS_CHANGE 메시지로 Panel 동기화.
-- **Request**: "Popup.tsx를 두 화면(설정 / 미지원)으로 분기. 설정 변경 시 storage + sendMessage 발행."
-- **AI Suggestion**:
-    - chrome.tabs.query로 활성 탭 URL 확인 → claude.ai/chat/* 매칭 여부로 화면 분기
-    - 설정 컨트롤은 ControlBar와 동일 구조(패널 표시 토글 + 위치/투명도/정렬 + 방향 disabled)
-    - 변경 시 chrome.storage.local.set + chrome.runtime.sendMessage(SETTINGS_CHANGE)
-    - 초기 마운트 시 chrome.storage.local.get으로 현재 settings 로드, 로딩 중 깜빡임 방지
-- **Human Review**: Claude.ai 탭과 다른 탭에서 각각 Popup 열어 분기 확인. 토글 OFF→ON 시 Panel 재등장. 새로고침해도 설정 유지.
-- **Reflected**: src/popup/Popup.tsx 덮어쓰기 1파일. Background forward 로직은 #14/#24 의존.
 ---
 ### AI Usage Log | 2026-05-29 (By @jglJGL000304)
 - **What**: 이슈 #27 — `data-slot="header"` / `data-slot="controlbar"` 자리를 PanelShell · Header · Tooltip · ControlBar로 교체. 드래그 이동 / 투명도 / 위치 / 정렬 / hover Tooltip 구현. 컴포넌트 4개 신규 + App.tsx를 PanelShell로 래핑.
@@ -50,7 +23,7 @@
     - 드래그 offset은 `useRef`(렌더 불필요), 위치는 `useState`(시각 갱신)
 - **Human Review**: Mock tree로 드래그·투명도·정렬·Tooltip 시나리오 시각 확인. tsc·build 통과. 닫기 후 재오픈은 #28 Popup이 담당함을 확인.
 - **Reflected**: 4 신규 컴포넌트 + App.tsx 래핑. 드래그 좌표 영속화 / Left-Right 방향은 후속 작업. 실제 데이터 흐름은 Background `TREE_READY` 발행 PR 머지 후 자동 연결.
-
+<!-- Start from here -->
 
 ### AI Usage Log | 2026-05-29 (By @jglJGL000304)
 - **What**: 이슈 #25 — `data-slot="treemap"` 자리를 GitLens 스타일 SVG 세로 트리로 교체. 7개 컴포넌트 신규 + App.tsx 한 줄 교체.
