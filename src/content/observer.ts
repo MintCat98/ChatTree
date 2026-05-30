@@ -23,7 +23,38 @@ function handleDOMChange(): void {
 
 export function startObserving(): void {
   // TODO: implement — create MutationObserver, attach to chat container
-  throw new Error('TODO');
+  const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
+  if (!container) return;
+
+  observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      // Detect branch: BRANCH_ACTIONS_WRAPPER newly added
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof HTMLElement &&
+            node.matches(SELECTORS.BRANCH_ACTIONS_WRAPPER)) {
+            chrome.runtime.sendMessage({ type: MessageType.BRANCH_CHANGED });
+          }
+        });
+      }
+
+      // Detect end of streaming and manages branch
+      if (
+        mutation.type === 'attributes' &&
+        mutation.attributeName === SELECTORS.STREAMING_ATTR &&
+        (mutation.target as HTMLElement).getAttribute(SELECTORS.STREAMING_ATTR) === 'false'
+      ) {
+        handleDOMChange();
+      }
+    }
+  });
+
+  observer.observe(container, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: [SELECTORS.STREAMING_ATTR],
+  });
 }
 
 export function stopObserving(): void {

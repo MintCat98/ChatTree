@@ -15,6 +15,15 @@
 ---
 
 <!-- Start from here -->
+### AI Usage Log | 2026-05-30 (By @Do-yun)
+- **What**: feat — `observer.ts` 함수 (handleDOMChange, startObserve) 구현 및 `_test-tracker.ts` 수정
+- **Request**: "각 함수의 task와 workflow를 제공해줄게. 이를 기반으로, data-is-streaming의 변화가 #main-content 직계자식에서 일어나는지 확인할 방법과 함수의 구현을제안해줘." (Workflow 정리, task 요약본 및 관련 소스코드 전달)
+- **AI Suggestion**: observer.ts, _test-tracker.ts 소스코드 초안 제공 및 data-is-streaming 변화 확인 방법 제안
+- **Human Review**:
+    - _test-tracker.ts: 함수 실행만 확인하는 console.log 대신, chrome 환경의 Background에서 메세지를 받은 것을 확인할 수 있도록 수정 요구
+    - observer.ts - 구조 분석 및 검토, _test-tracker.ts를 활용해 검증
+- **Reflected**: 제안된 `observer.ts` 및 `_test-tracker.ts` 의 동작을 확인
+
 ### AI Usage Log | 2026-05-29 (By @Do-yun)
 - **What**: feat — `chatbox-tracker.ts` 함수 (assignChatboxIds, detectBranch, buildTree) 구현 및 `_test-tracker.ts` 수정
 - **Request**: "Claude의 DOM의 구조와 각 함수의 task를 제공해줄게. 이를 기반으로, assignChatboxIds, detectBranch, buildTree를 구현해줘." (Claude의 DOM 구조 및 task 요약본 전달)

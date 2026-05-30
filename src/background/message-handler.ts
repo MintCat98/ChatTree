@@ -9,5 +9,5 @@ export function onMessage(
 ): boolean | void {
   // TODO: implement message relay logic per MessageType
   // Test: check if the background successfully received message
-  console.log('[background] message received:', _message);
+  //console.log('[background] message received:', _message);
 }

@@ -1,5 +1,7 @@
 import { assignChatboxIds, detectBranch, buildTree, reloadFromNode } from './chatbox-tracker';
-import { MessageType } from '@shared/message-types';
+//import { MessageType } from '@shared/message-types';
+import { startObserving } from './observer';
+
 
 console.log('[test] assignChatboxIds:', assignChatboxIds());
 console.log('[test] detectBranch:', detectBranch(document.body));
@@ -14,6 +16,7 @@ setTimeout(() => {
 }, 3000);
 
 // Test for handleDOM
+/*
 setTimeout(() => {
   const nodes = assignChatboxIds();
   const tree = buildTree(nodes);
@@ -24,3 +27,7 @@ setTimeout(() => {
   });
   console.log('[test] sendMessage called:', { nodes, sessionId: tree.sessionId });
 }, 6000);
+*/
+
+// test for startObserving()
+startObserving();
