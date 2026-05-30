@@ -63,3 +63,7 @@ export function stopTracking(): void {
     throttleTimer = null;
   }
 }
+
+export function observeNode(el: Element): void {
+  intersectionObserver?.observe(el);
+}
