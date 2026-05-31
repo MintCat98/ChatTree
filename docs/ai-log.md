@@ -15,14 +15,16 @@
 ---
 
 <!-- Start from here -->
-### AI Usage Log | 2026-05-28 (By @Do-yun)
-- **What**: feat — `chatbox-tracker.ts` 체크 및 이를 테스트하기 위한 `_test-tracker.ts` 작성
-- **Request**: "이 skeleton 코드를 확인해보고 싶은데, 각 함수의 호출에 문제가 없는지 확인할 수 있는 방법을 제안해줘." (Skeleton 코드 전달)
-- **AI Suggestion**: npx tsc--noemit 만 테스트해도 충분 / VSCode의 빨간줄 표시 확인 추천 -> 추가 요청으로, build 후 chrome extension으로 확인 방법 제안
-- **Human Review**:
-    - 실제 환경에서의 확인과 상이할 수 있음을 지적하고, chrome 환경에서 동작 확인이 될 것을 요구함.
-    - 수정된 방식을 사용하고 문제가 없이 의도한대로 됨을 확인
-- **Reflected**: 제안된 `_test-tracker.ts` 활용 빌드 성공 및 에러 없이 함수 return이 출력됨을 확인
+### AI Usage Log | 2026-MM-DD (By @jglJGL000304)
+- **What**: 이슈 #25 — `data-slot="treemap"` 자리를 GitLens 스타일 SVG 세로 트리로 교체. 7개 컴포넌트 신규 + App.tsx 한 줄 교체.
+- **Request**: "GitLens 브랜치 그래프 스타일. index * NODE_STEP 단순 좌표, plain SVG, 브랜치 포인트만 점선 레인. D3 사용 X."
+- **AI Suggestion**:
+    - components/ 폴더에 7개 파일: TreeMapCanvas(컨테이너), TreeNode(원+텍스트), NodeBadge(브랜치 뱃지), NodeConnector(세로선), BranchLane(점선 레인), EmptyState, constants
+    - 좌표는 viewBox + `cy = padding + index * step` 으로 결정 (D3 없음)
+    - 노드 click → SCROLL_TO_NODE, hover → setHoveredNode, key Enter/Space 처리
+    - SVG <text> truncate는 JS로 직접 (CSS text-overflow 동작 X)
+- **Human Review**: Mock 데이터로 노드 6개 + 브랜치 포인트 2개 시나리오 시각 확인. tsc·build 통과. Mock import 제거 후 머지 준비.
+- **Reflected**: 7 신규 파일 + App.tsx 1줄 교체. Tooltip은 #27에서 추가. 실제 데이터 흐름은 Background `TREE_READY` 발행 PR 머지 후 자동 연결.
 
 ### AI Usage Log | 2026-05-28 (By @jglJGL000304)
 - **What**: 이슈 #12 리뷰 피드백 반영 — (1) 코드 내 한글 주석 영어로 변환 (`panel-store.ts`, `panel-store.test.ts`, `App.tsx`, `index.css` 4파일), (2) Wn 표기(W4-2, W4-3 등) 제거, (3) PR 본문에서 템플릿 hint 주석(`<!-- ... -->`) 제거, (4) PR 제목을 의미 담은 형태로 교체.
