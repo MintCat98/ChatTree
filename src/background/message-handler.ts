@@ -7,5 +7,6 @@ export function onMessage(
   _sender: chrome.runtime.MessageSender,
   _sendResponse: (response?: unknown) => void,
 ): boolean | void {
-  // TODO: implement message relay logic per MessageType
+  // Test: check if the background successfully received message
+  //console.log('[background] message received:', _message);
 }
