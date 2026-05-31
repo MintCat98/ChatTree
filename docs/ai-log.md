@@ -17,6 +17,31 @@
 
 ### AI Usage Log | 2026-05-31 (By @MintCat98)
 
+- **What**: fix — 브랜치 전환(‹/›) 시 트리 맵이 자동 업데이트되지 않는 버그 수정 (`branch-change-watcher.ts` 전면 재작성, `observer.ts` 콜백 변경)
+- **Request**: "채팅 분기를 바꿔도 이후 채팅을 새로 치기까지 맵 업데이트가 안 되는데 자동으로 업데이트되도록 하는 법 없을까" + "노드 개수는 바뀌는데 채팅 내용은 안 바뀌네"
+- **AI Suggestion**:
+  - **Root Cause 1 (감지 실패)** — `branch-change-watcher.ts`가 `characterData` MutationObserver로 인디케이터 텍스트 변화를 감지했으나, Claude.ai는 React 기반이라 텍스트 노드를 in-place 변경하지 않고 DOM 노드를 통째로 교체 → `characterData` 이벤트 발화 안 됨.
+  - **Root Cause 2 (텍스트 미갱신)** — `reloadFromNode`가 브랜치 포인트 이전 노드를 "보존"하는데, 브랜치 전환 후 해당 노드의 `branchCurrent`가 갱신되지 않음. 고정 150ms 타임아웃이 React 재렌더 완료를 보장하지 못해 텍스트도 stale하게 읽힐 수 있음.
+  - **Fix 1** — `characterData` MutationObserver 전체 제거 → 컨테이너에 click 이벤트 위임(delegation) 등록. `closest(BRANCH_PREV_BTN / BRANCH_NEXT_BTN)`으로 브랜치 버튼 클릭 판별. 클릭이 발생했다는 것 자체가 source of truth.
+  - **Fix 2** — 고정 타임아웃 → **DOM settle 감지**로 교체. 클릭 후 `MutationObserver`로 DOM 변경이 50ms간 멈출 때까지 대기 (React 재렌더 완료 시점). 600ms fallback으로 안전망 확보.
+  - **Fix 3** — `observer.ts` 콜백을 `reloadFromNode` 부분 재스캔 → `assignChatboxIds()` 전체 재스캔으로 변경. 모든 노드의 텍스트·`branchCurrent`를 항상 최신 DOM에서 읽음.
+- **Human Review**: 진행 중
+- **Reflected**: `src/content/branch-change-watcher.ts` (전면 재작성), `src/content/observer.ts` (콜백 + import 정리) 2파일 수정.
+
+### AI Usage Log | 2026-05-31 (By @MintCat98)
+
+- **What**: perf — `perf/chatbox-record-non-dev-mode` 브랜치. DevTools 없이 채팅 기록 전혀 안되는 문제 수정. 근본 원인은 MV3 SW 30초 종료로 인한 content script → SW → Panel 릴레이 전체 실패.
+- **Request**: "수정해야할듯? 개발자 모드가 아닐 땐 아예 채팅 기록을 못하네"
+- **AI Suggestion**:
+  - **Root Cause 진단** — F12 열면 DevTools가 SW에 attach되어 종료 방지. 닫으면 SW가 30초 후 종료됨. keepalive alarm이 1분 주기라 매 분마다 30초 구간은 SW가 죽어있음. SW 재기동 중 `chrome.runtime.sendMessage` 유실 → 트리 업데이트 전체 실패.
+  - **Fix (트리 기록)** — `observer.ts`에 `dispatchTree()` 헬퍼 추가. 트리 빌드 후 `window.dispatchEvent(new CustomEvent('chattree:ready'))` 로 Panel에 직접 전달 (SW 우회). SW `TREE_UPDATE`는 session-store 저장용 fire-and-forget으로만 유지. branch 전환 콜백도 동일하게 `dispatchTree()`로 통일.
+  - **Fix (스크롤)** — `TreeNode.tsx`에서 `chrome.runtime.sendMessage(SCROLL_TO_NODE)` 제거 → `scrollToNode(node.id)` 직접 호출. Panel과 `scroll-navigator.ts`가 같은 content script 번들 내에 있어 직접 호출 가능.
+  - `App.tsx` `chrome.runtime.onMessage` → `window.addEventListener('chattree:ready')` 전환.
+- **Human Review**: 진행 중
+- **Reflected**: `src/content/observer.ts`, `src/content/panel/App.tsx`, `src/content/panel/components/TreeNode.tsx`, `src/content/index.ts` 4파일 수정.
+
+### AI Usage Log | 2026-05-31 (By @MintCat98)
+
 - **What**: perf — `perf/chatbox-record-non-dev-mode` 브랜치. DevTools 없이 채팅 기록 전혀 안되는 문제 수정. 근본 원인은 MV3 SW 30초 종료로 인한 content script → SW → Panel 릴레이 전체 실패.
 - **Request**: "수정해야할듯? 개발자 모드가 아닐 땐 아예 채팅 기록을 못하네"
 - **AI Suggestion**:

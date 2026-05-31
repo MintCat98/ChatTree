@@ -1,5 +1,5 @@
 // Watches the DOM for new chatbox elements via MutationObserver.
-import { assignChatboxIds, buildTree, reloadFromNode } from './chatbox-tracker';
+import { assignChatboxIds, buildTree } from './chatbox-tracker';
 import { watchBranchChanges } from './branch-change-watcher';
 import { sendToBackground } from './message-bridge';
 import { SELECTORS, TIMING } from '@shared/constants';
@@ -57,9 +57,10 @@ export function startObserving(): void {
     attributeFilter: [SELECTORS.STREAMING_ATTR],
   });
 
-  // Separate observer for branch switching (‹/›) — detects indicator text changes
-  branchCleanup = watchBranchChanges(container as HTMLElement, (navId) => {
-    currentNodes = reloadFromNode(navId, currentNodes);
+  // Separate observer for branch switching (‹/›) — full rescan ensures
+  // branchCurrent and node text are always read fresh from the settled DOM
+  branchCleanup = watchBranchChanges(container as HTMLElement, () => {
+    currentNodes = assignChatboxIds();
     dispatchTree(buildTree(currentNodes));
   });
 }
