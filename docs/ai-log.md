@@ -17,6 +17,21 @@
 
 ### AI Usage Log | 2026-05-31 (By @MintCat98)
 
+- **What**: fix — `fix/chatbox-record-failure` 브랜치. 실제 Claude.ai에서 챗박스가 트리에 기록되지 않는 버그 2건 수정 (`observer.ts`, `App.tsx`).
+- **Request**: "지금 실제 클로드ai에서 dist를 업로드해서 테스트중인데 ui까지 띄우는 건 성공했지만 chatbox를 기록하지 못하고 있어"
+- **AI Suggestion**:
+  - DOM 셀렉터 검증: DevTools 콘솔에서 `#main-content`, `[data-user-message-bubble="true"]`, `[data-is-streaming]` 존재 여부 순차 확인 (초기 메인 화면에서 실행한 오해 포함). 채팅 페이지에서 재확인 후 셀렉터 모두 정상임을 확인.
+  - **Bug 1** — `observer.ts` `handleDOMChange()`가 `MessageType.CHATBOX_ADDED`로 전송하는데, `message-handler.ts`의 `CHATBOX_ADDED` 케이스는 `break`만 있는 미구현 스텁. `TREE_UPDATE`로 변경하면 기존 핸들러(`updateTree` → `broadcastToTab(TREE_READY)`)가 정상 처리됨.
+  - **Bug 2** — `App.tsx`가 `setTree(msg.payload)`를 호출하나 `TREE_READY` payload 구조는 `{ tree: TreeData }`. 결과적으로 `store.tree = { tree: TreeData }`가 되어 `tree.nodes`가 `undefined` → `TreeMapCanvas`에서 `.length` 접근 시 TypeError. `setTree(msg.payload.tree)`로 수정.
+  - 중간에 `console.log` 디버그 로그 추가 후 흐름 확인, 이후 제거.
+- **Human Review**:
+  - 셀렉터 확인 시 메인 화면에서 실행해 false-negative 발생 → 직접 채팅 페이지에서 재실행해 정상 확인.
+  - 확장 프로그램 재로드 후 페이지 새로고침이 필요함을 재확인 (content script 재주입 조건).
+  - 최종 트리 렌더링 및 `[ChatTree] handleDOMChange fired, nodes: 7` 콘솔 로그로 정상 동작 확인.
+- **Reflected**: `src/content/observer.ts` (`CHATBOX_ADDED` → `TREE_UPDATE`, `.catch()` 추가), `src/content/panel/App.tsx` (`msg.payload` → `msg.payload.tree`) 2파일 수정.
+
+### AI Usage Log | 2026-05-31 (By @MintCat98)
+
 - **What**: 디버깅 — 확장프로그램 로드 시 발생한 3종 에러 수정 및 패널 초기 렌더링 연결. (1) webpack dev 빌드의 CSP `unsafe-eval` 위반, (2) `chrome.alarms` 권한 누락으로 인한 TypeError, (3) `ui-injector.tsx` placeholder + `page-watcher.ts` 미구현으로 패널 미표시.
 - **Request**: "크롬 개발자모드에서 업로드했는데 CSP 에러 / TypeError / TODO 에러가 뜬다."
 - **AI Suggestion**:
