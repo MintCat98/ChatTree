@@ -27,6 +27,7 @@ export const TIMING = {
   INTERSECTION_THRESHOLD: 0.5,
   // Debounce branch-indicator text changes — rapid ‹/› clicks produce many characterData events
   BRANCH_CHANGE_DEBOUNCE: 150,
+  HIGHLIGHT_DURATION: 1500,
 } as const;
 
 export const CHAT_URL_PATTERN = /\/chat\/([0-9a-f-]{36})/;

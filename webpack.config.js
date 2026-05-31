@@ -44,6 +44,7 @@ module.exports = {
       patterns: [
         { from: 'public/manifest.json', to: '.' },
         { from: 'src/assets', to: 'assets' },
+        { from: 'src/content/content_styles.css', to: '.' },
       ],
     }),
   ],
