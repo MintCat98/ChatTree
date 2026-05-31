@@ -19,12 +19,12 @@
 
 ### AI Usage Log | 2026-05-31 (By @MintCat98)
 
-- **What**: feat — Issue #14 `message-bridge.ts` 구현
-- **Request**: "#14 작업해줘."
-- **AI Suggestion**: `sendToBackground` (3회 retry, `Promise<void>`로 시그니처 변경), `onMessageFromBackground` (타입 가드 + cleanup 함수 반환), `isBridgeMessage` 내부 헬퍼 구현. `sleep` 헬퍼 네이밍 개선 제안 수용 → 인라인 처리. unit test 11개 작성
+- **What**: feat — Issue #15 `message-handler.ts` 구현, `TREE_UPDATE` 메시지 타입 추가, SW keepalive 등록
+- **Request**: "#15 작업하자."
+- **AI Suggestion**: `TREE_UPDATE` message-types.ts 추가, `message-handler.ts` 전체 재작성 (7개 MessageType 처리 + `broadcastToTab` 헬퍼), `index.ts`에 `chrome.alarms` keepalive 추가, unit test 16개 작성
 - **Human Review**:
-  - `sleep` 함수 이름이 너무 generic하다는 피드백 → 인라인으로 수정
-- **Reflected**: `message-bridge.ts` 구현 및 unit test 11개 통과 확인
+  - 특이사항 없음
+- **Reflected**: `message-handler.ts` 구현 및 unit test 16개 통과 확인. 전체 test suite 50개 통과
 
 ---
 
@@ -32,9 +32,10 @@
 
 - **What**: feat — Issue #14 `message-bridge.ts` 구현
 - **Request**: "#14 작업해줘."
-- **AI Suggestion**: `sendToBackground` (3회 retry, `Promise<void>`로 시그니처 변경), `onMessageFromBackground` (타입 가드 + cleanup 함수 반환), `isBridgeMessage` 내부 헬퍼 구현. `sleep` 헬퍼 네이밍 개선 제안 수용 → 인라인 처리. unit test 11개 작성
+- **AI Suggestion**: `sendToBackground` (3회 retry, `Promise<void>`로 시그니처 변경), `onMessageFromBackground` (타입 가드 + cleanup 함수 반환), `isBridgeMessage` 내부 헬퍼 구현. `sleep` 헬퍼 네이밍 개선 제안 수용 → 인라인 처리. JSDoc 경고 추가. unit test 11개 작성
 - **Human Review**:
   - `sleep` 함수 이름이 너무 generic하다는 피드백 → 인라인으로 수정
+  - 무차별 retry / lingering timer / JSDoc 경고 필요성 코드 리뷰 피드백 → JSDoc만 반영, 나머지는 MVP 범위 외로 판단
 - **Reflected**: `message-bridge.ts` 구현 및 unit test 11개 통과 확인
 
 ---
