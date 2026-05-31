@@ -9,6 +9,7 @@ export const SELECTORS = {
   BRANCH_NEXT_BTN:        'button[aria-label="다음 버전"]',
   BRANCH_INDICATOR:       'span.self-center.shrink-0.select-none.font-small.text-muted',
   STREAMING_ATTR:         'data-is-streaming',
+  STREAMING_INDICATOR:    '[data-testid="streaming-indicator"]',
   AI_TURN:                '[data-testid="assistant-turn"]',
   AI_RESPONSE:            '[data-testid="ai-response"]',
   NAV_ID_ATTR:            'data-nav-id',
@@ -24,6 +25,8 @@ export const TIMING = {
   OBSERVER_DEBOUNCE:      100,
   // IntersectionObserver threshold for active-node detection
   INTERSECTION_THRESHOLD: 0.5,
+  // Debounce branch-indicator text changes — rapid ‹/› clicks produce many characterData events
+  BRANCH_CHANGE_DEBOUNCE: 150,
 } as const;
 
 export const CHAT_URL_PATTERN = /\/chat\/([0-9a-f-]{36})/;
