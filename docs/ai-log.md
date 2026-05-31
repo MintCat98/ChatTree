@@ -16,6 +16,18 @@
 
 <!-- Start from here -->
 
+### AI Usage Log | 2026-05-30 (By @ignisytb)
+- **What**: Implement `startTracking()`, `stopTracking()`, `observeNode()` — IntersectionObserver active node tracking (Issue #23)
+- **Request**: Issue #23의 active-node-tracker.ts 구현 방법 질문 및 IntersectionObserver, throttle, Map 상태 관리 개념 학습
+- **AI Suggestion**: IntersectionObserver + visibleNodes Map 구조, throttle 50ms, observeNode() export, stopTracking()에서 clearTimeout 처리 방식 제안
+- **Human Review**:
+    - throttle 없이 먼저 구현 후 직접 추가
+    - observeNode() export 필요성 직접 판단 후 추가
+    - intersectionObserver 모듈 변수 미할당 버그 직접 발견 및 수정
+- **Reflected**: startTracking()·stopTracking()·observeNode() 구현 완료, `tsc --noEmit` 및 `npm run build` 성공 확인
+
+---
+
 ### AI Usage Log | 2026-05-29 (By @ignisytb)
 - **What**: Implement `injectPanel()` — Shadow DOM mount skeleton (Issue #11)
 - **Request**: Issue #11의 injectPanel() 구현 방법 질문 및 Shadow DOM, React, JSX 개념 학습
