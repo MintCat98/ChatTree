@@ -1,0 +1,49 @@
+/* Design tokens injected at the Shadow DOM :host. Consumed by every
+   component inside the panel. Values target Claude.ai's default dark theme;
+   a prefers-color-scheme: light block can be added later if light-mode
+   support becomes required. */
+
+:host {
+  /* Background */
+  --nav-color-bg:            rgba(17, 17, 27, 0.85);
+
+  /* Node colors */
+  --nav-color-node:          #7c3aed;   /* default node */
+  --nav-color-node-active:   #6d28d9;   /* node at current scroll position */
+  --nav-color-node-branch:   #d97706;   /* branch-point node */
+  --nav-color-node-hover:    #8b5cf6;   /* hover state */
+  --nav-color-node-inactive: #64748b;   /* inferred inactive branch */
+
+  /* Edges */
+  --nav-color-edge:          rgba(139, 92, 246, 0.4);
+
+  /* Text */
+  --nav-color-text:          #f1f5f9;
+  --nav-color-text-muted:    #94a3b8;
+
+  /* Borders */
+  --nav-color-border:        rgba(255, 255, 255, 0.12);
+
+  /* Typography */
+  --nav-font-family:         'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --nav-font-size-sm:        11px;
+  --nav-font-size-base:      13px;
+
+  /* Layout */
+  --nav-border-radius:       12px;
+  --nav-panel-shadow:        0 8px 32px rgba(0, 0, 0, 0.4);
+  --nav-z-index:             2147483647;
+
+  /* Animation durations — overridden to 0ms under prefers-reduced-motion below. */
+  --nav-duration-fast:       150ms;
+  --nav-duration-base:       200ms;
+  --nav-duration-slow:       300ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    --nav-duration-fast: 0ms;
+    --nav-duration-base: 0ms;
+    --nav-duration-slow: 0ms;
+  }
+}
