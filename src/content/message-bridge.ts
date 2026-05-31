@@ -14,6 +14,10 @@ function isBridgeMessage(value: unknown): value is BridgeMessage {
   );
 }
 
+/**
+ * Always await this call or attach .catch() — rejects after 3 failed attempts.
+ * Callers that fire-and-forget risk UnhandledPromiseRejection.
+ */
 export async function sendToBackground(message: BridgeMessage): Promise<void> {
   let lastError: unknown;
 
