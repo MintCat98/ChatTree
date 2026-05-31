@@ -29,14 +29,9 @@ async function handleAsync(
     }
 
     case MessageType.CHATBOX_ADDED: {
-      if (!tabId) return;
-      // If observer sends nodes in payload (future), treat as TREE_UPDATE
-      const payload = message.payload as { nodes?: ChatboxNode[]; sessionId?: string } | undefined;
-      if (payload?.nodes && payload?.sessionId) {
-        const tree = await updateTree(tabId, payload.nodes, payload.sessionId);
-        await broadcastToTab(tabId, { type: MessageType.TREE_READY, payload: { tree } });
-      }
-      // TODO: handle CHATBOX_ADDED without payload once tracker/observer wiring is complete
+      // Pure notification — no payload. Observer detects the change, then sends
+      // TREE_UPDATE with the full node list. Handled there.
+      // TODO: trigger TREE_UPDATE from observer once tracker/observer wiring is complete
       break;
     }
 

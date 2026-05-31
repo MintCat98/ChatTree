@@ -102,26 +102,12 @@ describe('TREE_UPDATE', () => {
 // ---------------------------------------------------------------------------
 
 describe('CHATBOX_ADDED', () => {
-  it('calls updateTree and broadcasts TREE_READY when payload has nodes', async () => {
-    const nodes = [makeNode('chatbox-0')];
-    const tree = makeTree(nodes);
-    mockUpdateTree.mockResolvedValue(tree);
-
-    dispatch({ type: MessageType.CHATBOX_ADDED, payload: { nodes, sessionId: 'sess-1' } }, TAB_ID);
-    await flush();
-
-    expect(mockUpdateTree).toHaveBeenCalledWith(TAB_ID, nodes, 'sess-1');
-    expect(mockTabsSendMessage).toHaveBeenCalledWith(
-      TAB_ID,
-      expect.objectContaining({ type: MessageType.TREE_READY }),
-    );
-  });
-
-  it('does not call updateTree when payload has no nodes', async () => {
+  it('is a pure notification — does not call updateTree or broadcastToTab', async () => {
     dispatch({ type: MessageType.CHATBOX_ADDED }, TAB_ID);
     await flush();
 
     expect(mockUpdateTree).not.toHaveBeenCalled();
+    expect(mockTabsSendMessage).not.toHaveBeenCalled();
   });
 });
 
