@@ -3,8 +3,19 @@
 import { CHAT_URL_PATTERN } from '@shared/constants';
 
 export function watchPageChanges(onEnter: (url: string) => void): void {
-  // TODO: implement — intercept history.pushState / popstate, match CHAT_URL_PATTERN
-  void CHAT_URL_PATTERN;
-  void onEnter;
-  throw new Error('TODO');
+  function checkAndFire(): void {
+    if (CHAT_URL_PATTERN.test(location.pathname)) {
+      onEnter(location.href);
+    }
+  }
+
+  // Patch pushState to catch forward navigations (SPA link clicks).
+  const originalPushState = history.pushState.bind(history);
+  history.pushState = function (...args: Parameters<typeof history.pushState>) {
+    originalPushState(...args);
+    checkAndFire();
+  };
+
+  // popstate fires on back/forward navigation.
+  window.addEventListener('popstate', checkAndFire);
 }

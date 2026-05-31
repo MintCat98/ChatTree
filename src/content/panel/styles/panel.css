@@ -1,29 +1,45 @@
 /* Shadow DOM scoped styles. All variables use the --nav-* namespace. */
 
 :host {
-  /* TODO: define host positioning */
+  all: initial;
 }
 
-:root,
-:host {
-  /* Layout */
-  --nav-panel-width: /* TODO */ 0px;
-  --nav-panel-height: /* TODO */ 0px;
-  --nav-panel-padding: /* TODO */ 0px;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
-  /* Colours */
-  --nav-bg: /* TODO */ transparent;
-  --nav-border: /* TODO */ transparent;
-  --nav-text-primary: /* TODO */ inherit;
-  --nav-text-secondary: /* TODO */ inherit;
-  --nav-node-fill: /* TODO */ transparent;
-  --nav-node-active: /* TODO */ transparent;
-  --nav-edge-stroke: /* TODO */ transparent;
+:host {
+  /* Z-index */
+  --nav-z-index: 2147483647;
+
+  /* Shape */
+  --nav-border-radius: 12px;
+
+  /* Shadows & borders */
+  --nav-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --nav-color-border: rgba(255, 255, 255, 0.1);
 
   /* Typography */
-  --nav-font-size-sm: /* TODO */ 0px;
-  --nav-font-size-base: /* TODO */ 0px;
+  --nav-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --nav-font-size-sm: 11px;
+  --nav-font-size-base: 13px;
+
+  /* Colors */
+  --nav-color-text: #e8e8f0;
+  --nav-color-text-secondary: rgba(232, 232, 240, 0.55);
+  --nav-color-node-fill: rgba(255, 255, 255, 0.06);
+  --nav-color-node-active: rgba(124, 101, 246, 0.35);
+  --nav-color-edge: rgba(255, 255, 255, 0.2);
+  --nav-color-accent: #7c65f6;
 
   /* Animation */
-  --nav-transition: /* TODO */ none;
+  --nav-duration-base: 200ms;
+  --nav-transition: var(--nav-duration-base) ease;
+}
+
+@keyframes nav-slide-in {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
 }

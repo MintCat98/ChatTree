@@ -22,7 +22,14 @@ module.exports = {
         exclude: /node_modules/,
       },
       {
+        // ?raw imports return CSS as a plain string (used for Shadow DOM injection).
         test: /\.css$/,
+        resourceQuery: /raw/,
+        type: 'asset/source',
+      },
+      {
+        test: /\.css$/,
+        resourceQuery: { not: [/raw/] },
         use: ['style-loader', 'css-loader'],
       },
     ],
