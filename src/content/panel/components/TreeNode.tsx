@@ -3,8 +3,8 @@
 // Enter/Space mirror click behavior for accessibility.
 
 import { useCallback, type KeyboardEvent, type MouseEvent } from 'react';
-import { MessageType } from '@shared/message-types';
 import type { ChatboxNode } from '@shared/types';
+import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
 import {
   NODE_RADIUS,
@@ -36,10 +36,7 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
   const handleClick = useCallback(
     (e: MouseEvent<SVGGElement>) => {
       e.stopPropagation();
-      chrome.runtime.sendMessage({
-        type: MessageType.SCROLL_TO_NODE,
-        payload: { navId: node.id },
-      });
+      scrollToNode(node.id);
     },
     [node.id],
   );
@@ -48,10 +45,7 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
     (e: KeyboardEvent<SVGGElement>) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        chrome.runtime.sendMessage({
-          type: MessageType.SCROLL_TO_NODE,
-          payload: { navId: node.id },
-        });
+        scrollToNode(node.id);
       }
     },
     [node.id],

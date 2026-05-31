@@ -3,9 +3,8 @@
 // data-slot placeholders for follow-up component PRs to fill in.
 
 import { useEffect } from 'react';
-import { MessageType } from '@shared/message-types';
-import type { BridgeMessage } from '@shared/message-types';
 import type { TreeData } from '@shared/types';
+import { TREE_READY_EVENT } from '../observer';
 import { usePanelStore } from './store/panel-store';
 import { TreeMapCanvas } from './components/TreeMapCanvas';
 import { PanelShell } from './components/PanelShell';
@@ -16,13 +15,12 @@ export default function App() {
   const { setTree, settings } = usePanelStore();
 
   useEffect(() => {
-    const handler = (msg: BridgeMessage<{ tree: TreeData }>) => {
-      if (msg.type === MessageType.TREE_READY && msg.payload) {
-        setTree(msg.payload.tree);
-      }
+    const handler = (e: Event) => {
+      const tree = (e as CustomEvent<{ tree: TreeData }>).detail.tree;
+      setTree(tree);
     };
-    chrome.runtime.onMessage.addListener(handler);
-    return () => chrome.runtime.onMessage.removeListener(handler);
+    window.addEventListener(TREE_READY_EVENT, handler);
+    return () => window.removeEventListener(TREE_READY_EVENT, handler);
   }, [setTree]);
 
   // Render nothing when the panel is hidden; the message listener above
