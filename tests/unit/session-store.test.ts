@@ -158,6 +158,19 @@ describe('updateTree', () => {
       expect.objectContaining({ 'tree_0': expect.any(Object) }),
     );
   });
+
+  it('isolates state between tabs', async () => {
+    await updateTree(1, [makeNode('a', 0)], 'sess-A');
+    await updateTree(2, [makeNode('b', 0)], 'sess-B');
+
+    expect((await getTree(1))?.sessionId).toBe('sess-A');
+    expect((await getTree(2))?.sessionId).toBe('sess-B');
+
+    await clearTree(1);
+
+    expect(await getTree(1)).toBeNull();
+    expect((await getTree(2))?.sessionId).toBe('sess-B');
+  });
 });
 
 // ---------------------------------------------------------------------------
