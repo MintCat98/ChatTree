@@ -8,10 +8,9 @@ import type { BridgeMessage } from '@shared/message-types';
 import type { TreeData } from '@shared/types';
 import { usePanelStore } from './store/panel-store';
 import { TreeMapCanvas } from './components/TreeMapCanvas';
-import { PanelShell } from './components/PanelShell'; 
-import { Header } from './components/Header'; 
+import { PanelShell } from './components/PanelShell';
+import { Header } from './components/Header';
 import { ControlBar } from './components/ControlBar';
-import { Tooltip } from './components/Tooltip';
 
 export default function App() {
   const { setTree, settings } = usePanelStore();
@@ -36,8 +35,7 @@ export default function App() {
     <PanelShell>
       <Header />
       <TreeMapCanvas />
-      <ControlBar /> {/* Filled by a follow-up component PR */}
-      <Tooltip /> {/* Filled by a follow-up component PR */}
+      <ControlBar />
     </PanelShell>
   );
 }

@@ -3,7 +3,10 @@
 import { startObserving, stopObserving } from './observer';
 import { watchPageChanges } from './page-watcher';
 import { injectPanel, destroyPanel } from './ui-injector';
+import { onMessageFromBackground } from './message-bridge';
+import { scrollToNode } from './scroll-navigator';
 import { CHAT_URL_PATTERN } from '@shared/constants';
+import { MessageType } from '@shared/message-types';
 //import './_test-tracker';
 
 function onChatPageEntered(): void {
@@ -17,6 +20,13 @@ function init(): void {
   // Step 1 — Register SPA navigation listener first so no URL change is missed.
   watchPageChanges((_url) => {
     onChatPageEntered();
+  });
+
+  onMessageFromBackground((message) => {
+    if (message.type === MessageType.SCROLL_TO_NODE) {
+      const { navId } = message.payload as { navId: string };
+      scrollToNode(navId);
+    }
   });
 
   // Step 2 — If the extension loads while already on a chat page, bootstrap immediately.
