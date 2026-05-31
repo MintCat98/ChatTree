@@ -18,6 +18,7 @@
     {
       "matches": ["https://claude.ai/*"],
       "js": ["content.js"],
+      "css": ["content_styles.css"],
       "run_at": "document_idle"
     }
   ],
