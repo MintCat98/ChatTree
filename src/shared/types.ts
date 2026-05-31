@@ -24,6 +24,7 @@ export interface UserSettings {
   panelDirection: 'top-down' | 'left-right';
   backgroundOpacity: number;  // 0.0 – 1.0
   sortOrder: 'asc' | 'desc';
+  summaryEnabled: boolean;
   panelVisible: boolean;
 }
 
@@ -32,5 +33,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   panelDirection: 'top-down',
   backgroundOpacity: 0.85,
   sortOrder: 'asc',
+  summaryEnabled: false, 
   panelVisible: true,
 };
