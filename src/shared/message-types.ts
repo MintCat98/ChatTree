@@ -8,6 +8,7 @@ export const MessageType = {
   BRANCH_CHANGED:       'BRANCH_CHANGED',
   CHAT_PAGE_ENTERED:    'CHAT_PAGE_ENTERED',
   ACTIVE_NODE_CHANGED:  'ACTIVE_NODE_CHANGED',
+  TREE_UPDATE:          'TREE_UPDATE',          // payload: { nodes: ChatboxNode[], sessionId: string }
 
   // Background → Content / Panel
   TREE_READY:           'TREE_READY',
