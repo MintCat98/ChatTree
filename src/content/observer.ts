@@ -18,9 +18,9 @@ function handleDOMChange(): void {
     const tree = buildTree(currentNodes);
 
     chrome.runtime.sendMessage({
-      type: MessageType.TREE_UPDATE,
+      type: MessageType.CHATBOX_ADDED,
       payload: { nodes: currentNodes, sessionId: tree.sessionId },
-    }).catch((e) => console.warn('[ChatTree] sendMessage failed:', e));
+    });
   }, TIMING.OBSERVER_DEBOUNCE);
 }
 
