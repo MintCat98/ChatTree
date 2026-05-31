@@ -17,9 +17,9 @@ export default function App() {
   const { setTree, settings } = usePanelStore();
 
   useEffect(() => {
-    const handler = (msg: BridgeMessage<TreeData>) => {
+    const handler = (msg: BridgeMessage<{ tree: TreeData }>) => {
       if (msg.type === MessageType.TREE_READY && msg.payload) {
-        setTree(msg.payload);
+        setTree(msg.payload.tree);
       }
     };
     chrome.runtime.onMessage.addListener(handler);
