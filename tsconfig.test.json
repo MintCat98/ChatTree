@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["chrome", "jest"]
+    "types": ["chrome", "jest", "node"]
   },
   "include": ["src/**/*", "tests/**/*"]
 }
