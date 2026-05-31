@@ -281,4 +281,20 @@ describe('onMessage return value', () => {
 
     expect(result).toBeUndefined();
   });
+
+  it('logs a warning when handleAsync rejects unexpectedly', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    // Cause an unexpected rejection by making clearTree throw
+    mockClearTree.mockRejectedValueOnce(new Error('storage quota exceeded'));
+
+    onMessage({ type: MessageType.CHAT_PAGE_ENTERED }, sender(TAB_ID), () => {});
+    await flush();
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[ChatTree] handler failed:',
+      MessageType.CHAT_PAGE_ENTERED,
+      expect.any(Error),
+    );
+    warnSpy.mockRestore();
+  });
 });

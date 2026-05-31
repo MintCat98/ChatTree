@@ -11,8 +11,10 @@ export function onMessage(
   sender: chrome.runtime.MessageSender,
   _sendResponse: (response?: unknown) => void,
 ): boolean | void {
-  // Fire-and-forget: we never call sendResponse, so return void (not true)
-  void handleAsync(message, sender.tab?.id);
+  // We never call sendResponse, so return void (not true).
+  handleAsync(message, sender.tab?.id).catch((err) =>
+    console.warn('[ChatTree] handler failed:', message.type, err),
+  );
 }
 
 async function handleAsync(
@@ -21,7 +23,7 @@ async function handleAsync(
 ): Promise<void> {
   switch (message.type) {
     case MessageType.TREE_UPDATE: {
-      if (!tabId) return;
+      if (tabId === undefined) return;
       const { nodes, sessionId } = message.payload as { nodes: ChatboxNode[]; sessionId: string };
       const tree = await updateTree(tabId, nodes, sessionId);
       await broadcastToTab(tabId, { type: MessageType.TREE_READY, payload: { tree } });
@@ -36,7 +38,7 @@ async function handleAsync(
     }
 
     case MessageType.BRANCH_CHANGED: {
-      if (!tabId) return;
+      if (tabId === undefined) return;
       const existing = await getTree(tabId);
       if (!existing) return;
       const { navId } = message.payload as { navId: string };
@@ -48,7 +50,7 @@ async function handleAsync(
     }
 
     case MessageType.CHAT_PAGE_ENTERED: {
-      if (!tabId) return;
+      if (tabId === undefined) return;
       await clearTree(tabId);
       // Notify panel to reset — send empty tree so stale nodes are cleared immediately
       await broadcastToTab(tabId, {
@@ -64,7 +66,7 @@ async function handleAsync(
     }
 
     case MessageType.SCROLL_TO_NODE: {
-      if (!tabId) return;
+      if (tabId === undefined) return;
       await broadcastToTab(tabId, message);
       break;
     }

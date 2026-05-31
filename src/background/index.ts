@@ -14,6 +14,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // Keepalive: wake the SW every minute to prevent the 30-second inactivity termination
 // from dropping in-flight message handlers between user actions.
 chrome.alarms.create('keepalive', { periodInMinutes: 1 });
-chrome.alarms.onAlarm.addListener(() => {
-  // No-op — the alarm firing is sufficient to keep the SW alive.
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'keepalive') return;
+  // Future alarm handlers go here.
 });
