@@ -199,15 +199,26 @@ describe('SCROLL_TO_NODE', () => {
     expect(mockTabsSendMessage).toHaveBeenCalledWith(TAB_ID, msg);
   });
 
-  it('swallows the error when chrome.tabs.sendMessage rejects (tab closed)', async () => {
-    mockTabsSendMessage.mockRejectedValue(new Error('No such tab'));
+  it('silently ignores "Receiving end does not exist" (tab closed normally)', async () => {
+    mockTabsSendMessage.mockRejectedValue(new Error('Receiving end does not exist'));
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    await expect(
-      (async () => {
-        dispatch({ type: MessageType.SCROLL_TO_NODE, payload: { navId: 'x' } }, TAB_ID);
-        await flush();
-      })(),
-    ).resolves.toBeUndefined();
+    dispatch({ type: MessageType.SCROLL_TO_NODE, payload: { navId: 'x' } }, TAB_ID);
+    await flush();
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it('logs a warning for unexpected broadcastToTab errors', async () => {
+    mockTabsSendMessage.mockRejectedValue(new Error('Serialization failed'));
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    dispatch({ type: MessageType.SCROLL_TO_NODE, payload: { navId: 'x' } }, TAB_ID);
+    await flush();
+
+    expect(warnSpy).toHaveBeenCalledWith('[ChatTree] broadcastToTab failed:', expect.any(Error));
+    warnSpy.mockRestore();
   });
 
   it('does nothing when tabId is undefined', async () => {

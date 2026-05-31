@@ -79,8 +79,11 @@ async function handleAsync(
 async function broadcastToTab(tabId: number, message: BridgeMessage): Promise<void> {
   try {
     await chrome.tabs.sendMessage(tabId, message);
-  } catch {
-    // Tab may have closed between receiving the message and this call.
-    // chrome.tabs.onRemoved handles storage cleanup.
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // "Receiving end does not exist" / "No tab with id" — tab closed normally, ignore.
+    if (!msg.includes('Receiving end does not exist') && !msg.includes('No tab with id')) {
+      console.warn('[ChatTree] broadcastToTab failed:', err);
+    }
   }
 }
