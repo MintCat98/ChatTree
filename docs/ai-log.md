@@ -17,6 +17,16 @@
 
 ### AI Usage Log | 2026-05-31 (By @MintCat98)
 
+- **What**: fix — `fix/chatbox-record-failure` 브랜치. 노드 클릭 시 스크롤 미동작 + Tooltip 검은 박스 2건 수정 (`content/index.ts`, `panel/App.tsx`).
+- **Request**: "지금 실제 클로드ai에서 dist를 업로드해서 테스트중인데 기록된 채팅을 눌렀을 때 이동이 안 일어나고 저런 이상한 검은 박스만 계속 생겨"
+- **AI Suggestion**:
+  - **Bug 1 (스크롤 미동작)** — `TreeNode`가 `SCROLL_TO_NODE`를 Background로 전송 → Background가 `broadcastToTab`으로 content script에 재전달하지만, `content/index.ts`에 해당 메시지를 수신해 `scrollToNode()`를 호출하는 리스너가 없었음. `onMessageFromBackground` 리스너를 `init()`에 추가하여 수정.
+  - **Bug 2 (검은 박스)** — `Tooltip.tsx`가 `createPortal(element, document.body)`로 Shadow DOM 바깥에 렌더링. `document.body`에서는 `--nav-*` CSS 변수가 정의되지 않아 텍스트가 보이지 않는 검은 박스 생성. 또한 `document.querySelector('[data-nav-id=...]')`는 closed Shadow DOM 안의 SVG `<g>` 요소를 탐색 불가 → position이 `(0, 0)` 고정. Tooltip은 로드맵상 "Future / Out of scope"이므로 `App.tsx`에서 `<Tooltip />` 제거.
+- **Human Review**: 진행 중
+- **Reflected**: `src/content/index.ts` (SCROLL_TO_NODE 리스너 추가), `src/content/panel/App.tsx` (Tooltip 제거) 2파일 수정.
+
+### AI Usage Log | 2026-05-31 (By @MintCat98)
+
 - **What**: fix — `fix/chatbox-record-failure` 브랜치. 실제 Claude.ai에서 챗박스가 트리에 기록되지 않는 버그 2건 수정 (`observer.ts`, `App.tsx`).
 - **Request**: "지금 실제 클로드ai에서 dist를 업로드해서 테스트중인데 ui까지 띄우는 건 성공했지만 chatbox를 기록하지 못하고 있어"
 - **AI Suggestion**:
