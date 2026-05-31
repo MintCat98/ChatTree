@@ -104,11 +104,44 @@ export function buildTree(_nodes: ChatboxNode[]): TreeData {
 }
 
 /**
- * Re-scans the DOM from the given branch point node onward.
+ * Preserves nodes up to and including the branch point, then re-scans the DOM
+ * from branchIndex+1 onward. Falls back to a full assignChatboxIds() if the
+ * branch node is not found in the current node list (e.g. stale state after reload).
  */
-export function reloadFromNode(
-  _branchNodeId: string,
-  allNodes: ChatboxNode[],
-): ChatboxNode[] {
-  return allNodes;
+export function reloadFromNode(branchNodeId: string, allNodes: ChatboxNode[]): ChatboxNode[] {
+  const branchIndex = allNodes.findIndex(n => n.id === branchNodeId);
+  if (branchIndex === -1) return assignChatboxIds();
+
+  const preserved = allNodes.slice(0, branchIndex + 1);
+
+  const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
+  if (!container) return preserved;
+
+  const bubbles = container.querySelectorAll(SELECTORS.USER_MESSAGE_BUBBLE);
+  const newNodes: ChatboxNode[] = [];
+
+  bubbles.forEach((el, domIndex) => {
+    if (domIndex <= branchIndex) return;
+
+    let id = el.getAttribute(SELECTORS.NAV_ID_ATTR);
+    if (!id) {
+      id = `chatbox-${domIndex}`;
+      el.setAttribute(SELECTORS.NAV_ID_ATTR, id);
+    }
+
+    const text = el.querySelector(SELECTORS.USER_MESSAGE)?.textContent ?? '';
+    const { hasBranch, current, total } = detectBranch(el as HTMLElement);
+
+    newNodes.push({
+      id,
+      index: domIndex,
+      text,
+      hasBranch,
+      branchCurrent: current,
+      branchTotal: total,
+      parentId: null, // buildTree will reassign all parentId chains
+    });
+  });
+
+  return [...preserved, ...newNodes];
 }
