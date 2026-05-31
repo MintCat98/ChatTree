@@ -1,26 +1,33 @@
 // Watches the DOM for new chatbox elements via MutationObserver.
 import { assignChatboxIds, buildTree, reloadFromNode } from './chatbox-tracker';
 import { watchBranchChanges } from './branch-change-watcher';
+import { sendToBackground } from './message-bridge';
 import { SELECTORS, TIMING } from '@shared/constants';
 import { MessageType } from '@shared/message-types';
-import type { ChatboxNode } from '@shared/types';
+import type { ChatboxNode, TreeData } from '@shared/types';
+
+export const TREE_READY_EVENT = 'chattree:ready';
 
 let observer: MutationObserver | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let currentNodes: ChatboxNode[] = [];
 let branchCleanup: (() => void) | null = null;
 
+function dispatchTree(tree: TreeData): void {
+  window.dispatchEvent(new CustomEvent(TREE_READY_EVENT, { detail: { tree } }));
+  // Persist to session-store via SW (fire-and-forget; Panel already updated above)
+  sendToBackground({
+    type: MessageType.TREE_UPDATE,
+    payload: { nodes: tree.nodes, sessionId: tree.sessionId },
+  }).catch(() => {});
+}
+
 function handleDOMChange(): void {
   if (debounceTimer) clearTimeout(debounceTimer);
 
   debounceTimer = setTimeout(() => {
     currentNodes = assignChatboxIds();
-    const tree = buildTree(currentNodes);
-
-    chrome.runtime.sendMessage({
-      type: MessageType.TREE_UPDATE,
-      payload: { nodes: currentNodes, sessionId: tree.sessionId },
-    }).catch((e) => console.warn('[ChatTree] sendMessage failed:', e));
+    dispatchTree(buildTree(currentNodes));
   }, TIMING.OBSERVER_DEBOUNCE);
 }
 
@@ -32,16 +39,6 @@ export function startObserving(): void {
 
   observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
-      // Detect new branch creation: BRANCH_ACTIONS_WRAPPER newly added to DOM
-      if (mutation.type === 'childList') {
-        mutation.addedNodes.forEach((node) => {
-          if (node instanceof HTMLElement &&
-            node.matches(SELECTORS.BRANCH_ACTIONS_WRAPPER)) {
-            chrome.runtime.sendMessage({ type: MessageType.BRANCH_CHANGED });
-          }
-        });
-      }
-
       // Detect end of streaming
       if (
         mutation.type === 'attributes' &&
@@ -63,11 +60,7 @@ export function startObserving(): void {
   // Separate observer for branch switching (‹/›) — detects indicator text changes
   branchCleanup = watchBranchChanges(container as HTMLElement, (navId) => {
     currentNodes = reloadFromNode(navId, currentNodes);
-    const tree = buildTree(currentNodes);
-    chrome.runtime.sendMessage({
-      type: MessageType.BRANCH_CHANGED,
-      payload: { nodes: currentNodes, sessionId: tree.sessionId },
-    });
+    dispatchTree(buildTree(currentNodes));
   });
 }
 

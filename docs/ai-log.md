@@ -17,7 +17,19 @@
 
 ### AI Usage Log | 2026-05-31 (By @MintCat98)
 
-- **What**: fix — `fix/chatbox-record-failure` 브랜치. 노드 클릭 시 스크롤 미동작 + Tooltip 검은 박스 2건 수정 (`content/index.ts`, `panel/App.tsx`).
+- **What**: perf — `perf/chatbox-record-non-dev-mode` 브랜치. DevTools 없이 채팅 기록 전혀 안되는 문제 수정. 근본 원인은 MV3 SW 30초 종료로 인한 content script → SW → Panel 릴레이 전체 실패.
+- **Request**: "수정해야할듯? 개발자 모드가 아닐 땐 아예 채팅 기록을 못하네"
+- **AI Suggestion**:
+  - **Root Cause 진단** — F12 열면 DevTools가 SW에 attach되어 종료 방지. 닫으면 SW가 30초 후 종료됨. keepalive alarm이 1분 주기라 매 분마다 30초 구간은 SW가 죽어있음. SW 재기동 중 `chrome.runtime.sendMessage` 유실 → 트리 업데이트 전체 실패.
+  - **Fix (트리 기록)** — `observer.ts`에 `dispatchTree()` 헬퍼 추가. 트리 빌드 후 `window.dispatchEvent(new CustomEvent('chattree:ready'))` 로 Panel에 직접 전달 (SW 우회). SW `TREE_UPDATE`는 session-store 저장용 fire-and-forget으로만 유지. branch 전환 콜백도 동일하게 `dispatchTree()`로 통일.
+  - **Fix (스크롤)** — `TreeNode.tsx`에서 `chrome.runtime.sendMessage(SCROLL_TO_NODE)` 제거 → `scrollToNode(node.id)` 직접 호출. Panel과 `scroll-navigator.ts`가 같은 content script 번들 내에 있어 직접 호출 가능.
+  - `App.tsx` `chrome.runtime.onMessage` → `window.addEventListener('chattree:ready')` 전환.
+- **Human Review**: 진행 중
+- **Reflected**: `src/content/observer.ts`, `src/content/panel/App.tsx`, `src/content/panel/components/TreeNode.tsx`, `src/content/index.ts` 4파일 수정.
+
+### AI Usage Log | 2026-05-31 (By @MintCat98)
+
+- **What**: fix — `fix/chatbox-click-to-scroll-failure` 브랜치. 노드 클릭 시 스크롤 미동작 + Tooltip 검은 박스 2건 수정 (`content/index.ts`, `panel/App.tsx`).
 - **Request**: "지금 실제 클로드ai에서 dist를 업로드해서 테스트중인데 기록된 채팅을 눌렀을 때 이동이 안 일어나고 저런 이상한 검은 박스만 계속 생겨"
 - **AI Suggestion**:
   - **Bug 1 (스크롤 미동작)** — `TreeNode`가 `SCROLL_TO_NODE`를 Background로 전송 → Background가 `broadcastToTab`으로 content script에 재전달하지만, `content/index.ts`에 해당 메시지를 수신해 `scrollToNode()`를 호출하는 리스너가 없었음. `onMessageFromBackground` 리스너를 `init()`에 추가하여 수정.
