@@ -12,8 +12,7 @@ function treeKey(tabId: number): string {
 // that tracker.ts may attach internally — not in the public type, but guarded here).
 function serializeNodes(nodes: ChatboxNode[]): ChatboxNode[] {
   return nodes.map((node) => {
-    const { ...serialized } = node as ChatboxNode & { element?: unknown };
-    delete (serialized as { element?: unknown }).element;
+    const { element: _omitted, ...serialized } = node as ChatboxNode & { element?: unknown };
     return serialized as ChatboxNode;
   });
 }
