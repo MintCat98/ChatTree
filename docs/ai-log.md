@@ -15,6 +15,39 @@
 
 <!-- Start from here -->
 
+### AI Usage Log | 2026-05-31 (By @MintCat98)
+
+- **What**: 디버깅 — 확장프로그램 로드 시 발생한 3종 에러 수정 및 패널 초기 렌더링 연결. (1) webpack dev 빌드의 CSP `unsafe-eval` 위반, (2) `chrome.alarms` 권한 누락으로 인한 TypeError, (3) `ui-injector.tsx` placeholder + `page-watcher.ts` 미구현으로 패널 미표시.
+- **Request**: "크롬 개발자모드에서 업로드했는데 CSP 에러 / TypeError / TODO 에러가 뜬다."
+- **AI Suggestion**:
+  - `webpack.config.js`에 `devtool: 'cheap-source-map'` 추가 → `eval()` 미사용 소스맵으로 CSP 위반 해소.
+  - `manifest.json` permissions에 `"alarms"` 추가 → `chrome.alarms` undefined 해소.
+  - `ui-injector.tsx` 재작성: `App` 컴포넌트 import + Shadow DOM에 `panel.css?raw` 주입 후 React 루트 마운트.
+  - `panel.css` CSS 변수 값 채우기 (`--nav-z-index`, `--nav-border-radius`, `--nav-color-*` 등 전체 TODO → 실제 값).
+  - webpack에 `?raw` CSS 룰(`resourceQuery: /raw/`, `type: 'asset/source'`) 추가 + `src/types/css.d.ts`에 `*.css?raw` 타입 선언 추가.
+  - `page-watcher.ts` 구현: `history.pushState` 패치 + `popstate` 리스너로 SPA 네비게이션 감지.
+- **Human Review**:
+  - CSS 하드코딩 대신 CSS 파일 분리 요청 → `ui-injector.tsx`에서 인라인 문자열 대신 `panel.css?raw` import로 변경.
+  - 빌드 성공 (`webpack 5.107.1 compiled successfully`), CSP 에러 및 TODO 에러 해소 확인.
+- **Reflected**: `webpack.config.js`, `manifest.json`, `ui-injector.tsx`, `panel.css`, `src/types/css.d.ts`, `page-watcher.ts` 6파일 수정.
+
+### AI Usage Log | 2026-05-31 (By @MintCat98)
+
+- **What**: 이슈 #28 / PR #34 — MintCat98 리뷰 코멘트 5건 반영. (1) inline style → `popup.css` 분리, (2) 삭제됐던 `ReactDOM.createRoot` 마운트 복원, (3) `export default` → named `export function Popup` 복원, (4) 불필요한 storage read를 `status === 'supported'`일 때만 로드하도록 게이트, (5) 순수 로직 분리 + 단위 테스트 추가. 코드 주석 전부 영어로 작성.
+- **Request**: "MintCat 리뷰 코멘트(스타일 하드코딩 / createRoot 삭제 / export 변경 / storage read / unit test) 반영해서 정확히 수정하고 깃헙에 올릴 수 있게 해줘. 코드 주석은 영어로."
+- **AI Suggestion**:
+  - 원인 검증: `webpack.config.js`에서 popup entry가 `Popup.tsx` 자신 → 마운트 삭제 시 팝업이 빈 화면. `grep -rn Popup src/` 결과 import 사용처 없음 → named export로 복원해도 안전.
+  - `src/popup/popup.css` 신규 + `cn-*` className 전환 (기존 style-loader/css-loader 설정 활용).
+  - 순수 로직을 `src/popup/popup-logic.ts`로 분리: `isSupportedPage` / `mergeSettings` / `applyPatch` / `buildSettingsMessage`.
+  - `tests/unit/popup-logic.test.ts` 8 케이스 (URL 판별·설정 병합·patch 불변·SETTINGS_CHANGE 메시지 래핑).
+  - settings 로드를 `useEffect([status])`로 옮겨 `status === 'supported'`일 때만 `chrome.storage.local.get` 실행.
+- **Human Review**:
+  - 빌드 중 `TS2882` (CSS side-effect import 타입 부재) 발견 → `src/types/css.d.ts`(`declare module '*.css';`) 추가.
+  - `chrome.storage.local.get` 결과 타입이 `unknown` → `mergeSettings(result.settings as Partial<UserSettings> | undefined)`로 캐스팅.
+  - `npm run build` 성공, `npm test` 전체 통과(5 suites, 14 passed / 10 todo, 그중 popup-logic 8/8), 신규 4파일 `eslint` 무에러 확인.
+  - Dropbox가 `.git`을 실시간 동기화하며 객체 파일을 잠가 `git add` 시 `Permission denied` → `.git`에 `com.dropbox.ignored=1` 설정 + 읽기전용 속성 정리 후 staging 성공.
+- **Reflected**: 코드 4파일(`Popup.tsx` 수정 + `popup-logic.ts`·`popup.css`·`types/css.d.ts` 신규) + 테스트 1파일(`tests/unit/popup-logic.test.ts`). Background의 SETTINGS_CHANGE forward / Panel의 수신 처리는 기존 계획대로 후속(#3) 의존.
+
 ### AI Usage Log | 2026-05-31 (By @jglJGL000304)
 
 - **What**: 이슈 #28 / PR #34 — MintCat98 리뷰 코멘트 5건 반영. (1) inline style → `popup.css` 분리, (2) 삭제됐던 `ReactDOM.createRoot` 마운트 복원, (3) `export default` → named `export function Popup` 복원, (4) 불필요한 storage read를 `status === 'supported'`일 때만 로드하도록 게이트, (5) 순수 로직 분리 + 단위 테스트 추가. 코드 주석 전부 영어로 작성.
