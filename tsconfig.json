@@ -9,8 +9,10 @@
     "rootDir": "./src",
     "paths": {
       "@shared/*": ["./src/shared/*"],
-      "@content/*": ["./src/content/*"]
-    }
+      "@content/*": ["./src/content/*"],
+      "@background/*": ["./src/background/*"]
+    },
+    "types": ["chrome"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

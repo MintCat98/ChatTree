@@ -3,6 +3,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
+  devtool: 'cheap-source-map',
   entry: {
     background: './src/background/index.ts',
     content:    './src/content/index.ts',
@@ -21,7 +22,14 @@ module.exports = {
         exclude: /node_modules/,
       },
       {
+        // ?raw imports return CSS as a plain string (used for Shadow DOM injection).
         test: /\.css$/,
+        resourceQuery: /raw/,
+        type: 'asset/source',
+      },
+      {
+        test: /\.css$/,
+        resourceQuery: { not: [/raw/] },
         use: ['style-loader', 'css-loader'],
       },
     ],
@@ -31,6 +39,7 @@ module.exports = {
     alias: {
       '@shared': path.resolve(__dirname, 'src/shared'),
       '@content': path.resolve(__dirname, 'src/content'),
+      '@background': path.resolve(__dirname, 'src/background'),
     },
   },
   plugins: [
@@ -43,6 +52,7 @@ module.exports = {
       patterns: [
         { from: 'public/manifest.json', to: '.' },
         { from: 'src/assets', to: 'assets' },
+        { from: 'src/content/content_styles.css', to: '.' },
       ],
     }),
   ],

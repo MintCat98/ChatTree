@@ -3,6 +3,8 @@
 > **Navigate your AI conversations like a map, not a scroll.**  
 > A Chromium extension that visualizes your chat session as an interactive tree — so you never lose track of where you were.
 
+> *Please check [KOI README](./docs/README_KOI.md) (for KOI organizers).*
+
 <br/>
 
 <!-- TODO: Replace with actual demo screenshot/gif before publishing -->

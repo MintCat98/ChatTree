@@ -1,0 +1,10 @@
+[data-nav-id].nav-highlight {
+	outline: 2px solid #7c3aed;
+	transition: outline 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	[data-nav-id].nav-highlight {
+		transition: none;
+	}
+}
