@@ -1,54 +1,66 @@
-// Watches for branch-indicator text changes to detect ‹/› button clicks.
+// Detects ‹/› branch button clicks via event delegation to trigger tree reload.
+// Uses DOM-settle detection (mutation quiesce) rather than a fixed timeout so
+// the callback fires only after React has finished re-rendering the new branch.
 
 import { SELECTORS, TIMING } from '@shared/constants';
 
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-/**
- * Attaches a MutationObserver that fires onBranchChange(navId) when the user
- * switches branches via ‹/›. Returns a cleanup function.
- *
- * Detection path:
- *   Text node → span[BRANCH_INDICATOR] → closest(BRANCH_ACTIONS_WRAPPER)
- *   → parentElement (shared container) → querySelector(USER_MESSAGE_BUBBLE) → data-nav-id
- */
 export function watchBranchChanges(
   container: HTMLElement,
-  onBranchChange: (navId: string) => void,
+  onBranchChange: () => void,
 ): () => void {
-  const observer = new MutationObserver((mutations) => {
-    // Ignore all events while AI is streaming
-    if (document.querySelector(SELECTORS.STREAMING_INDICATOR)) return;
+  let settleTimer: ReturnType<typeof setTimeout> | null = null;
+  let settleObserver: MutationObserver | null = null;
+  let pendingChange = false;
 
-    for (const mutation of mutations) {
-      if (mutation.type !== 'characterData') continue;
-
-      const parent = (mutation.target as Text).parentElement;
-      if (!parent?.matches(SELECTORS.BRANCH_INDICATOR)) continue;
-
-      // BRANCH_ACTIONS_WRAPPER is a sibling of USER_MESSAGE_BUBBLE under the same parent
-      const wrapper = parent.closest(SELECTORS.BRANCH_ACTIONS_WRAPPER);
-      const bubble = wrapper?.parentElement?.querySelector(SELECTORS.USER_MESSAGE_BUBBLE) as HTMLElement | null;
-      const navId = bubble?.getAttribute(SELECTORS.NAV_ID_ATTR);
-      if (!navId) continue;
-
-      if (debounceTimer) clearTimeout(debounceTimer);
-      // Re-check streaming at fire time: streaming may have started within the debounce window
-      debounceTimer = setTimeout(() => {
-        if (!document.querySelector(SELECTORS.STREAMING_INDICATOR)) {
-          onBranchChange(navId);
-        }
-      }, TIMING.BRANCH_CHANGE_DEBOUNCE);
+  const fireIfPending = () => {
+    if (!pendingChange) return;
+    pendingChange = false;
+    if (!document.querySelector(SELECTORS.STREAMING_INDICATOR)) {
+      onBranchChange();
     }
-  });
+  };
 
-  observer.observe(container, { subtree: true, characterData: true });
+  const startSettle = () => {
+    // Reset any in-flight settle cycle
+    if (settleTimer) clearTimeout(settleTimer);
+    settleObserver?.disconnect();
+
+    // Watch for DOM mutations; once they stop for 50 ms, the branch render is done
+    settleObserver = new MutationObserver(() => {
+      if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
+        settleTimer = null;
+        settleObserver?.disconnect();
+        settleObserver = null;
+        fireIfPending();
+      }, 50);
+    });
+
+    settleObserver.observe(container, { childList: true, subtree: true, characterData: true });
+
+    // Fallback: if no mutations or they never stop, fire after BRANCH_CHANGE_DEBOUNCE ms
+    settleTimer = setTimeout(() => {
+      settleTimer = null;
+      settleObserver?.disconnect();
+      settleObserver = null;
+      fireIfPending();
+    }, TIMING.BRANCH_CHANGE_DEBOUNCE);
+  };
+
+  const handleClick = (event: Event) => {
+    const target = event.target as HTMLElement;
+    const btn = target.closest(`${SELECTORS.BRANCH_PREV_BTN}, ${SELECTORS.BRANCH_NEXT_BTN}`);
+    if (!btn) return;
+
+    pendingChange = true;
+    startSettle();
+  };
+
+  container.addEventListener('click', handleClick);
 
   return () => {
-    observer.disconnect();
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-      debounceTimer = null;
-    }
+    container.removeEventListener('click', handleClick);
+    settleObserver?.disconnect();
+    if (settleTimer) clearTimeout(settleTimer);
   };
 }
