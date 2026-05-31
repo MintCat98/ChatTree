@@ -15,7 +15,6 @@ function handleDOMChange(): void {
 
   debounceTimer = setTimeout(() => {
     currentNodes = assignChatboxIds();
-    console.log('[ChatTree] handleDOMChange fired, nodes:', currentNodes.length);
     const tree = buildTree(currentNodes);
 
     chrome.runtime.sendMessage({
@@ -27,7 +26,6 @@ function handleDOMChange(): void {
 
 export function startObserving(): void {
   const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
-  console.log('[ChatTree] startObserving, container:', container);
   if (!container) return;
 
   currentNodes = [];
@@ -47,13 +45,10 @@ export function startObserving(): void {
       // Detect end of streaming
       if (
         mutation.type === 'attributes' &&
-        mutation.attributeName === SELECTORS.STREAMING_ATTR
+        mutation.attributeName === SELECTORS.STREAMING_ATTR &&
+        (mutation.target as HTMLElement).getAttribute(SELECTORS.STREAMING_ATTR) === 'false'
       ) {
-        const val = (mutation.target as HTMLElement).getAttribute(SELECTORS.STREAMING_ATTR);
-        console.log('[ChatTree] data-is-streaming changed to:', val);
-        if (val === 'false') {
-          handleDOMChange();
-        }
+        handleDOMChange();
       }
     }
   });
