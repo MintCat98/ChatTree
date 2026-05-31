@@ -208,13 +208,24 @@
 
 ### AI Usage Log | 2026-05-31 (By @MintCat98)
 
+- **What**: feat — Issue #14 `message-bridge.ts` 구현
+- **Request**: "#14 작업해줘."
+- **AI Suggestion**: `sendToBackground` (3회 retry, `Promise<void>`로 시그니처 변경), `onMessageFromBackground` (타입 가드 + cleanup 함수 반환), `isBridgeMessage` 내부 헬퍼 구현. `sleep` 헬퍼 네이밍 개선 제안 수용 → 인라인 처리. unit test 11개 작성
+- **Human Review**:
+  - `sleep` 함수 이름이 너무 generic하다는 피드백 → 인라인으로 수정
+- **Reflected**: `message-bridge.ts` 구현 및 unit test 11개 통과 확인
+
+---
+
+### AI Usage Log | 2026-05-31 (By @MintCat98)
+
 - **What**: feat — Issue #13 `session-store.ts` 구현, `@background/` alias 설정 추가
 - **Request**: "이슈 #13에 대해 컨텍스트 고려해서 작업해줘. 연결된 후속 이슈로는 #14, #15가 있어."
 - **AI Suggestion**: 플랜 모드에서 #13~#15 전체 구현 계획 제시. 유저 피드백으로 #13만 진행하기로 축소 — `session-store.ts` (`getTree` / `updateTree` / `clearTree`), `index.ts`에 `tabs.onRemoved` 리스너 추가, `jest.config.js` · `webpack.config.js` · `tsconfig.json` · `tsconfig.test.json` alias 설정, unit test 12개 작성
 - **Human Review**:
   - #14, #15는 나중에 진행하기로 결정
   - 확인 없이 커밋 진행한 것에 대해 "멋대로 커밋날리지 마라" 피드백 → 커밋 전 확인 정책 수립
-- **Reflected**: `session-store.ts` 구현 및 unit test 12개 통과 확인. 커밋 전 확인 정책 반영
+- **Reflected**: `session-store.ts` 구현 및 unit test 12개 통과 확인, `serializeNodes` 리팩터링 및 탭 격리 테스트 추가. 커밋 전 확인 정책 반영
 
 ---
 
