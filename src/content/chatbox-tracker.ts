@@ -118,6 +118,10 @@ export function reloadFromNode(branchNodeId: string, allNodes: ChatboxNode[]): C
   if (!container) return preserved;
 
   const bubbles = container.querySelectorAll(SELECTORS.USER_MESSAGE_BUBBLE);
+
+  // Caller must guarantee currentNodes reflects current DOM ordering.
+  // If DOM has fewer bubbles than expected, currentNodes is stale — full rescan.
+  if (bubbles.length <= branchIndex) return assignChatboxIds();
   const newNodes: ChatboxNode[] = [];
 
   bubbles.forEach((el, domIndex) => {

@@ -1,6 +1,7 @@
 // Unit tests for watchBranchChanges — branch-switch detection via characterData.
 
 import { watchBranchChanges } from '@content/branch-change-watcher';
+import { SELECTORS } from '@shared/constants';
 
 // Captured MutationObserver internals
 let capturedCallback: ((mutations: MutationRecord[]) => void) | null = null;
@@ -20,7 +21,7 @@ function makeBranchMutation(navId: string): MutationRecord {
 
   // span that matches SELECTORS.BRANCH_INDICATOR
   const indicatorSpan = {
-    matches: (sel: string) => sel.includes('self-center'), // BRANCH_INDICATOR contains 'self-center'
+    matches: (sel: string) => sel === SELECTORS.BRANCH_INDICATOR,
     closest: () => wrapper,
   };
   const textNode = { parentElement: indicatorSpan };

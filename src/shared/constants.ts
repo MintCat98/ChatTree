@@ -9,6 +9,7 @@ export const SELECTORS = {
   BRANCH_NEXT_BTN:        'button[aria-label="다음 버전"]',
   BRANCH_INDICATOR:       'span.self-center.shrink-0.select-none.font-small.text-muted',
   STREAMING_ATTR:         'data-is-streaming',
+  STREAMING_INDICATOR:    '[data-testid="streaming-indicator"]',
   AI_TURN:                '[data-testid="assistant-turn"]',
   AI_RESPONSE:            '[data-testid="ai-response"]',
   NAV_ID_ATTR:            'data-nav-id',

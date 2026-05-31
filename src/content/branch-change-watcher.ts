@@ -18,7 +18,7 @@ export function watchBranchChanges(
 ): () => void {
   const observer = new MutationObserver((mutations) => {
     // Ignore all events while AI is streaming
-    if (document.querySelector('[data-testid="streaming-indicator"]')) return;
+    if (document.querySelector(SELECTORS.STREAMING_INDICATOR)) return;
 
     for (const mutation of mutations) {
       if (mutation.type !== 'characterData') continue;
@@ -33,7 +33,12 @@ export function watchBranchChanges(
       if (!navId) continue;
 
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => onBranchChange(navId), TIMING.BRANCH_CHANGE_DEBOUNCE);
+      // Re-check streaming at fire time: streaming may have started within the debounce window
+      debounceTimer = setTimeout(() => {
+        if (!document.querySelector(SELECTORS.STREAMING_INDICATOR)) {
+          onBranchChange(navId);
+        }
+      }, TIMING.BRANCH_CHANGE_DEBOUNCE);
     }
   });
 
