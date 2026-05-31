@@ -156,11 +156,18 @@ describe('BRANCH_CHANGED', () => {
 // ---------------------------------------------------------------------------
 
 describe('CHAT_PAGE_ENTERED', () => {
-  it('calls clearTree with the tabId', async () => {
+  it('calls clearTree then broadcasts empty TREE_READY to reset the panel', async () => {
     dispatch({ type: MessageType.CHAT_PAGE_ENTERED, payload: { url: 'https://claude.ai/chat/abc' } }, TAB_ID);
     await flush();
 
     expect(mockClearTree).toHaveBeenCalledWith(TAB_ID);
+    expect(mockTabsSendMessage).toHaveBeenCalledWith(
+      TAB_ID,
+      expect.objectContaining({
+        type: MessageType.TREE_READY,
+        payload: { tree: expect.objectContaining({ nodes: [], activeBranchPath: [] }) },
+      }),
+    );
   });
 
   it('does nothing when tabId is undefined', async () => {
@@ -168,6 +175,7 @@ describe('CHAT_PAGE_ENTERED', () => {
     await flush();
 
     expect(mockClearTree).not.toHaveBeenCalled();
+    expect(mockTabsSendMessage).not.toHaveBeenCalled();
   });
 });
 

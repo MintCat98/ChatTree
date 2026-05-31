@@ -50,6 +50,11 @@ async function handleAsync(
     case MessageType.CHAT_PAGE_ENTERED: {
       if (!tabId) return;
       await clearTree(tabId);
+      // Notify panel to reset — send empty tree so stale nodes are cleared immediately
+      await broadcastToTab(tabId, {
+        type: MessageType.TREE_READY,
+        payload: { tree: { sessionId: '', nodes: [], activeBranchPath: [], lastUpdated: Date.now() } },
+      });
       break;
     }
 
@@ -65,7 +70,10 @@ async function handleAsync(
     }
 
     case MessageType.SETTINGS_CHANGE: {
-      // sender.tab is null when this originates from the popup
+      // sender.tab is null when this originates from the popup — tabId unavailable,
+      // so we cannot broadcastToTab here.
+      // Known Limitation: Panel must subscribe to chrome.storage.onChanged to pick up
+      // setting changes in real time (to be handled in the Panel PR).
       const { settings } = message.payload as { settings: UserSettings };
       await chrome.storage.local.set({ [STORAGE_KEYS.USER_SETTINGS]: settings });
       break;
