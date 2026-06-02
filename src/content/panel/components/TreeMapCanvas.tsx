@@ -1,10 +1,10 @@
 // SVG tree container.
 // Distributes coordinates to child components based on node index.
 // Renders EmptyState when store.tree is null or contains no nodes.
+// Width follows the user-adjustable panel width (issue 02).
 
 import { usePanelStore } from '../store/panel-store';
 import {
-  PANEL_WIDTH,
   NODE_STEP,
   LANE_OFFSET,
   calcSvgHeight,
@@ -17,6 +17,7 @@ import { EmptyState } from './EmptyState';
 
 export function TreeMapCanvas() {
   const tree = usePanelStore((s) => s.tree);
+  const width = usePanelStore((s) => s.settings.panelWidth);
 
   if (!tree || tree.nodes.length === 0) {
     return <EmptyState />;
@@ -24,7 +25,7 @@ export function TreeMapCanvas() {
 
   const { nodes } = tree;
   const height = calcSvgHeight(nodes.length);
-  const centerX = PANEL_WIDTH / 2;
+  const centerX = width / 2;
 
   return (
     <div
@@ -38,9 +39,9 @@ export function TreeMapCanvas() {
       }}
     >
       <svg
-        width={PANEL_WIDTH}
+        width={width}
         height={height}
-        viewBox={`0 0 ${PANEL_WIDTH} ${height}`}
+        viewBox={`0 0 ${width} ${height}`}
         role="tree"
         aria-label="Chat node tree"
       >
@@ -88,12 +89,7 @@ export function TreeMapCanvas() {
 
         {/* 3) Nodes on top so they cover the connectors. */}
         {nodes.map((node, i) => (
-          <TreeNode
-            key={node.id}
-            node={node}
-            cx={centerX}
-            cy={nodeCenterY(i)}
-          />
+          <TreeNode key={node.id} node={node} cx={centerX} cy={nodeCenterY(i)} />
         ))}
       </svg>
     </div>

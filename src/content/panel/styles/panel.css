@@ -1,7 +1,11 @@
 /* Shadow DOM scoped styles. All variables use the --nav-* namespace.
    This is the single source of truth for design tokens — it is the file
    loaded by ui-injector.tsx (via ?raw). Every --nav-* variable referenced
-   by a component MUST be defined here. */
+   by a component MUST be defined here.
+
+   Theme: dark is the default (:host). Light overrides live in
+   :host([data-theme='light']); App.tsx sets the host's data-theme to follow
+   claude.ai (issue 06). */
 
 :host {
   all: initial;
@@ -21,8 +25,12 @@
   --nav-border-radius: 14px;
   --nav-border-radius-sm: 8px;
 
-  /* Background — base panel surface (rgb form so it can be reused for strokes) */
+  /* Background — base panel surface.
+     --nav-color-bg      : solid color (used for the NodeBadge stroke).
+     --nav-color-bg-rgb  : space-separated RGB triple composed with the opacity
+                           setting in PanelShell: rgb(var(--nav-color-bg-rgb) / a). */
   --nav-color-bg: #12121c;
+  --nav-color-bg-rgb: 17 17 27;
   --nav-color-bg-elevated: rgba(30, 30, 46, 0.6);
 
   /* Shadows & borders */
@@ -73,6 +81,25 @@
   --nav-transition: var(--nav-duration-base) ease;
 }
 
+/* Light theme — follows claude.ai when themeMode is 'auto', or forced via setting. */
+:host([data-theme='light']) {
+  --nav-color-bg: #ffffff;
+  --nav-color-bg-rgb: 255 255 255;
+  --nav-color-bg-elevated: rgba(241, 245, 249, 0.8);
+
+  --nav-panel-shadow: 0 12px 40px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(15, 23, 42, 0.1);
+  --nav-color-border: rgba(15, 23, 42, 0.12);
+  --nav-color-border-strong: rgba(15, 23, 42, 0.2);
+
+  --nav-color-text: #1e293b;
+  --nav-color-text-secondary: rgba(30, 41, 59, 0.7);
+  --nav-color-text-muted: #64748b;
+
+  --nav-color-node-active-ring: #4c1d95; /* dark ring for contrast on light bg */
+  --nav-color-edge: rgba(124, 92, 246, 0.5);
+  --nav-glow-active: drop-shadow(0 0 6px rgba(124, 92, 246, 0.55));
+}
+
 @media (prefers-reduced-motion: reduce) {
   :host {
     --nav-duration-fast: 0ms;
@@ -93,6 +120,22 @@
   50%      { opacity: 0.4; }
 }
 
+/* Right-edge drag-resize handle (issue 02). */
+.nav-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: ew-resize;
+  border-top-right-radius: var(--nav-border-radius);
+  border-bottom-right-radius: var(--nav-border-radius);
+  transition: background var(--nav-duration-fast) ease;
+}
+.nav-resize-handle:hover {
+  background: linear-gradient(90deg, transparent, rgba(139, 124, 246, 0.4));
+}
+
 /* Custom scrollbar inside the tree-map viewport — keeps the chrome subtle. */
 [data-testid='treemap-canvas']::-webkit-scrollbar {
   width: 8px;
@@ -111,13 +154,13 @@
   background-clip: content-box;
 }
 
-/* Range input — themed track + thumb so the opacity slider matches the panel. */
+/* Range input — themed track + thumb so the sliders match the panel. */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   height: 4px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(127, 127, 160, 0.3);
   outline: none;
   cursor: pointer;
 }

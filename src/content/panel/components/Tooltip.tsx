@@ -1,6 +1,9 @@
-// Tooltip showing the full prompt text when a node is hovered.
-// Watches store.hoveredNodeId, waits 300ms before becoming visible, and
-// renders via Portal so the tooltip is not clipped by surrounding SVG.
+// Tooltip showing the full prompt text when a node is hovered (issue 01).
+// Anchored to the cursor position (store.hoverPos) rather than the node element,
+// because nodes live inside a closed Shadow DOM and can't be located via
+// document.querySelector. Rendered through a Portal to document.body so it is not
+// clipped by the panel; colors are literal (not --nav-* vars) since those tokens
+// are scoped to the Shadow :host and don't apply at document.body.
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -9,25 +12,20 @@ import { usePanelStore } from '../store/panel-store';
 const TOOLTIP_DELAY_MS = 300;
 const TOOLTIP_MAX_WIDTH = 320;
 const TOOLTIP_MAX_HEIGHT = 200;
-
-interface TooltipPosition {
-  x: number;
-  y: number;
-}
+const CURSOR_OFFSET = 16;
 
 export function Tooltip() {
   const hoveredNodeId = usePanelStore((s) => s.hoveredNodeId);
+  const hoverPos = usePanelStore((s) => s.hoverPos);
   const tree = usePanelStore((s) => s.tree);
   const [visible, setVisible] = useState(false);
-  const [position, setPosition] = useState<TooltipPosition>({ x: 0, y: 0 });
   const delayTimerRef = useRef<number | null>(null);
 
-  // Resolve the hovered node's full record from the store.
   const node = hoveredNodeId
-    ? tree?.nodes.find((n) => n.id === hoveredNodeId) ?? null
+    ? (tree?.nodes.find((n) => n.id === hoveredNodeId) ?? null)
     : null;
 
-  // React to hoveredNodeId transitions.
+  // Show after a short delay; hide immediately when the hover clears.
   useEffect(() => {
     if (delayTimerRef.current) {
       window.clearTimeout(delayTimerRef.current);
@@ -37,59 +35,44 @@ export function Tooltip() {
       setVisible(false);
       return;
     }
-    delayTimerRef.current = window.setTimeout(() => {
-      // Locate the hovered node element in the DOM to anchor the tooltip.
-      const el = document.querySelector(`[data-nav-id="${hoveredNodeId}"]`);
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        const x = Math.min(
-          rect.right + 8,
-          window.innerWidth - TOOLTIP_MAX_WIDTH - 8,
-        );
-        const y = Math.max(8, Math.min(rect.top, window.innerHeight - TOOLTIP_MAX_HEIGHT - 8));
-        setPosition({ x, y });
-      }
-      setVisible(true);
-    }, TOOLTIP_DELAY_MS);
+    delayTimerRef.current = window.setTimeout(() => setVisible(true), TOOLTIP_DELAY_MS);
     return () => {
-      if (delayTimerRef.current) {
-        window.clearTimeout(delayTimerRef.current);
-      }
+      if (delayTimerRef.current) window.clearTimeout(delayTimerRef.current);
     };
   }, [hoveredNodeId]);
 
-  if (!visible || !node) return null;
+  if (!visible || !node || !hoverPos) return null;
 
-  // Portal target. document.body works for now; in stricter Shadow-DOM-isolated
-  // environments a dedicated root inside the panel's shadow tree may be needed.
-  const portalRoot = document.body;
+  // Keep the tooltip on-screen relative to the cursor.
+  const x = Math.min(hoverPos.x + CURSOR_OFFSET, window.innerWidth - TOOLTIP_MAX_WIDTH - 8);
+  const y = Math.min(hoverPos.y + CURSOR_OFFSET, window.innerHeight - TOOLTIP_MAX_HEIGHT - 8);
 
   return createPortal(
     <div
       role="tooltip"
       style={{
         position: 'fixed',
-        left: position.x,
-        top: position.y,
+        left: Math.max(8, x),
+        top: Math.max(8, y),
         maxWidth: TOOLTIP_MAX_WIDTH,
         maxHeight: TOOLTIP_MAX_HEIGHT,
         overflowY: 'auto',
-        padding: '12px 14px',
-        backgroundColor: 'rgba(17, 17, 27, 0.95)',
-        color: 'var(--nav-color-text)',
-        border: '1px solid var(--nav-color-border)',
+        padding: '10px 12px',
+        backgroundColor: 'rgba(17, 17, 27, 0.97)',
+        color: '#f1f5f9',
+        border: '1px solid rgba(255, 255, 255, 0.14)',
         borderRadius: 8,
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
-        fontSize: 'var(--nav-font-size-sm)',
-        fontFamily: 'var(--nav-font-family)',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+        fontSize: 12,
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         lineHeight: 1.5,
-        zIndex: 'var(--nav-z-index)' as unknown as number,
-        pointerEvents: 'none', // The tooltip itself never captures hover.
+        zIndex: 2147483647,
+        pointerEvents: 'none',
         whiteSpace: 'pre-wrap',
       }}
     >
       {node.text}
     </div>,
-    portalRoot,
+    document.body,
   );
 }

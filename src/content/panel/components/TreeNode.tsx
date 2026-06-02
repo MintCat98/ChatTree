@@ -1,16 +1,15 @@
-// Individual tree node — circle + inline text + (when applicable) NodeBadge.
-// Click sends SCROLL_TO_NODE message; hover updates hoveredNodeId; keyboard
-// Enter/Space mirror click behavior for accessibility.
+// Individual tree node — circle + order number + (when applicable) NodeBadge.
+// The circle carries the 1-based order number so the map stays readable; the
+// full prompt text is shown on hover via <Tooltip> (issue 01) and kept in
+// aria-label for accessibility.
+// Click sends SCROLL_TO_NODE; hover updates hoveredNodeId + cursor position;
+// keyboard Enter/Space mirror click.
 
 import { useCallback, type KeyboardEvent, type MouseEvent } from 'react';
 import type { ChatboxNode } from '@shared/types';
 import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
-import {
-  NODE_RADIUS,
-  NODE_RADIUS_ACTIVE,
-  truncate,
-} from './constants';
+import { NODE_RADIUS, NODE_RADIUS_ACTIVE } from './constants';
 import { NodeBadge } from './NodeBadge';
 
 interface TreeNodeProps {
@@ -23,6 +22,7 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
   const activeNodeId = usePanelStore((s) => s.activeNodeId);
   const hoveredNodeId = usePanelStore((s) => s.hoveredNodeId);
   const setHoveredNode = usePanelStore((s) => s.setHoveredNode);
+  const setHoverPos = usePanelStore((s) => s.setHoverPos);
 
   const isActive = activeNodeId === node.id;
   const isHovered = hoveredNodeId === node.id;
@@ -56,13 +56,25 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
     [node.id],
   );
 
-  const handleMouseEnter = useCallback(() => {
-    setHoveredNode(node.id);
-  }, [node.id, setHoveredNode]);
+  const handleMouseEnter = useCallback(
+    (e: MouseEvent<SVGGElement>) => {
+      setHoveredNode(node.id);
+      setHoverPos({ x: e.clientX, y: e.clientY });
+    },
+    [node.id, setHoveredNode, setHoverPos],
+  );
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent<SVGGElement>) => {
+      setHoverPos({ x: e.clientX, y: e.clientY });
+    },
+    [setHoverPos],
+  );
 
   const handleMouseLeave = useCallback(() => {
     setHoveredNode(null);
-  }, [setHoveredNode]);
+    setHoverPos(null);
+  }, [setHoveredNode, setHoverPos]);
 
   return (
     <g
@@ -73,6 +85,7 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{ cursor: 'pointer', outline: 'none' }}
       data-nav-id={node.id}
@@ -107,12 +120,13 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
         y={cy}
         textAnchor="middle"
         dominantBaseline="central"
-        fill="var(--nav-color-text)"
-        fontSize="var(--nav-font-size-sm)"
+        fill="#ffffff"
+        fontSize="var(--nav-font-size-base)"
         fontFamily="var(--nav-font-family)"
+        fontWeight={600}
         pointerEvents="none"
       >
-        {truncate(node.text)}
+        {node.index + 1}
       </text>
       {isBranchPoint ? (
         <NodeBadge

@@ -17,6 +17,7 @@
 //   6. tree NOT persisted across re-init
 
 import { usePanelStore } from '../../src/content/panel/store/panel-store';
+import { DEFAULT_SETTINGS } from '@shared/types';
 import type { TreeData } from '@shared/types';
 
 const SAMPLE_TREE: TreeData = {
@@ -33,16 +34,12 @@ function resetStore() {
   localStorage.clear();
   usePanelStore.setState({
     tree:          null,
-    settings: {
-      panelPosition:     'top-right',
-      panelDirection:    'top-down',
-      backgroundOpacity: 0.85,
-      sortOrder:         'asc',
-      summaryEnabled:    false,
-      panelVisible:      true,
-    },
+    settings:      { ...DEFAULT_SETTINGS },
     activeNodeId:  null,
     hoveredNodeId: null,
+    hoverPos:      null,
+    collapsed:     false,
+    settingsOpen:  false,
   });
 }
 
@@ -64,6 +61,20 @@ describe('usePanelStore — actions', () => {
     expect(after.sortOrder).toBe(before.sortOrder);
     expect(after.summaryEnabled).toBe(before.summaryEnabled);
     expect(after.panelVisible).toBe(before.panelVisible);
+    expect(after.panelWidth).toBe(before.panelWidth);
+    expect(after.themeMode).toBe(before.themeMode);
+  });
+
+  it('toggleCollapsed flips the collapsed flag', () => {
+    expect(usePanelStore.getState().collapsed).toBe(false);
+    usePanelStore.getState().toggleCollapsed();
+    expect(usePanelStore.getState().collapsed).toBe(true);
+  });
+
+  it('toggleSettingsOpen flips the settingsOpen flag', () => {
+    expect(usePanelStore.getState().settingsOpen).toBe(false);
+    usePanelStore.getState().toggleSettingsOpen();
+    expect(usePanelStore.getState().settingsOpen).toBe(true);
   });
 
   it('setActiveNode sets activeNodeId', () => {

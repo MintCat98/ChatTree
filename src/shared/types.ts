@@ -26,6 +26,8 @@ export interface UserSettings {
   sortOrder: 'asc' | 'desc';
   summaryEnabled: boolean;
   panelVisible: boolean;
+  panelWidth: number;         // px — panel width (resizable). See issue 02.
+  themeMode: 'auto' | 'light' | 'dark'; // 'auto' follows the claude.ai theme. See issue 06.
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -33,6 +35,12 @@ export const DEFAULT_SETTINGS: UserSettings = {
   panelDirection: 'top-down',
   backgroundOpacity: 0.85,
   sortOrder: 'asc',
-  summaryEnabled: false, 
+  summaryEnabled: false,
   panelVisible: true,
+  panelWidth: 280,
+  themeMode: 'auto',
 };
+
+// Panel width bounds (used by the resize handle and width controls).
+export const PANEL_WIDTH_MIN = 240;
+export const PANEL_WIDTH_MAX = 520;
