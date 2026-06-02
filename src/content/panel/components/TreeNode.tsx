@@ -21,17 +21,22 @@ interface TreeNodeProps {
 
 export function TreeNode({ node, cx, cy }: TreeNodeProps) {
   const activeNodeId = usePanelStore((s) => s.activeNodeId);
+  const hoveredNodeId = usePanelStore((s) => s.hoveredNodeId);
   const setHoveredNode = usePanelStore((s) => s.setHoveredNode);
 
   const isActive = activeNodeId === node.id;
+  const isHovered = hoveredNodeId === node.id;
   const isBranchPoint = node.hasBranch;
-  const r = isActive ? NODE_RADIUS_ACTIVE : NODE_RADIUS;
+  // Hover nudges the radius up a touch for a tactile feel; active is largest.
+  const r = isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1.5 : NODE_RADIUS;
 
+  // Gradient fills give each node state a subtle vertical sheen (visual only —
+  // the gradient ids are defined in TreeMapCanvas <defs>).
   const fillVar = isActive
-    ? 'var(--nav-color-node-active)'
+    ? 'url(#nav-node-active-grad)'
     : isBranchPoint
-      ? 'var(--nav-color-node-branch)'
-      : 'var(--nav-color-node)';
+      ? 'url(#nav-node-branch-grad)'
+      : 'url(#nav-node-grad)';
 
   const handleClick = useCallback(
     (e: MouseEvent<SVGGElement>) => {
@@ -72,15 +77,29 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
       style={{ cursor: 'pointer', outline: 'none' }}
       data-nav-id={node.id}
     >
+      {/* Pulsing halo ring around the node the user is currently viewing. */}
+      {isActive ? (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r + 5}
+          fill="none"
+          stroke="var(--nav-color-node-active-ring)"
+          strokeWidth={1.5}
+          opacity={0.5}
+          style={{ animation: 'nav-pulse 2s ease-in-out infinite' }}
+        />
+      ) : null}
       <circle
         cx={cx}
         cy={cy}
         r={r}
         fill={fillVar}
-        stroke={isActive ? 'var(--nav-color-text)' : 'transparent'}
-        strokeWidth={isActive ? 2 : 0}
+        stroke={isActive ? 'var(--nav-color-node-active-ring)' : 'rgba(255,255,255,0.18)'}
+        strokeWidth={isActive ? 2 : 1}
+        filter={isActive ? 'var(--nav-glow-active)' : undefined}
         style={{
-          transition: 'all var(--nav-duration-fast)',
+          transition: 'r var(--nav-duration-fast) ease, filter var(--nav-duration-fast) ease',
         }}
       />
       <text

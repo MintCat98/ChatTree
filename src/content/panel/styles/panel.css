@@ -1,4 +1,7 @@
-/* Shadow DOM scoped styles. All variables use the --nav-* namespace. */
+/* Shadow DOM scoped styles. All variables use the --nav-* namespace.
+   This is the single source of truth for design tokens — it is the file
+   loaded by ui-injector.tsx (via ?raw). Every --nav-* variable referenced
+   by a component MUST be defined here. */
 
 :host {
   all: initial;
@@ -15,31 +18,120 @@
   --nav-z-index: 2147483647;
 
   /* Shape */
-  --nav-border-radius: 12px;
+  --nav-border-radius: 14px;
+  --nav-border-radius-sm: 8px;
+
+  /* Background — base panel surface (rgb form so it can be reused for strokes) */
+  --nav-color-bg: #12121c;
+  --nav-color-bg-elevated: rgba(30, 30, 46, 0.6);
 
   /* Shadows & borders */
-  --nav-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --nav-panel-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
   --nav-color-border: rgba(255, 255, 255, 0.1);
+  --nav-color-border-strong: rgba(255, 255, 255, 0.18);
 
   /* Typography */
-  --nav-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --nav-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --nav-font-size-sm: 11px;
   --nav-font-size-base: 13px;
 
-  /* Colors */
-  --nav-color-text: #e8e8f0;
-  --nav-color-text-secondary: rgba(232, 232, 240, 0.55);
-  --nav-color-node-fill: rgba(255, 255, 255, 0.06);
-  --nav-color-node-active: rgba(124, 101, 246, 0.35);
-  --nav-color-edge: rgba(255, 255, 255, 0.2);
-  --nav-color-accent: #7c65f6;
+  /* Text colors */
+  --nav-color-text: #f1f5f9;
+  --nav-color-text-secondary: rgba(241, 245, 249, 0.7);
+  --nav-color-text-muted: #94a3b8;
 
-  /* Animation */
+  /* Accent */
+  --nav-color-accent: #8b7cf6;
+  --nav-color-accent-strong: #7c5cf6;
+
+  /* Node colors */
+  --nav-color-node: #7c5cf6;            /* default node */
+  --nav-color-node-hover: #9b8cf8;      /* hover state */
+  --nav-color-node-active: #a78bfa;     /* node at current scroll position */
+  --nav-color-node-active-ring: #f1f5f9;/* ring around the active node */
+  --nav-color-node-branch: #f59e0b;     /* branch-point node */
+  --nav-color-node-inactive: #64748b;   /* inferred inactive branch */
+
+  /* Gradient stops (used by SVG <linearGradient> defs in TreeMapCanvas) */
+  --nav-grad-node-top: #8b7cf6;
+  --nav-grad-node-bottom: #6d4ee0;
+  --nav-grad-active-top: #b9a4ff;
+  --nav-grad-active-bottom: #8b6cf6;
+  --nav-grad-branch-top: #fbbf24;
+  --nav-grad-branch-bottom: #ea8c00;
+
+  /* Edges */
+  --nav-color-edge: rgba(167, 139, 250, 0.45);
+
+  /* Glow (active node drop-shadow) */
+  --nav-glow-active: drop-shadow(0 0 6px rgba(167, 139, 250, 0.7));
+
+  /* Animation durations — overridden to 0ms under prefers-reduced-motion below. */
+  --nav-duration-fast: 150ms;
   --nav-duration-base: 200ms;
+  --nav-duration-slow: 300ms;
   --nav-transition: var(--nav-duration-base) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    --nav-duration-fast: 0ms;
+    --nav-duration-base: 0ms;
+    --nav-duration-slow: 0ms;
+    --nav-glow-active: none;
+  }
 }
 
 @keyframes nav-slide-in {
   from { transform: translateX(20px); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* Soft pulse for the active node ring. */
+@keyframes nav-pulse {
+  0%, 100% { opacity: 0.9; }
+  50%      { opacity: 0.4; }
+}
+
+/* Custom scrollbar inside the tree-map viewport — keeps the chrome subtle. */
+[data-testid='treemap-canvas']::-webkit-scrollbar {
+  width: 8px;
+}
+[data-testid='treemap-canvas']::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-testid='treemap-canvas']::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+[data-testid='treemap-canvas']::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: content-box;
+}
+
+/* Range input — themed track + thumb so the opacity slider matches the panel. */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--nav-color-accent);
+  border: 2px solid var(--nav-color-text);
+  box-shadow: 0 0 4px rgba(139, 124, 246, 0.6);
+  transition: transform var(--nav-duration-fast) ease;
+}
+input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
 }

@@ -3,38 +3,42 @@
 // committed via store.updateSettings, which the persist middleware writes to
 // localStorage automatically.
 
-import type { ChangeEvent } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { usePanelStore } from '../store/panel-store';
 import type { UserSettings } from '@shared/types';
 
 const labelStyle: React.CSSProperties = {
   fontSize: 'var(--nav-font-size-sm)',
   color: 'var(--nav-color-text-muted)',
-  marginRight: 6,
+  marginRight: 8,
   minWidth: 44,
+  letterSpacing: '0.2px',
 };
 
 const rowStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  padding: '4px 0',
+  padding: '3px 0',
   fontSize: 'var(--nav-font-size-sm)',
 };
 
 const controlStyle: React.CSSProperties = {
   flex: 1,
-  background: 'rgba(255, 255, 255, 0.08)',
+  background: 'rgba(255, 255, 255, 0.06)',
   color: 'var(--nav-color-text)',
   border: '1px solid var(--nav-color-border)',
-  borderRadius: 4,
-  padding: '2px 6px',
+  borderRadius: 'var(--nav-border-radius-sm)',
+  padding: '5px 8px',
   fontSize: 'var(--nav-font-size-sm)',
   fontFamily: 'var(--nav-font-family)',
+  outline: 'none',
+  transition: 'background var(--nav-duration-fast) ease, border-color var(--nav-duration-fast) ease',
 };
 
 export function ControlBar() {
   const settings = usePanelStore((s) => s.settings);
   const updateSettings = usePanelStore((s) => s.updateSettings);
+  const [sortHover, setSortHover] = useState(false);
 
   const handlePosition = (e: ChangeEvent<HTMLSelectElement>) => {
     updateSettings({ panelPosition: e.target.value as UserSettings['panelPosition'] });
@@ -52,17 +56,21 @@ export function ControlBar() {
     <div
       data-testid="control-bar"
       style={{
-        padding: '8px 16px',
+        padding: '10px 16px 12px',
         borderTop: '1px solid var(--nav-color-border)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 4,
+        gap: 6,
       }}
     >
       {/* Direction — Top-Down is fixed; Left-Right is reserved for a future PR. */}
       <div style={rowStyle}>
         <span style={labelStyle}>방향</span>
-        <select disabled value={settings.panelDirection} style={controlStyle}>
+        <select
+          disabled
+          value={settings.panelDirection}
+          style={{ ...controlStyle, opacity: 0.6, cursor: 'not-allowed' }}
+        >
           <option value="top-down">Top-Down</option>
           <option value="left-right">Left-Right (coming soon)</option>
         </select>
@@ -74,7 +82,7 @@ export function ControlBar() {
         <select
           value={settings.panelPosition}
           onChange={handlePosition}
-          style={controlStyle}
+          style={{ ...controlStyle, cursor: 'pointer' }}
         >
           <option value="top-left">좌상단</option>
           <option value="top-right">우상단</option>
@@ -96,7 +104,14 @@ export function ControlBar() {
           aria-label="Background opacity"
           style={{ flex: 1 }}
         />
-        <span style={{ minWidth: 36, textAlign: 'right' }}>
+        <span
+          style={{
+            minWidth: 38,
+            textAlign: 'right',
+            color: 'var(--nav-color-text-secondary)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
           {Math.round(settings.backgroundOpacity * 100)}%
         </span>
       </div>
@@ -107,11 +122,15 @@ export function ControlBar() {
         <button
           type="button"
           onClick={handleSortToggle}
+          onMouseEnter={() => setSortHover(true)}
+          onMouseLeave={() => setSortHover(false)}
           aria-label={`Current sort: ${settings.sortOrder === 'asc' ? 'ascending' : 'descending'}`}
           style={{
             ...controlStyle,
             cursor: 'pointer',
             textAlign: 'left',
+            background: sortHover ? 'rgba(139,124,246,0.18)' : 'rgba(255, 255, 255, 0.06)',
+            borderColor: sortHover ? 'var(--nav-color-accent)' : 'var(--nav-color-border)',
           }}
         >
           {settings.sortOrder === 'asc' ? '↑ 오래된 순' : '↓ 최신 순'}

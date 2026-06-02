@@ -34,6 +34,7 @@ export function TreeMapCanvas() {
         maxHeight: '50vh',
         overflowY: 'auto',
         overflowX: 'hidden',
+        padding: '4px 0',
       }}
     >
       <svg
@@ -43,6 +44,25 @@ export function TreeMapCanvas() {
         role="tree"
         aria-label="Chat node tree"
       >
+        {/* Gradients + glow filter give nodes depth and highlight the active one. */}
+        <defs>
+          <linearGradient id="nav-node-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--nav-grad-node-top)" />
+            <stop offset="100%" stopColor="var(--nav-grad-node-bottom)" />
+          </linearGradient>
+          <linearGradient id="nav-node-active-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--nav-grad-active-top)" />
+            <stop offset="100%" stopColor="var(--nav-grad-active-bottom)" />
+          </linearGradient>
+          <linearGradient id="nav-node-branch-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--nav-grad-branch-top)" />
+            <stop offset="100%" stopColor="var(--nav-grad-branch-bottom)" />
+          </linearGradient>
+          <filter id="nav-node-glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#a78bfa" floodOpacity="0.85" />
+          </filter>
+        </defs>
+
         {/* 1) Connectors first so nodes render on top of them. */}
         {nodes.slice(0, -1).map((node, i) => (
           <NodeConnector
