@@ -57,7 +57,7 @@
   --nav-color-node-hover: #9b8cf8;      /* hover state */
   --nav-color-node-active: #a78bfa;     /* node at current scroll position */
   --nav-color-node-active-ring: #f1f5f9;/* ring around the active node */
-  --nav-color-node-branch: #f59e0b;     /* branch-point node */
+  --nav-color-node-branch: #d97757;     /* branch-point node — Claude clay orange */
   --nav-color-node-inactive: #64748b;   /* inferred inactive branch */
 
   /* Gradient stops (used by SVG <linearGradient> defs in TreeMapCanvas) */
@@ -65,8 +65,8 @@
   --nav-grad-node-bottom: #6d4ee0;
   --nav-grad-active-top: #b9a4ff;
   --nav-grad-active-bottom: #8b6cf6;
-  --nav-grad-branch-top: #fbbf24;
-  --nav-grad-branch-bottom: #ea8c00;
+  --nav-grad-branch-top: #e08a6e;       /* Claude orange, lighter */
+  --nav-grad-branch-bottom: #c15f3c;    /* Claude orange, darker */
 
   /* Edges */
   --nav-color-edge: rgba(167, 139, 250, 0.45);

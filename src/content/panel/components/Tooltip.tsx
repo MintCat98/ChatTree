@@ -4,21 +4,33 @@
 // document.querySelector. Rendered through a Portal to document.body so it is not
 // clipped by the panel; colors are literal (not --nav-* vars) since those tokens
 // are scoped to the Shadow :host and don't apply at document.body.
+//
+// Sizing: a FIXED width so every tooltip looks consistent and never stretches
+// too wide; long text wraps and scrolls vertically.
+// Placement: shows on whichever side of the cursor (right vs left) has more room.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePanelStore } from '../store/panel-store';
 
 const TOOLTIP_DELAY_MS = 300;
-const TOOLTIP_MAX_WIDTH = 320;
-const TOOLTIP_MAX_HEIGHT = 200;
+const TOOLTIP_WIDTH = 280;      // fixed box width for visual consistency
+const TOOLTIP_MAX_HEIGHT = 200; // long prompts scroll inside this
 const CURSOR_OFFSET = 16;
+const EDGE_MARGIN = 8;
+
+interface Pos {
+  left: number;
+  top: number;
+}
 
 export function Tooltip() {
   const hoveredNodeId = usePanelStore((s) => s.hoveredNodeId);
   const hoverPos = usePanelStore((s) => s.hoverPos);
   const tree = usePanelStore((s) => s.tree);
   const [visible, setVisible] = useState(false);
+  const [pos, setPos] = useState<Pos | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const delayTimerRef = useRef<number | null>(null);
 
   const node = hoveredNodeId
@@ -33,6 +45,7 @@ export function Tooltip() {
     }
     if (!hoveredNodeId) {
       setVisible(false);
+      setPos(null); // recompute placement fresh on the next hover
       return;
     }
     delayTimerRef.current = window.setTimeout(() => setVisible(true), TOOLTIP_DELAY_MS);
@@ -41,20 +54,43 @@ export function Tooltip() {
     };
   }, [hoveredNodeId]);
 
-  if (!visible || !node || !hoverPos) return null;
+  // After the tooltip is in the DOM, measure its height and pick the side with
+  // more room. Width is fixed (TOOLTIP_WIDTH), so the only horizontal decision is
+  // left-of-cursor vs right-of-cursor.
+  useLayoutEffect(() => {
+    if (!visible || !node || !hoverPos || !ref.current) return;
 
-  // Keep the tooltip on-screen relative to the cursor.
-  const x = Math.min(hoverPos.x + CURSOR_OFFSET, window.innerWidth - TOOLTIP_MAX_WIDTH - 8);
-  const y = Math.min(hoverPos.y + CURSOR_OFFSET, window.innerHeight - TOOLTIP_MAX_HEIGHT - 8);
+    const h = ref.current.offsetHeight;
+    const spaceRight = window.innerWidth - hoverPos.x;
+    const spaceLeft = hoverPos.x;
+    // Prefer the right; flip to the left only when the right can't fit the box
+    // and the left genuinely has more room.
+    const placeLeft = spaceRight < TOOLTIP_WIDTH + CURSOR_OFFSET + EDGE_MARGIN && spaceLeft > spaceRight;
+
+    let left = placeLeft
+      ? hoverPos.x - CURSOR_OFFSET - TOOLTIP_WIDTH
+      : hoverPos.x + CURSOR_OFFSET;
+    left = Math.max(EDGE_MARGIN, Math.min(left, window.innerWidth - TOOLTIP_WIDTH - EDGE_MARGIN));
+
+    let top = hoverPos.y + CURSOR_OFFSET;
+    top = Math.max(EDGE_MARGIN, Math.min(top, window.innerHeight - h - EDGE_MARGIN));
+
+    setPos({ left, top });
+  }, [visible, node, hoverPos]);
+
+  if (!visible || !node || !hoverPos) return null;
 
   return createPortal(
     <div
+      ref={ref}
       role="tooltip"
       style={{
         position: 'fixed',
-        left: Math.max(8, x),
-        top: Math.max(8, y),
-        maxWidth: TOOLTIP_MAX_WIDTH,
+        // Render off-screen for the first measuring pass, then snap into place.
+        left: pos ? pos.left : -9999,
+        top: pos ? pos.top : -9999,
+        opacity: pos ? 1 : 0,
+        width: TOOLTIP_WIDTH,
         maxHeight: TOOLTIP_MAX_HEIGHT,
         overflowY: 'auto',
         padding: '10px 12px',
@@ -69,6 +105,8 @@ export function Tooltip() {
         zIndex: 2147483647,
         pointerEvents: 'none',
         whiteSpace: 'pre-wrap',
+        overflowWrap: 'break-word',
+        transition: 'opacity 80ms ease',
       }}
     >
       {node.text}
