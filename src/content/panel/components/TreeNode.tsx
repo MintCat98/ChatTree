@@ -1,24 +1,38 @@
-// Individual tree node — circle + order number + (when applicable) NodeBadge.
-// The circle carries the 1-based order number so the map stays readable; the
-// full prompt text is shown on hover via <Tooltip> (issue 01) and kept in
-// aria-label for accessibility.
-// Click sends SCROLL_TO_NODE; hover updates hoveredNodeId + cursor position;
-// keyboard Enter/Space mirror click.
+// One tree row: [row highlight] + numbered circle + question label (+ branch badge).
+// Visual differentiation (Claude Chat Navigation Figma):
+//   - latest (newest) node  → clay-filled circle, white number, soft glow
+//   - active (in viewport)  → clay ring
+//   - previous nodes        → outlined gray circle, muted number
+// Full prompt text is also available on hover via <Tooltip>.
 
-import { useCallback, type KeyboardEvent, type MouseEvent } from 'react';
+import { useCallback, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
 import type { ChatboxNode } from '@shared/types';
 import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
-import { NODE_RADIUS, NODE_RADIUS_ACTIVE } from './constants';
+import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, truncate } from './constants';
 import { NodeBadge } from './NodeBadge';
 
 interface TreeNodeProps {
   node: ChatboxNode;
   cx: number;
   cy: number;
+  isLatest: boolean;
+  labelX: number;
+  labelMaxChars: number;
+  rowX: number;
+  rowWidth: number;
 }
 
-export function TreeNode({ node, cx, cy }: TreeNodeProps) {
+export function TreeNode({
+  node,
+  cx,
+  cy,
+  isLatest,
+  labelX,
+  labelMaxChars,
+  rowX,
+  rowWidth,
+}: TreeNodeProps) {
   const activeNodeId = usePanelStore((s) => s.activeNodeId);
   const hoveredNodeId = usePanelStore((s) => s.hoveredNodeId);
   const setHoveredNode = usePanelStore((s) => s.setHoveredNode);
@@ -26,17 +40,37 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
 
   const isActive = activeNodeId === node.id;
   const isHovered = hoveredNodeId === node.id;
-  const isBranchPoint = node.hasBranch;
-  // Hover nudges the radius up a touch for a tactile feel; active is largest.
-  const r = isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1.5 : NODE_RADIUS;
+  const isBranch = node.hasBranch;
+  const filled = isLatest; // primary clay highlight = newest question
+  const ring = isActive && !isLatest; // "you are here" indicator
 
-  // Gradient fills give each node state a subtle vertical sheen (visual only —
-  // the gradient ids are defined in TreeMapCanvas <defs>).
-  const fillVar = isActive
-    ? 'url(#nav-node-active-grad)'
-    : isBranchPoint
-      ? 'url(#nav-node-branch-grad)'
-      : 'url(#nav-node-grad)';
+  const r = filled || isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
+
+  const circleFill = filled ? 'var(--nav-color-node-active)' : 'var(--nav-color-node-fill)';
+  const circleStroke = filled
+    ? 'transparent'
+    : ring || isHovered
+      ? 'var(--nav-color-accent)'
+      : 'var(--nav-color-node-border)';
+  const circleStrokeW = filled ? 0 : ring ? 2 : 1.5;
+  const numberFill = filled
+    ? 'var(--nav-color-node-active-text)'
+    : ring
+      ? 'var(--nav-color-accent)'
+      : 'var(--nav-color-node-number)';
+
+  const rowFill = isLatest
+    ? 'var(--nav-color-accent-soft)'
+    : isHovered
+      ? 'var(--nav-color-surface-2)'
+      : 'transparent';
+
+  const labelFill = isLatest ? 'var(--nav-color-text)' : 'var(--nav-color-text-secondary)';
+
+  const circleStyle: CSSProperties = {
+    transition: 'r var(--nav-duration-fast) ease',
+    filter: filled ? 'var(--nav-active-glow)' : 'none',
+  };
 
   const handleClick = useCallback(
     (e: MouseEvent<SVGGElement>) => {
@@ -65,9 +99,7 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
   );
 
   const handleMouseMove = useCallback(
-    (e: MouseEvent<SVGGElement>) => {
-      setHoverPos({ x: e.clientX, y: e.clientY });
-    },
+    (e: MouseEvent<SVGGElement>) => setHoverPos({ x: e.clientX, y: e.clientY }),
     [setHoverPos],
   );
 
@@ -76,11 +108,13 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
     setHoverPos(null);
   }, [setHoveredNode, setHoverPos]);
 
+  const rowH = NODE_STEP - 10;
+
   return (
     <g
       role="treeitem"
       aria-label={node.text}
-      aria-selected={isActive}
+      aria-selected={isActive || isLatest}
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -90,45 +124,58 @@ export function TreeNode({ node, cx, cy }: TreeNodeProps) {
       style={{ cursor: 'pointer', outline: 'none' }}
       data-nav-id={node.id}
     >
-      {/* Pulsing halo ring around the node the user is currently viewing. */}
-      {isActive ? (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={r + 5}
-          fill="none"
-          stroke="var(--nav-color-node-active-ring)"
-          strokeWidth={1.5}
-          opacity={0.5}
-          style={{ animation: 'nav-pulse 2s ease-in-out infinite' }}
-        />
-      ) : null}
+      {/* Row highlight */}
+      <rect
+        x={rowX}
+        y={cy - rowH / 2}
+        width={rowWidth}
+        height={rowH}
+        rx={10}
+        ry={10}
+        fill={rowFill}
+        style={{ transition: 'fill var(--nav-duration-fast) ease' }}
+      />
+
+      {/* Node circle */}
       <circle
         cx={cx}
         cy={cy}
         r={r}
-        fill={fillVar}
-        stroke={isActive ? 'var(--nav-color-node-active-ring)' : 'rgba(255,255,255,0.18)'}
-        strokeWidth={isActive ? 2 : 1}
-        filter={isActive ? 'var(--nav-glow-active)' : undefined}
-        style={{
-          transition: 'r var(--nav-duration-fast) ease, filter var(--nav-duration-fast) ease',
-        }}
+        fill={circleFill}
+        stroke={circleStroke}
+        strokeWidth={circleStrokeW}
+        style={circleStyle}
       />
       <text
         x={cx}
         y={cy}
         textAnchor="middle"
         dominantBaseline="central"
-        fill="#ffffff"
-        fontSize="var(--nav-font-size-base)"
+        fill={numberFill}
+        fontSize="11"
         fontFamily="var(--nav-font-family)"
-        fontWeight={600}
+        fontWeight={700}
         pointerEvents="none"
       >
         {node.index + 1}
       </text>
-      {isBranchPoint ? (
+
+      {/* Question label */}
+      <text
+        x={labelX}
+        y={cy}
+        textAnchor="start"
+        dominantBaseline="central"
+        fill={labelFill}
+        fontSize="12"
+        fontFamily="var(--nav-font-family)"
+        fontWeight={isLatest ? 600 : 450}
+        pointerEvents="none"
+      >
+        {truncate(node.text, labelMaxChars)}
+      </text>
+
+      {isBranch ? (
         <NodeBadge
           cx={cx + NODE_RADIUS}
           cy={cy - NODE_RADIUS}

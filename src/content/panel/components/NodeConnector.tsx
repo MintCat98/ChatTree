@@ -1,6 +1,5 @@
 // Vertical line between two adjacent nodes.
-// Endpoints are pulled back by NODE_RADIUS so the line stops at the node edge,
-// not at the node center.
+// Endpoints are pulled back by NODE_RADIUS so the line stops at the node edge.
 
 import { NODE_RADIUS } from './constants';
 
@@ -19,6 +18,7 @@ export function NodeConnector({ x, yFrom, yTo }: NodeConnectorProps) {
       y2={yTo - NODE_RADIUS}
       stroke="var(--nav-color-edge)"
       strokeWidth={2}
+      strokeLinecap="round"
     />
   );
 }

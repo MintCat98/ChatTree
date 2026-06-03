@@ -1,10 +1,11 @@
 // SVG tree container.
-// Distributes coordinates to child components based on node index.
-// Renders EmptyState when store.tree is null or contains no nodes.
-// Width follows the user-adjustable panel width (issue 02).
+// Left rail of numbered circles + connector line, with the question label to the
+// right of each node (Claude Chat Navigation Figma layout). Width follows the
+// user-adjustable panel width (issue 02).
 
 import { usePanelStore } from '../store/panel-store';
 import {
+  NODE_RADIUS,
   NODE_STEP,
   LANE_OFFSET,
   calcSvgHeight,
@@ -14,6 +15,10 @@ import { TreeNode } from './TreeNode';
 import { NodeConnector } from './NodeConnector';
 import { BranchLane } from './BranchLane';
 import { EmptyState } from './EmptyState';
+
+const COLUMN_X = 32;          // x of the node circle centers (left rail)
+const LABEL_GAP = 12;         // gap between circle edge and label
+const ROW_INSET = 10;         // left/right inset of the row hover background
 
 export function TreeMapCanvas() {
   const tree = usePanelStore((s) => s.tree);
@@ -25,7 +30,12 @@ export function TreeMapCanvas() {
 
   const { nodes } = tree;
   const height = calcSvgHeight(nodes.length);
-  const centerX = width / 2;
+
+  const labelX = COLUMN_X + NODE_RADIUS + LABEL_GAP;
+  // ~6.6px per char at the 12px label size; clamp so very narrow panels still show some text.
+  const labelMaxChars = Math.max(6, Math.floor((width - labelX - 16) / 6.6));
+  const rowWidth = width - ROW_INSET * 2;
+  const maxIndex = nodes.reduce((m, n) => Math.max(m, n.index), 0);
 
   return (
     <div
@@ -35,7 +45,7 @@ export function TreeMapCanvas() {
         maxHeight: '50vh',
         overflowY: 'auto',
         overflowX: 'hidden',
-        padding: '4px 0',
+        padding: '6px 0',
       }}
     >
       <svg
@@ -45,30 +55,11 @@ export function TreeMapCanvas() {
         role="tree"
         aria-label="Chat node tree"
       >
-        {/* Gradients + glow filter give nodes depth and highlight the active one. */}
-        <defs>
-          <linearGradient id="nav-node-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--nav-grad-node-top)" />
-            <stop offset="100%" stopColor="var(--nav-grad-node-bottom)" />
-          </linearGradient>
-          <linearGradient id="nav-node-active-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--nav-grad-active-top)" />
-            <stop offset="100%" stopColor="var(--nav-grad-active-bottom)" />
-          </linearGradient>
-          <linearGradient id="nav-node-branch-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--nav-grad-branch-top)" />
-            <stop offset="100%" stopColor="var(--nav-grad-branch-bottom)" />
-          </linearGradient>
-          <filter id="nav-node-glow" x="-60%" y="-60%" width="220%" height="220%">
-            <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#a78bfa" floodOpacity="0.85" />
-          </filter>
-        </defs>
-
         {/* 1) Connectors first so nodes render on top of them. */}
         {nodes.slice(0, -1).map((node, i) => (
           <NodeConnector
             key={`conn-${node.id}`}
-            x={centerX}
+            x={COLUMN_X}
             yFrom={nodeCenterY(i)}
             yTo={nodeCenterY(i + 1)}
           />
@@ -79,17 +70,27 @@ export function TreeMapCanvas() {
           node.hasBranch ? (
             <BranchLane
               key={`lane-${node.id}`}
-              startX={centerX}
+              startX={COLUMN_X}
               startY={nodeCenterY(i)}
-              endX={centerX + LANE_OFFSET}
+              endX={COLUMN_X + LANE_OFFSET}
               endY={nodeCenterY(i) + NODE_STEP * 0.6}
             />
           ) : null,
         )}
 
-        {/* 3) Nodes on top so they cover the connectors. */}
+        {/* 3) Nodes (circle + number + label) on top. */}
         {nodes.map((node, i) => (
-          <TreeNode key={node.id} node={node} cx={centerX} cy={nodeCenterY(i)} />
+          <TreeNode
+            key={node.id}
+            node={node}
+            cx={COLUMN_X}
+            cy={nodeCenterY(i)}
+            isLatest={node.index === maxIndex}
+            labelX={labelX}
+            labelMaxChars={labelMaxChars}
+            rowX={ROW_INSET}
+            rowWidth={rowWidth}
+          />
         ))}
       </svg>
     </div>

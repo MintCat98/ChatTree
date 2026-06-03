@@ -1,4 +1,4 @@
-// Control bar (settings) shown under the header when the options button is on.
+// Control bar (settings) shown under the header when the 설정 button is on.
 // Controls: direction (fixed), position, width, opacity, sort, theme. Every change
 // is committed via store.updateSettings → persisted to localStorage + mirrored to
 // chrome.storage.local (so the popup stays in sync).
@@ -25,7 +25,7 @@ const rowStyle: React.CSSProperties = {
 
 const controlStyle: React.CSSProperties = {
   flex: 1,
-  background: 'rgba(255, 255, 255, 0.06)',
+  background: 'var(--nav-color-surface-2)',
   color: 'var(--nav-color-text)',
   border: '1px solid var(--nav-color-border)',
   borderRadius: 'var(--nav-border-radius-sm)',
@@ -48,32 +48,23 @@ export function ControlBar() {
   const updateSettings = usePanelStore((s) => s.updateSettings);
   const [sortHover, setSortHover] = useState(false);
 
-  const handlePosition = (e: ChangeEvent<HTMLSelectElement>) => {
+  const handlePosition = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ panelPosition: e.target.value as UserSettings['panelPosition'] });
-  };
-
-  const handleWidth = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleWidth = (e: ChangeEvent<HTMLInputElement>) =>
     updateSettings({ panelWidth: Number(e.target.value) });
-  };
-
-  const handleOpacity = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleOpacity = (e: ChangeEvent<HTMLInputElement>) =>
     updateSettings({ backgroundOpacity: Number(e.target.value) });
-  };
-
-  const handleSortToggle = () => {
+  const handleSortToggle = () =>
     updateSettings({ sortOrder: settings.sortOrder === 'asc' ? 'desc' : 'asc' });
-  };
-
-  const handleTheme = (e: ChangeEvent<HTMLSelectElement>) => {
+  const handleTheme = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ themeMode: e.target.value as UserSettings['themeMode'] });
-  };
 
   return (
     <div
       data-testid="control-bar"
       style={{
-        padding: '10px 16px 12px',
-        borderTop: '1px solid var(--nav-color-border)',
+        padding: '10px 14px 12px',
+        borderTop: '1px solid var(--nav-color-divider)',
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
@@ -82,11 +73,7 @@ export function ControlBar() {
       {/* Direction — Top-Down is fixed; Left-Right is reserved for a future PR. */}
       <div style={rowStyle}>
         <span style={labelStyle}>방향</span>
-        <select
-          disabled
-          value={settings.panelDirection}
-          style={{ ...controlStyle, opacity: 0.6, cursor: 'not-allowed' }}
-        >
+        <select disabled value={settings.panelDirection} style={{ ...controlStyle, opacity: 0.6, cursor: 'not-allowed' }}>
           <option value="top-down">Top-Down</option>
           <option value="left-right">Left-Right (coming soon)</option>
         </select>
@@ -148,7 +135,7 @@ export function ControlBar() {
             ...controlStyle,
             cursor: 'pointer',
             textAlign: 'left',
-            background: sortHover ? 'rgba(139,124,246,0.18)' : 'rgba(255, 255, 255, 0.06)',
+            background: sortHover ? 'var(--nav-color-accent-soft)' : 'var(--nav-color-surface-2)',
             borderColor: sortHover ? 'var(--nav-color-accent)' : 'var(--nav-color-border)',
           }}
         >

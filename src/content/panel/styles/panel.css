@@ -1,11 +1,12 @@
-/* Shadow DOM scoped styles. All variables use the --nav-* namespace.
-   This is the single source of truth for design tokens — it is the file
-   loaded by ui-injector.tsx (via ?raw). Every --nav-* variable referenced
-   by a component MUST be defined here.
+/* Shadow DOM scoped design tokens. All variables use the --nav-* namespace.
+   Loaded by ui-injector.tsx (via ?raw) — single source of truth.
 
-   Theme: dark is the default (:host). Light overrides live in
-   :host([data-theme='light']); App.tsx sets the host's data-theme to follow
-   claude.ai (issue 06). */
+   Design language mirrors the Claude Chat Navigation Figma: warm neutral
+   surfaces, Claude "clay" accent (#d97757), hairline borders, soft shadow,
+   flat/clean nodes (outlined = previous, coral-filled = latest).
+
+   Base :host = LIGHT (claude.ai default). Dark overrides in
+   :host([data-theme='dark']). App.tsx sets data-theme to follow claude.ai. */
 
 :host {
   all: initial;
@@ -18,86 +19,80 @@
 }
 
 :host {
-  /* Z-index */
   --nav-z-index: 2147483647;
 
   /* Shape */
-  --nav-border-radius: 14px;
-  --nav-border-radius-sm: 8px;
+  --nav-border-radius: 16px;
+  --nav-border-radius-sm: 9px;
 
-  /* Background — base panel surface.
-     --nav-color-bg      : solid color (used for the NodeBadge stroke).
-     --nav-color-bg-rgb  : space-separated RGB triple composed with the opacity
-                           setting in PanelShell: rgb(var(--nav-color-bg-rgb) / a). */
-  --nav-color-bg: #12121c;
-  --nav-color-bg-rgb: 17 17 27;
-  --nav-color-bg-elevated: rgba(30, 30, 46, 0.6);
+  /* Surfaces */
+  --nav-color-bg: #ffffff;
+  --nav-color-bg-rgb: 255 255 255;      /* composed with opacity in PanelShell */
+  --nav-color-surface-2: #f7f5f1;       /* hover / cream fill */
 
-  /* Shadows & borders */
-  --nav-panel-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
-  --nav-color-border: rgba(255, 255, 255, 0.1);
-  --nav-color-border-strong: rgba(255, 255, 255, 0.18);
+  /* Shadow & borders (warm, soft) */
+  --nav-panel-shadow: 0 12px 32px rgba(60, 45, 30, 0.14), 0 2px 6px rgba(60, 45, 30, 0.07);
+  --nav-color-border: #e9e5df;          /* panel + control hairline */
+  --nav-color-divider: #efece7;
 
   /* Typography */
   --nav-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --nav-font-size-sm: 11px;
   --nav-font-size-base: 13px;
 
-  /* Text colors */
-  --nav-color-text: #f1f5f9;
-  --nav-color-text-secondary: rgba(241, 245, 249, 0.7);
-  --nav-color-text-muted: #94a3b8;
+  /* Text */
+  --nav-color-text: #2a2723;
+  --nav-color-text-secondary: #57534e;
+  --nav-color-text-muted: #8d8881;
 
-  /* Accent */
-  --nav-color-accent: #8b7cf6;
-  --nav-color-accent-strong: #7c5cf6;
+  /* Accent — Claude clay */
+  --nav-color-accent: #d97757;
+  --nav-color-accent-hover: #c8643f;
+  --nav-color-accent-soft: rgba(217, 119, 87, 0.12);
 
-  /* Node colors */
-  --nav-color-node: #7c5cf6;            /* default node */
-  --nav-color-node-hover: #9b8cf8;      /* hover state */
-  --nav-color-node-active: #a78bfa;     /* node at current scroll position */
-  --nav-color-node-active-ring: #f1f5f9;/* ring around the active node */
-  --nav-color-node-branch: #d97757;     /* branch-point node — Claude clay orange */
-  --nav-color-node-inactive: #64748b;   /* inferred inactive branch */
+  /* Nodes */
+  --nav-color-node-fill:    #ffffff;    /* previous node fill (outlined) */
+  --nav-color-node-border:  #d9d4cb;    /* previous node ring */
+  --nav-color-node-number:  #8d8881;    /* previous node number */
+  --nav-color-node-active:  #d97757;    /* latest node fill */
+  --nav-color-node-active-text: #ffffff;
+  --nav-color-node-branch:  #d97757;    /* branch indicator */
+  --nav-color-edge:         #e4e0d9;    /* connector line */
+  --nav-active-glow: drop-shadow(0 2px 5px rgba(217, 119, 87, 0.45));
 
-  /* Gradient stops (used by SVG <linearGradient> defs in TreeMapCanvas) */
-  --nav-grad-node-top: #8b7cf6;
-  --nav-grad-node-bottom: #6d4ee0;
-  --nav-grad-active-top: #b9a4ff;
-  --nav-grad-active-bottom: #8b6cf6;
-  --nav-grad-branch-top: #e08a6e;       /* Claude orange, lighter */
-  --nav-grad-branch-bottom: #c15f3c;    /* Claude orange, darker */
-
-  /* Edges */
-  --nav-color-edge: rgba(167, 139, 250, 0.45);
-
-  /* Glow (active node drop-shadow) */
-  --nav-glow-active: drop-shadow(0 0 6px rgba(167, 139, 250, 0.7));
-
-  /* Animation durations — overridden to 0ms under prefers-reduced-motion below. */
+  /* Animation */
   --nav-duration-fast: 150ms;
   --nav-duration-base: 200ms;
   --nav-duration-slow: 300ms;
   --nav-transition: var(--nav-duration-base) ease;
 }
 
-/* Light theme — follows claude.ai when themeMode is 'auto', or forced via setting. */
-:host([data-theme='light']) {
-  --nav-color-bg: #ffffff;
-  --nav-color-bg-rgb: 255 255 255;
-  --nav-color-bg-elevated: rgba(241, 245, 249, 0.8);
+/* Dark theme — coherent warm dark with the same clay accent. */
+:host([data-theme='dark']) {
+  --nav-color-bg: #1e1b18;
+  --nav-color-bg-rgb: 30 27 24;
+  --nav-color-surface-2: rgba(255, 255, 255, 0.06);
 
-  --nav-panel-shadow: 0 12px 40px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(15, 23, 42, 0.1);
-  --nav-color-border: rgba(15, 23, 42, 0.12);
-  --nav-color-border-strong: rgba(15, 23, 42, 0.2);
+  --nav-panel-shadow: 0 14px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+  --nav-color-border: rgba(255, 255, 255, 0.1);
+  --nav-color-divider: rgba(255, 255, 255, 0.08);
 
-  --nav-color-text: #1e293b;
-  --nav-color-text-secondary: rgba(30, 41, 59, 0.7);
-  --nav-color-text-muted: #64748b;
+  --nav-color-text: #f5f2ec;
+  --nav-color-text-secondary: rgba(245, 242, 236, 0.7);
+  --nav-color-text-muted: #a8a299;
 
-  --nav-color-node-active-ring: #4c1d95; /* dark ring for contrast on light bg */
-  --nav-color-edge: rgba(124, 92, 246, 0.5);
-  --nav-glow-active: drop-shadow(0 0 6px rgba(124, 92, 246, 0.55));
+  --nav-color-accent: #e08a6e;
+  --nav-color-accent-hover: #ec9a7e;
+  --nav-color-accent-soft: rgba(224, 138, 110, 0.16);
+
+  --nav-color-node-fill: rgba(255, 255, 255, 0.05);
+  --nav-color-node-border: rgba(255, 255, 255, 0.2);
+  --nav-color-node-number: #b8b2a9;
+  --nav-color-node-active: #d97757;
+  --nav-color-node-active-text: #ffffff;
+  --nav-color-node-branch: #e08a6e;
+  --nav-color-edge: rgba(255, 255, 255, 0.16);
+  --nav-active-glow: drop-shadow(0 0 6px rgba(224, 138, 110, 0.6));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -105,19 +100,13 @@
     --nav-duration-fast: 0ms;
     --nav-duration-base: 0ms;
     --nav-duration-slow: 0ms;
-    --nav-glow-active: none;
+    --nav-active-glow: none;
   }
 }
 
 @keyframes nav-slide-in {
   from { transform: translateX(20px); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
-}
-
-/* Soft pulse for the active node ring. */
-@keyframes nav-pulse {
-  0%, 100% { opacity: 0.9; }
-  50%      { opacity: 0.4; }
 }
 
 /* Right-edge drag-resize handle (issue 02). */
@@ -133,10 +122,10 @@
   transition: background var(--nav-duration-fast) ease;
 }
 .nav-resize-handle:hover {
-  background: linear-gradient(90deg, transparent, rgba(139, 124, 246, 0.4));
+  background: linear-gradient(90deg, transparent, var(--nav-color-accent-soft));
 }
 
-/* Custom scrollbar inside the tree-map viewport — keeps the chrome subtle. */
+/* Custom scrollbar inside the tree-map viewport. */
 [data-testid='treemap-canvas']::-webkit-scrollbar {
   width: 8px;
 }
@@ -144,37 +133,37 @@
   background: transparent;
 }
 [data-testid='treemap-canvas']::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(120, 113, 108, 0.3);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 [data-testid='treemap-canvas']::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(120, 113, 108, 0.5);
   background-clip: content-box;
 }
 
-/* Range input — themed track + thumb so the sliders match the panel. */
+/* Range input — themed track + clay thumb. */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   height: 4px;
   border-radius: 999px;
-  background: rgba(127, 127, 160, 0.3);
+  background: var(--nav-color-border);
   outline: none;
   cursor: pointer;
 }
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--nav-color-accent);
-  border: 2px solid var(--nav-color-text);
-  box-shadow: 0 0 4px rgba(139, 124, 246, 0.6);
+  border: 2px solid var(--nav-color-bg);
+  box-shadow: 0 1px 3px rgba(60, 45, 30, 0.25);
   transition: transform var(--nav-duration-fast) ease;
 }
 input[type='range']::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
+  transform: scale(1.15);
 }

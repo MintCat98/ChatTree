@@ -1,7 +1,7 @@
-// Panel header — acts as drag handle, shows the title, and exposes action buttons.
-// Right side, left→right: [collapse/expand] [options] [close].
-// Marked with data-drag-handle="true" so PanelShell recognizes mousedown events
-// originating here as the start of a drag (buttons opt out so clicks don't drag).
+// Panel header — drag handle + brand (icon, title, message count) + actions.
+// Actions, left→right: [collapse/expand] [설정 pill] [close].
+// Marked with data-drag-handle="true" so PanelShell starts a drag from here;
+// buttons opt out so their clicks don't drag.
 
 import { useCallback, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { usePanelStore } from '../store/panel-store';
@@ -12,10 +12,9 @@ export function Header() {
   const settingsOpen = usePanelStore((s) => s.settingsOpen);
   const toggleCollapsed = usePanelStore((s) => s.toggleCollapsed);
   const toggleSettingsOpen = usePanelStore((s) => s.toggleSettingsOpen);
+  const count = usePanelStore((s) => s.tree?.nodes.length ?? 0);
 
-  const handleClose = useCallback(() => {
-    updateSettings({ panelVisible: false });
-  }, [updateSettings]);
+  const handleClose = useCallback(() => updateSettings({ panelVisible: false }), [updateSettings]);
 
   return (
     <div
@@ -24,62 +23,74 @@ export function Header() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '10px 12px 10px 16px',
-        borderBottom: collapsed ? 'none' : '1px solid var(--nav-color-border)',
-        background:
-          'linear-gradient(180deg, rgba(139,124,246,0.14) 0%, rgba(139,124,246,0) 100%)',
+        gap: 8,
+        padding: '12px 12px 12px 14px',
+        borderBottom: collapsed ? 'none' : '1px solid var(--nav-color-divider)',
         cursor: 'grab',
         userSelect: 'none',
       }}
     >
-      <div data-drag-handle="true" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {/* Small tree-glyph mark next to the title. Decorative only. */}
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-          <path
-            d="M8 2v5M8 7H4v3M8 7h4v3"
-            stroke="var(--nav-color-accent)"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle cx="8" cy="2" r="1.6" fill="var(--nav-color-accent)" />
-          <circle cx="4" cy="11" r="1.6" fill="var(--nav-color-accent)" />
-          <circle cx="12" cy="11" r="1.6" fill="var(--nav-color-accent)" />
-        </svg>
+      {/* Brand */}
+      <div data-drag-handle="true" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
         <span
           data-drag-handle="true"
           style={{
-            fontSize: 'var(--nav-font-size-base)',
-            fontWeight: 600,
-            letterSpacing: '0.2px',
-            color: 'var(--nav-color-text)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 26,
+            height: 26,
+            borderRadius: 8,
+            background: 'var(--nav-color-accent-soft)',
+            flexShrink: 0,
           }}
         >
-          Chat Navigator
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path
+              d="M3 4.2c0-.66.54-1.2 1.2-1.2h7.6c.66 0 1.2.54 1.2 1.2v5.1c0 .66-.54 1.2-1.2 1.2H7l-3 2.5v-2.5h-0c-.66 0-1.2-.54-1.2-1.2V4.2Z"
+              stroke="var(--nav-color-accent)"
+              strokeWidth="1.3"
+              strokeLinejoin="round"
+            />
+          </svg>
         </span>
+        <div data-drag-handle="true" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <span
+            data-drag-handle="true"
+            style={{
+              fontSize: 'var(--nav-font-size-base)',
+              fontWeight: 700,
+              letterSpacing: '0.1px',
+              color: 'var(--nav-color-text)',
+              lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Chat Navigator
+          </span>
+          <span
+            data-drag-handle="true"
+            style={{
+              fontSize: 'var(--nav-font-size-sm)',
+              color: 'var(--nav-color-text-muted)',
+              lineHeight: 1.3,
+            }}
+          >
+            메시지 {count}개
+          </span>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        {/* Collapse / expand (issue 03) */}
-        <IconButton
-          label={collapsed ? '패널 펼치기' : '패널 접기'}
-          expanded={!collapsed}
-          onClick={toggleCollapsed}
-        >
+      {/* Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <IconButton label={collapsed ? '패널 펼치기' : '패널 접기'} expanded={!collapsed} onClick={toggleCollapsed}>
           {collapsed ? '▸' : '▾'}
         </IconButton>
 
-        {/* Options entry — toggles the ControlBar (issue 04) */}
-        <IconButton
-          label="설정"
-          active={settingsOpen}
-          expanded={settingsOpen}
-          onClick={toggleSettingsOpen}
-        >
-          ⚙
-        </IconButton>
+        <PillButton label="설정" active={settingsOpen} onClick={toggleSettingsOpen}>
+          설정
+        </PillButton>
 
-        {/* Close */}
         <IconButton label="패널 닫기" onClick={handleClose}>
           ✕
         </IconButton>
@@ -88,19 +99,8 @@ export function Header() {
   );
 }
 
-interface IconButtonProps {
-  label: string;
-  onClick: () => void;
-  children: ReactNode;
-  active?: boolean;   // persistent "on" state (e.g. options open)
-  expanded?: boolean; // aria-expanded value
-}
-
-function IconButton({ label, onClick, children, active, expanded }: IconButtonProps) {
-  const [hover, setHover] = useState(false);
-  const on = hover || active;
-
-  const handleKey = useCallback(
+function useKeyActivate(onClick: () => void) {
+  return useCallback(
     (e: KeyboardEvent<HTMLButtonElement>) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -109,31 +109,81 @@ function IconButton({ label, onClick, children, active, expanded }: IconButtonPr
     },
     [onClick],
   );
+}
 
+interface IconButtonProps {
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+  expanded?: boolean;
+}
+
+function IconButton({ label, onClick, children, expanded }: IconButtonProps) {
+  const [hover, setHover] = useState(false);
+  const onKey = useKeyActivate(onClick);
   return (
     <button
       type="button"
       aria-label={label}
-      aria-pressed={active}
       aria-expanded={expanded}
       onClick={onClick}
-      onKeyDown={handleKey}
+      onKeyDown={onKey}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 24,
-        height: 24,
-        background: on ? 'rgba(255,255,255,0.1)' : 'transparent',
+        width: 26,
+        height: 26,
+        background: hover ? 'var(--nav-color-surface-2)' : 'transparent',
         border: 'none',
-        color: on ? 'var(--nav-color-text)' : 'var(--nav-color-text-muted)',
+        color: hover ? 'var(--nav-color-text)' : 'var(--nav-color-text-muted)',
         cursor: 'pointer',
-        fontSize: 14,
-        borderRadius: 6,
+        fontSize: 13,
+        borderRadius: 8,
         lineHeight: 1,
         transition: 'background var(--nav-duration-fast) ease, color var(--nav-duration-fast) ease',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+interface PillButtonProps {
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+  active?: boolean;
+}
+
+function PillButton({ label, onClick, children, active }: PillButtonProps) {
+  const [hover, setHover] = useState(false);
+  const onKey = useKeyActivate(onClick);
+  const on = active || hover;
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={active}
+      onClick={onClick}
+      onKeyDown={onKey}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        height: 24,
+        padding: '0 11px',
+        background: active ? 'var(--nav-color-accent-soft)' : hover ? 'var(--nav-color-surface-2)' : 'transparent',
+        border: `1px solid ${on ? 'var(--nav-color-accent)' : 'var(--nav-color-border)'}`,
+        color: active ? 'var(--nav-color-accent)' : 'var(--nav-color-text-secondary)',
+        cursor: 'pointer',
+        fontSize: 'var(--nav-font-size-sm)',
+        fontWeight: 600,
+        fontFamily: 'var(--nav-font-family)',
+        borderRadius: 999,
+        lineHeight: 1,
+        transition: 'background var(--nav-duration-fast) ease, border-color var(--nav-duration-fast) ease, color var(--nav-duration-fast) ease',
       }}
     >
       {children}
