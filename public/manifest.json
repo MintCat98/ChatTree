@@ -20,14 +20,14 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "src/assets/icons/chattree-16.png",
-      "48": "src/assets/icons/chattree-48.png",
-      "128": "src/assets/icons/chattree-128.png"
+      "16": "assets/icons/chattree-16.png",
+      "48": "assets/icons/chattree-48.png",
+      "128": "assets/icons/chattree-128.png"
     }
   },
   "icons": {
-    "16": "src/assets/icons/chattree-16.png",
-    "48": "src/assets/icons/chattree-48.png",
-    "128": "src/assets/icons/chattree-128.png"
+    "16": "assets/icons/chattree-16.png",
+    "48": "assets/icons/chattree-48.png",
+    "128": "assets/icons/chattree-128.png"
   }
 }
