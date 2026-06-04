@@ -15,6 +15,106 @@
 
 <!-- Start from here -->
 
+### AI Usage Log | 2026-06-04 (By @MintCat98)
+
+- **What**: refactor — Issue #70, panel 인라인 스타일 전량 `panel.css`로 이관 (visual no-op)
+- **Request**: "Issue #70을 확인해서 리팩터링을 진행하자"
+- **AI Suggestion**:
+  - **계획 수립** — Plan 모드에서 전체 컴포넌트 인라인 스타일 현황 파악 후 파일별 마이그레이션 플랜 작성
+  - **`panel.css`** — `EmptyState`, `PanelShell`, `Header` (container/brand/icon/title/subtitle/actions), `IconButton`, `PillButton`, `ControlBar` (bar/row/label/control/readout/sort), `TreeMapCanvas` 컨테이너, `TreeNode` 상태 모디파이어(`.is-latest`, `.is-active`, `.is-hovered`, `.is-branch`), `.nav-node-badge`, `.nav-range`에 `flex: 1` 추가 — 약 150줄 신규 클래스 추가
+  - **`Header.tsx`** — `IconButton` / `PillButton`의 hover `useState` + `onMouseEnter/Leave` 제거 → CSS `:hover` / `[aria-pressed="true"]`; `ICON_BTN_SIZE` 상수 삭제
+  - **`ControlBar.tsx`** — `sortHover` useState 제거; `labelStyle` / `rowStyle` / `controlStyle` / `readoutStyle` 모듈 스코프 객체 삭제; `<select>` 3개에 `aria-label` 추가 (a11y 오류 수정)
+  - **`TreeNode.tsx`** — `circleFill` / `circleStroke` / `circleStrokeW` / `numberFill` / `rowFill` / `labelFill` / `circleStyle` 7개 계산 변수 삭제; `<g>` 에 className 모디파이어, SVG 자식 요소에 `nav-node-*` className 부여; `ring` / `NODE_LABEL_FONT_SIZE` 불필요 변수 제거
+  - **`PanelShell.tsx`** — 18줄 인라인 스타일 → CSS 변수 4개 패스스루 `--panel-x / --panel-y / --panel-w / --bg-alpha`; `bgColor` 변수 삭제
+  - **`EmptyState.tsx`**, **`NodeBadge.tsx`**, **`TreeMapCanvas.tsx`** — 단순 className 교체 / style prop 제거
+  - **`Tooltip.tsx`** — 변경 없음; Portal로 Shadow DOM 외부 렌더 = 인라인 유지 이유 주석 1줄 추가
+- **Human Review**: 플랜 검토 후 승인; 커밋은 직접 수행
+- **Reflected**: `src/content/panel/styles/panel.css`, `src/content/panel/components/{Header,ControlBar,TreeNode,PanelShell,TreeMapCanvas,EmptyState,NodeBadge,Tooltip}.tsx` 수정. `tsc --noEmit` 통과, `webpack build` 성공. 테스트 실패 8건은 이번 작업 이전부터의 pre-existing 이슈.
+
+### AI Usage Log | 2026-06-04 (By @MintCat98)
+
+- **What**: refactor — 코드 리뷰 지적사항 전반 정리 (주석, 매직넘버/dead export, 사소한 개선, 로직/구조 우려 4개 섹션)
+- **Request**: "리뷰한 내용을 기반으로 지금 브랜치 내용을 좀 정리하려고 해. 먼저 주석부터 시작하자" → 섹션별 순차 진행
+- **AI Suggestion**:
+  - **주석 정리** — `Header.tsx` / `ControlBar.tsx` 한글 주석 영문 통일, `panel-store.ts` issue 포맷 `#05` 통일
+  - **Dead export / 상수 중복 제거** — `PANEL_WIDTH` 삭제, `TOOLTIP_DELAY_MS` constants.ts 단일화
+  - **Tooltip Portal 제거 (b)** — `createPortal` 제거 → `<PanelShell>` 밖 Shadow DOM 내부 이동 (`backdropFilter` containing block 회피). 하드코딩 색상 → `--nav-*` 토큰, 헤더 주석 트림
+  - **storage key 상수화 (c)** — `STORAGE_KEYS.LEGACY_USER_SETTINGS = 'settings'` 추가; `else if (current)` 분기에서 레거시 키 삭제 누락 수정
+  - **layout constants 추출 (d)** — `COLUMN_X` / `LABEL_GAP` / `ROW_INSET` / `AVG_CHAR_PX_AT_12` / `LABEL_TRAILING_MARGIN` / `ROW_V_GAP` / `NODE_LABEL_FONT_SIZE` → `constants.ts` 통합. SVG `fontSize` 하드코딩 → CSS 토큰/상수. `PANEL_INITIAL_HEIGHT` / `DRAG_BOTTOM_CLEARANCE` 명명
+  - **Header style 정리 (e)** — `ICON_BTN_SIZE = 26` 상수 추출, `fontSize: 13` → `var(--nav-font-size-base)`
+  - **`PANEL_WIDTH_DEFAULT` export** — `PANEL_WIDTH_MIN/MAX`와 나란히 정의, `DEFAULT_SETTINGS`에서 참조
+  - **선택자 범위 축소** — `input[type='range']` → `.nav-range` (ControlBar), `[data-testid='treemap-canvas']` → `.nav-treemap` (panel.css + 각 컴포넌트 className 추가)
+  - **stale-closure 수정** — PanelShell `useEffect` 내 `getState()` 제거 → 동일 closure의 `width` 직접 사용
+  - **`aria-selected` → `aria-current`** — TreeNode: `aria-selected={isActive}` + `aria-current={isLatest ? 'true' : undefined}`
+  - **mousemove rAF throttle** — `handleMouseMove`에 trailing `cancelAnimationFrame` + `requestAnimationFrame` 추가
+  - **zustand `persist` 제거** — localStorage 이중 저장 제거, `chrome.storage.local` 단일 SoT 확립. content.js 번들 79.5 KiB → 63.6 KiB (-16 KiB)
+- **Human Review**: 각 작업 단위별 커밋 직접 수행
+- **Reflected**: `src/content/panel/components/{Header,ControlBar,Tooltip,TreeMapCanvas,TreeNode,PanelShell,constants}.tsx·ts`, `src/content/panel/store/panel-store.ts`, `src/content/panel/App.tsx`, `src/content/panel/styles/panel.css`, `src/shared/{types,constants}.ts`, `src/background/message-handler.ts` 수정
+
+### AI Usage Log | 2026-06-04 (By @MintCat98)
+
+- **What**: refactor — 코드 리뷰 지적사항 전반 정리 (주석, 매직넘버/dead export, 사소한 개선, 로직/구조 우려 4개 섹션)
+- **Request**: "리뷰한 내용을 기반으로 지금 브랜치 내용을 좀 정리하려고 해. 먼저 주석부터 시작하자" → 섹션별 순차 진행
+- **AI Suggestion**:
+  - **주석 정리** — `Header.tsx` / `ControlBar.tsx` 한글 주석 영문 통일, `panel-store.ts` issue 포맷 `#05` 통일
+  - **Dead export / 상수 중복 제거** — `PANEL_WIDTH` 삭제, `TOOLTIP_DELAY_MS` constants.ts 단일화
+  - **Tooltip Portal 제거 (b)** — `createPortal` 제거 → `<PanelShell>` 밖 Shadow DOM 내부 이동 (`backdropFilter` containing block 회피). 하드코딩 색상 → `--nav-*` 토큰, 헤더 주석 트림
+  - **storage key 상수화 (c)** — `STORAGE_KEYS.LEGACY_USER_SETTINGS = 'settings'` 추가; `else if (current)` 분기에서 레거시 키 삭제 누락 수정
+  - **layout constants 추출 (d)** — `COLUMN_X` / `LABEL_GAP` / `ROW_INSET` / `AVG_CHAR_PX_AT_12` / `LABEL_TRAILING_MARGIN` / `ROW_V_GAP` / `NODE_LABEL_FONT_SIZE` → `constants.ts` 통합. SVG `fontSize` 하드코딩 → CSS 토큰/상수. `PANEL_INITIAL_HEIGHT` / `DRAG_BOTTOM_CLEARANCE` 명명
+  - **Header style 정리 (e)** — `ICON_BTN_SIZE = 26` 상수 추출, `fontSize: 13` → `var(--nav-font-size-base)`
+  - **`PANEL_WIDTH_DEFAULT` export** — `PANEL_WIDTH_MIN/MAX`와 나란히 정의, `DEFAULT_SETTINGS`에서 참조
+  - **선택자 범위 축소** — `input[type='range']` → `.nav-range` (ControlBar), `[data-testid='treemap-canvas']` → `.nav-treemap` (panel.css + 각 컴포넌트 className 추가)
+  - **stale-closure 수정** — PanelShell `useEffect` 내 `getState()` 제거 → 동일 closure의 `width` 직접 사용
+  - **`aria-selected` → `aria-current`** — TreeNode: `aria-selected={isActive}` + `aria-current={isLatest ? 'true' : undefined}`
+  - **mousemove rAF throttle** — `handleMouseMove`에 trailing `cancelAnimationFrame` + `requestAnimationFrame` 추가
+  - **zustand `persist` 제거** — localStorage 이중 저장 제거, `chrome.storage.local` 단일 SoT 확립. content.js 번들 79.5 KiB → 63.6 KiB (-16 KiB)
+- **Human Review**: 각 작업 단위별 커밋 직접 수행
+- **Reflected**: `src/content/panel/components/{Header,ControlBar,Tooltip,TreeMapCanvas,TreeNode,PanelShell,constants}.tsx·ts`, `src/content/panel/store/panel-store.ts`, `src/content/panel/App.tsx`, `src/content/panel/styles/panel.css`, `src/shared/{types,constants}.ts`, `src/background/message-handler.ts` 수정
+
+### AI Usage Log | 2026-06-04 (By @MintCat98)
+
+- **What**: fix — 리디자인 후 재현된 "일반 모드(DevTools 닫힘)에서 패널 미작동" 버그 원인 분석 및 수정 (Issue #68, PR #69)
+- **Request**: "예전에 v0.1.0에서 개발자모드에선 잘 작동하는데 일반 모드에서는 작동되지 않는 버그가 있었지. 팀원이 ui 리디자인 작업을 하며 해당 문제가 또 발생했는데 어디때문인지 한 번 확인해줘" + "#63 PR에서 작업했던 거랑 관련이 있을지도 모르겠다"
+- **AI Suggestion**:
+  - **PR #63 바이패스 검증** — `observer.ts` CustomEvent dispatch, `App.tsx` `window.addEventListener`, `TreeNode.tsx` 직접 import, `index.ts` 리스너 제거 — 4가지 바이패스 모두 `feat/panel-ui-redesign`에서 정상 유지 확인. PR #63 회귀 아님.
+  - **Root Cause 1 (스토리지 키 불일치)** — 리디자인에서 팝업이 설정을 저장하는 `chrome.storage.local` 키가 `'settings'` → `'userSettings'`로 변경되었으나 마이그레이션 경로 없음. 기존 사용자 설정이 무시되고, 팝업 변경이 패널에 반영되지 않음.
+  - **Root Cause 2 (host 역탐색 불안정)** — `App.tsx`가 `document.getElementById('chat-nav-root')`로 닫힌 Shadow DOM의 host를 역탐색해 `data-theme`을 설정. `null` 반환 시 조용히 실패하여 테마 미적용(다크 모드에서 흰 배경 노출).
+  - **Fix 1** — `App.tsx` settings `useEffect`에 구 키(`'settings'`) → 신 키(`'userSettings'`) 일회성 마이그레이션 추가. 구 키 데이터가 있고 신 키가 없을 때만 이전 후 구 키 삭제.
+  - **Fix 2** — `ui-injector.tsx`에서 `host` 레퍼런스를 `<App shadowHost={host} />` prop으로 직접 전달. `App.tsx`의 `document.getElementById` 제거, `shadowHost` prop을 테마 effect에서 직접 사용.
+- **Human Review**: 완료
+- **Reflected**: `src/content/panel/App.tsx`, `src/content/ui-injector.tsx` 2파일 수정. Issue #68 업데이트, PR #69 생성.
+
+### AI Usage Log | 2026-06-04 (By @MintCat98)
+
+- **What**: fix — 리디자인 후 재현된 "일반 모드(DevTools 닫힘)에서 패널 미작동" 버그 원인 분석 및 수정 (Issue #68, PR #69)
+- **Request**: "예전에 v0.1.0에서 개발자모드에선 잘 작동하는데 일반 모드에서는 작동되지 않는 버그가 있었지. 팀원이 ui 리디자인 작업을 하며 해당 문제가 또 발생했는데 어디때문인지 한 번 확인해줘" + "#63 PR에서 작업했던 거랑 관련이 있을지도 모르겠다"
+- **AI Suggestion**:
+  - **PR #63 바이패스 검증** — `observer.ts` CustomEvent dispatch, `App.tsx` `window.addEventListener`, `TreeNode.tsx` 직접 import, `index.ts` 리스너 제거 — 4가지 바이패스 모두 `feat/panel-ui-redesign`에서 정상 유지 확인. PR #63 회귀 아님.
+  - **Root Cause 1 (스토리지 키 불일치)** — 리디자인에서 팝업이 설정을 저장하는 `chrome.storage.local` 키가 `'settings'` → `'userSettings'`로 변경되었으나 마이그레이션 경로 없음. 기존 사용자 설정이 무시되고, 팝업 변경이 패널에 반영되지 않음.
+  - **Root Cause 2 (host 역탐색 불안정)** — `App.tsx`가 `document.getElementById('chat-nav-root')`로 닫힌 Shadow DOM의 host를 역탐색해 `data-theme`을 설정. `null` 반환 시 조용히 실패하여 테마 미적용(다크 모드에서 흰 배경 노출).
+  - **Fix 1** — `App.tsx` settings `useEffect`에 구 키(`'settings'`) → 신 키(`'userSettings'`) 일회성 마이그레이션 추가. 구 키 데이터가 있고 신 키가 없을 때만 이전 후 구 키 삭제.
+  - **Fix 2** — `ui-injector.tsx`에서 `host` 레퍼런스를 `<App shadowHost={host} />` prop으로 직접 전달. `App.tsx`의 `document.getElementById` 제거, `shadowHost` prop을 테마 effect에서 직접 사용.
+- **Human Review**: 완료
+- **Reflected**: `src/content/panel/App.tsx`, `src/content/ui-injector.tsx` 2파일 수정. Issue #68 업데이트, PR #69 생성.
+
+### AI Usage Log | 2026-06-03 (By @jglJGL000304)
+
+- **What**: feat/panel-ui-redesign — redesigned the panel UI to the Claude Chat Navigation Figma look and added/fixed six panel capabilities. (PR #66, 5 commits)
+- **Request**: "pull main, test, make the UI prettier", "differentiate latest vs previous questions, clean buttons (per Figma)", "yellow circle → Claude orange, remove the 🔀 emoji", "popup option changes don't reflect in the panel / resize / collapse toggle / options entry button / dark·light (follow Claude) — implement each", "place the hover tooltip on whichever side has more room".
+- **AI Suggestion**:
+  - **`62fc9f8` style(panel)** — found that the actually-loaded `styles/panel.css` was **missing** many `--nav-*` variables the components reference (node/branch/text-muted/bg/duration-fast, etc.), which rendered default nodes as black circles → defined all tokens + added gradient/glow/scrollbar/slider styling.
+  - **`eee0da3` chore(panel)** — removed the duplicate token file `src/content/panel/index.css` that was never imported (single source of truth is `styles/panel.css`).
+  - **`46d1b20` feat(panel)** — (1) **settings sync bug**: popup (`chrome.storage.local['settings']`), panel (web `localStorage 'chat-nav-settings'`), and background (`['userSettings']`) used three separate stores and the panel never subscribed to changes, so popup settings had no effect → unified to a **single source of truth `chrome.storage.local['userSettings']` + `chrome.storage.onChanged` subscription**. (2) panel **resize** (`panelWidth` + right-edge drag handle), (3) **collapse/expand** (`collapsed`), (4) **options entry button** (`settingsOpen` toggles the ControlBar), (5) **dark/light** (inject `data-theme` on the Shadow host + track Claude's theme, `themeMode`), (6) mounted the **hover tooltip**. Added `panelWidth`/`themeMode` to `UserSettings`.
+  - **`8fa783e` fix(panel)** — tooltip now picks the **side of the cursor with more room** + fixed 280px width; branch node/badge use **Claude clay orange (#d97757)**; removed the **🔀 emoji** from NodeBadge.
+  - **`62bacaa` feat(panel)** — full **Figma redesign**: violet→clay palette, light (default = Claude) / dark tokens, left rail of numbered circles + **question label on the right**, **latest question = clay-filled / previous = gray outline** differentiation + row highlight, header (icon + title + "메시지 N개" + clean "설정" pill). Dropped violet gradients/pulse.
+- **Human Review**: in progress — loaded dist on a claude.ai chat page for a visual check. (Sort-toggle application and active-node highlight wiring are follow-ups.)
+- **Reflected**:
+  - Modified: `src/shared/types.ts`, `src/content/panel/store/panel-store.ts`, `src/content/panel/App.tsx`, `src/content/panel/styles/panel.css`, `src/content/panel/components/{PanelShell,TreeMapCanvas,TreeNode,NodeConnector,BranchLane,Header,ControlBar,EmptyState,NodeBadge,Tooltip}.tsx`, `src/content/panel/components/constants.ts`, `src/popup/Popup.tsx`, `src/popup/popup.css`, `src/background/message-handler.ts`
+  - Added: `src/content/panel/theme.ts`
+  - Removed: `src/content/panel/index.css`
+  - Tests: updated `tests/unit/panel-store.test.ts`, `tests/unit/message-handler.test.ts` (new settings schema + SETTINGS_CHANGE merge behavior)
+  - Verification: `tsc --noEmit` and `npm run build` pass; `npm test` 64 pass / 7 fail (pre-existing branch-change-watcher, unrelated)
+
 ### AI Usage Log | 2026-05-31 (By @MintCat98)
 
 - **What**: fix — 브랜치 전환(‹/›) 시 트리 맵이 자동 업데이트되지 않는 버그 수정 (`branch-change-watcher.ts` 전면 재작성, `observer.ts` 콜백 변경)

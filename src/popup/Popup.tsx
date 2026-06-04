@@ -3,20 +3,18 @@
 //   (a) claude.ai chat page -> settings form
 //   (b) any other page      -> "unsupported page" notice
 //
-// Pure logic (URL match, settings merge, message build) lives in ./popup-logic
-// so it can be unit-tested without React (tests/unit/popup-logic.test.ts).
+// Settings are the single source of truth in chrome.storage.local under
+// STORAGE_KEYS.USER_SETTINGS. The content panel hydrates + live-subscribes to
+// chrome.storage.onChanged, so writing here reflects in the panel instantly
+// (issue 05). Pure logic (URL match, settings merge) lives in ./popup-logic.
 
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import type { UserSettings } from '@shared/types';
-import { DEFAULT_SETTINGS } from '@shared/types';
-import {
-  isSupportedPage,
-  mergeSettings,
-  applyPatch,
-  buildSettingsMessage,
-} from './popup-logic';
+import { DEFAULT_SETTINGS, PANEL_WIDTH_MIN, PANEL_WIDTH_MAX } from '@shared/types';
+import { STORAGE_KEYS } from '@shared/constants';
+import { isSupportedPage, mergeSettings, applyPatch } from './popup-logic';
 import './popup.css';
 
 // manifest.json version for display. chrome is typed via @types/chrome.
@@ -40,17 +38,17 @@ export function Popup() {
   //    so storage is never touched on unsupported pages. (review #4)
   useEffect(() => {
     if (status !== 'supported') return;
-    chrome.storage.local.get(['settings'], (result) => {
-      setSettings(mergeSettings(result.settings as Partial<UserSettings> | undefined));
+    chrome.storage.local.get(STORAGE_KEYS.USER_SETTINGS, (result) => {
+      setSettings(mergeSettings(result[STORAGE_KEYS.USER_SETTINGS] as Partial<UserSettings> | undefined));
     });
   }, [status]);
 
-  // Apply a partial settings change: persist + notify the Panel.
+  // Apply a partial change: persist the FULL merged settings to chrome.storage.local.
+  // The panel picks it up via chrome.storage.onChanged — no extra messaging needed.
   const apply = useCallback((patch: Partial<UserSettings>) => {
     setSettings((prev) => {
       const next = applyPatch(prev, patch);
-      chrome.storage.local.set({ settings: next });
-      chrome.runtime.sendMessage(buildSettingsMessage(patch));
+      chrome.storage.local.set({ [STORAGE_KEYS.USER_SETTINGS]: next });
       return next;
     });
   }, []);
@@ -133,6 +131,22 @@ function SettingsForm({ settings, onChange }: SettingsFormProps) {
         </select>
       </Row>
 
+      {/* Panel width (issue 02) */}
+      <Row label="너비">
+        <div className="cn-opacity">
+          <input
+            className="cn-opacity__range"
+            type="range"
+            min={PANEL_WIDTH_MIN}
+            max={PANEL_WIDTH_MAX}
+            step={10}
+            value={settings.panelWidth}
+            onChange={(e) => onChange({ panelWidth: Number(e.target.value) })}
+          />
+          <span className="cn-opacity__value">{settings.panelWidth}px</span>
+        </div>
+      </Row>
+
       {/* Background opacity */}
       <Row label="배경 투명도">
         <div className="cn-opacity">
@@ -160,6 +174,19 @@ function SettingsForm({ settings, onChange }: SettingsFormProps) {
         >
           <option value="asc">오래된 순</option>
           <option value="desc">최신 순</option>
+        </select>
+      </Row>
+
+      {/* Theme (issue 06) */}
+      <Row label="테마">
+        <select
+          className="cn-select"
+          value={settings.themeMode}
+          onChange={(e) => onChange({ themeMode: e.target.value as UserSettings['themeMode'] })}
+        >
+          <option value="auto">자동 (Claude 따름)</option>
+          <option value="light">라이트</option>
+          <option value="dark">다크</option>
         </select>
       </Row>
     </div>

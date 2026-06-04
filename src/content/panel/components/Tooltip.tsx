@@ -1,33 +1,36 @@
-// Tooltip showing the full prompt text when a node is hovered.
-// Watches store.hoveredNodeId, waits 300ms before becoming visible, and
-// renders via Portal so the tooltip is not clipped by surrounding SVG.
+// Tooltip showing the full prompt text when a node is hovered (issue 01).
+// Anchored to the cursor position (store.hoverPos) — nodes live inside a closed
+// Shadow DOM and can't be located via document.querySelector.
+// Fixed width for visual consistency; placement picks the side with more room.
+// Inline styles are intentional: Tooltip renders via Portal into document.body, outside the Shadow DOM, so --nav-* CSS variables and panel.css classes don't reach it.
 
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePanelStore } from '../store/panel-store';
+import { TOOLTIP_DELAY_MS } from './constants';
+const TOOLTIP_WIDTH = 280;      // fixed box width for visual consistency
+const TOOLTIP_MAX_HEIGHT = 200; // long prompts scroll inside this
+const CURSOR_OFFSET = 16;
+const EDGE_MARGIN = 8;
 
-const TOOLTIP_DELAY_MS = 300;
-const TOOLTIP_MAX_WIDTH = 320;
-const TOOLTIP_MAX_HEIGHT = 200;
-
-interface TooltipPosition {
-  x: number;
-  y: number;
+interface Pos {
+  left: number;
+  top: number;
 }
 
 export function Tooltip() {
   const hoveredNodeId = usePanelStore((s) => s.hoveredNodeId);
+  const hoverPos = usePanelStore((s) => s.hoverPos);
   const tree = usePanelStore((s) => s.tree);
   const [visible, setVisible] = useState(false);
-  const [position, setPosition] = useState<TooltipPosition>({ x: 0, y: 0 });
+  const [pos, setPos] = useState<Pos | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const delayTimerRef = useRef<number | null>(null);
 
-  // Resolve the hovered node's full record from the store.
   const node = hoveredNodeId
-    ? tree?.nodes.find((n) => n.id === hoveredNodeId) ?? null
+    ? (tree?.nodes.find((n) => n.id === hoveredNodeId) ?? null)
     : null;
 
-  // React to hoveredNodeId transitions.
+  // Show after a short delay; hide immediately when the hover clears.
   useEffect(() => {
     if (delayTimerRef.current) {
       window.clearTimeout(delayTimerRef.current);
@@ -35,61 +38,71 @@ export function Tooltip() {
     }
     if (!hoveredNodeId) {
       setVisible(false);
+      setPos(null); // recompute placement fresh on the next hover
       return;
     }
-    delayTimerRef.current = window.setTimeout(() => {
-      // Locate the hovered node element in the DOM to anchor the tooltip.
-      const el = document.querySelector(`[data-nav-id="${hoveredNodeId}"]`);
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        const x = Math.min(
-          rect.right + 8,
-          window.innerWidth - TOOLTIP_MAX_WIDTH - 8,
-        );
-        const y = Math.max(8, Math.min(rect.top, window.innerHeight - TOOLTIP_MAX_HEIGHT - 8));
-        setPosition({ x, y });
-      }
-      setVisible(true);
-    }, TOOLTIP_DELAY_MS);
+    delayTimerRef.current = window.setTimeout(() => setVisible(true), TOOLTIP_DELAY_MS);
     return () => {
-      if (delayTimerRef.current) {
-        window.clearTimeout(delayTimerRef.current);
-      }
+      if (delayTimerRef.current) window.clearTimeout(delayTimerRef.current);
     };
   }, [hoveredNodeId]);
 
-  if (!visible || !node) return null;
+  // After the tooltip is in the DOM, measure its height and pick the side with
+  // more room. Width is fixed (TOOLTIP_WIDTH), so the only horizontal decision is
+  // left-of-cursor vs right-of-cursor.
+  useLayoutEffect(() => {
+    if (!visible || !node || !hoverPos || !ref.current) return;
 
-  // Portal target. document.body works for now; in stricter Shadow-DOM-isolated
-  // environments a dedicated root inside the panel's shadow tree may be needed.
-  const portalRoot = document.body;
+    const h = ref.current.offsetHeight;
+    const spaceRight = window.innerWidth - hoverPos.x;
+    const spaceLeft = hoverPos.x;
+    // Prefer the right; flip to the left only when the right can't fit the box
+    // and the left genuinely has more room.
+    const placeLeft = spaceRight < TOOLTIP_WIDTH + CURSOR_OFFSET + EDGE_MARGIN && spaceLeft > spaceRight;
 
-  return createPortal(
+    let left = placeLeft
+      ? hoverPos.x - CURSOR_OFFSET - TOOLTIP_WIDTH
+      : hoverPos.x + CURSOR_OFFSET;
+    left = Math.max(EDGE_MARGIN, Math.min(left, window.innerWidth - TOOLTIP_WIDTH - EDGE_MARGIN));
+
+    let top = hoverPos.y + CURSOR_OFFSET;
+    top = Math.max(EDGE_MARGIN, Math.min(top, window.innerHeight - h - EDGE_MARGIN));
+
+    setPos({ left, top });
+  }, [visible, node, hoverPos]);
+
+  if (!visible || !node || !hoverPos) return null;
+
+  return (
     <div
+      ref={ref}
       role="tooltip"
       style={{
         position: 'fixed',
-        left: position.x,
-        top: position.y,
-        maxWidth: TOOLTIP_MAX_WIDTH,
+        // Render off-screen for the first measuring pass, then snap into place.
+        left: pos ? pos.left : -9999,
+        top: pos ? pos.top : -9999,
+        opacity: pos ? 1 : 0,
+        width: TOOLTIP_WIDTH,
         maxHeight: TOOLTIP_MAX_HEIGHT,
         overflowY: 'auto',
-        padding: '12px 14px',
-        backgroundColor: 'rgba(17, 17, 27, 0.95)',
+        padding: '10px 12px',
+        backgroundColor: 'rgb(var(--nav-color-bg-rgb) / 0.97)',
         color: 'var(--nav-color-text)',
         border: '1px solid var(--nav-color-border)',
         borderRadius: 8,
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
-        fontSize: 'var(--nav-font-size-sm)',
+        boxShadow: 'var(--nav-panel-shadow)',
+        fontSize: 12,
         fontFamily: 'var(--nav-font-family)',
         lineHeight: 1.5,
         zIndex: 'var(--nav-z-index)' as unknown as number,
-        pointerEvents: 'none', // The tooltip itself never captures hover.
+        pointerEvents: 'none',
         whiteSpace: 'pre-wrap',
+        overflowWrap: 'break-word',
+        transition: 'opacity 80ms ease',
       }}
     >
       {node.text}
-    </div>,
-    portalRoot,
+    </div>
   );
 }

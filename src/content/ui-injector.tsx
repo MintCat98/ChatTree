@@ -24,7 +24,7 @@ export function injectPanel(): void {
   document.body.appendChild(host);
 
   reactRoot = ReactDOM.createRoot(container);
-  reactRoot.render(<App />);
+  reactRoot.render(<App shadowHost={host} />);
 }
 
 export function destroyPanel(): void {

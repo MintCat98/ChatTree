@@ -1,20 +1,27 @@
-# ChatTree
+# ChatTree (v0.2.0 pre-release)
 
 > **Navigate your AI conversations like a map, not a scroll.**  
 > A Chromium extension that visualizes your chat session as an interactive tree — so you never lose track of where you were.
 
-> *Please check [KOI README](./docs/README_KOI.md) (for KOI organizers).*
+> _Please check [KOI README](./docs/README_KOI.md) (for KOI organizers)._
 
 <br/>
 
-<!-- TODO: Replace with actual demo screenshot/gif before publishing -->
-![ChatTree Demo](./assets/demo-placeholder.png)
+![demo1-v0.2.0](./docs/demo-vids/demo1-v0.2.0.gif)
+
+> Tree-map navigation
+
+![demo2-v0.2.0](./docs/demo-vids/demo2-v0.2.0.gif)
+
+> Hover to preview & Click to jump
+
+![demo3-v0.2.0](./docs/demo-vids/demo3-v0.2.0.gif)
+
+> Branch tracking
 
 <br/>
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE) [![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)]() [![Platform](https://img.shields.io/badge/Platform-Chromium-yellow.svg)]() [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
-
-
 
 ## 1. Problem
 
@@ -22,11 +29,10 @@ AI chatbot sessions grow long and complex — especially when you edit previous 
 
 **ChatTree solves this** by floating an interactive tree-map navigator directly inside your chat UI.
 
-
-
 ## 2. Features
 
 ### 2-1. Core
+
 - 🗺️ **Tree-map navigator** — visualizes every chatbox as a node, floated over the chat UI
 - 💬 **Hover to preview** — mouse over any node to see the original full prompt in a popup
 - 🖱️ **Click to jump** — click any node to instantly scroll to that chatbox
@@ -34,26 +40,24 @@ AI chatbot sessions grow long and complex — especially when you edit previous 
 <!-- - 🔍 **AI-powered summaries** — each node shows a short AI-generated summary of the prompt -->
 
 ### 2-2. Customization (Options)
+
 - 📐 Position: top-left / top-right / bottom-left / bottom-right
 - 🔄 Layout: Top-down view / Left-right view
 - 🌫️ Background opacity adjustment
 - 🔃 Sort order: ascending / descending by latest node
 
-
-
 ## 3. Supported Platforms
 
-| Platform | Status |
-|---|---|
+| Platform           | Status       |
+| ------------------ | ------------ |
 | Claude (claude.ai) | ✅ Supported |
-| ChatGPT | 🔜 Planned |
-| Gemini | 🔜 Planned |
-
-
+| ChatGPT            | 🔜 Planned   |
+| Gemini             | 🔜 Planned   |
 
 ## 4. Getting Started
 
 ### 4-1.Prerequisites
+
 - Chrome or any Chromium-based browser (Edge, Brave, Arc, etc.)
 - Node.js >= 18
 
@@ -75,9 +79,8 @@ npm run build
 ```
 
 ### 4-3. Installation (Stable Release)
+
 > _Chrome Web Store listing coming soon._
-
-
 
 ## 5. Architecture
 
@@ -90,20 +93,14 @@ src/
 └── shared/           # Shared utilities & types
 ```
 
-
-
 ## 6. Contributing
 
 We welcome all contributions — bug reports, feature suggestions, and pull requests!  
-Please read [CONTRIBUTING.md](./CONTRIBUTING.md) first.
-
-
+Please read [CONTRIBUTING.md](.github/CONTRIBUTING.md) first.
 
 ## 7. Team
 
-See [CONTRIBUTORS.md](./CONTRIBUTORS.md) for the full list.
-
-
+See [CONTRIBUTORS.md](.github/CONTRIBUTORS.md) for the full list.
 
 ## 8. License
 

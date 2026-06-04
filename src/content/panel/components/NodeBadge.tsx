@@ -1,5 +1,5 @@
 // Branch-point badge rendered at the top-right of a branch-point node.
-// Format: "🔀 total·current". Click is isolated from the parent node click
+// Shows "total·current" (e.g. 2·1). Click is isolated from the parent node click
 // so a click on the badge does not also fire SCROLL_TO_NODE.
 
 import type { MouseEvent } from 'react';
@@ -11,7 +11,7 @@ interface NodeBadgeProps {
   total: number;    // Total branch count at this point.
 }
 
-const BADGE_WIDTH = 56;
+const BADGE_WIDTH = 32;
 const BADGE_HEIGHT = 18;
 
 export function NodeBadge({ cx, cy, current, total }: NodeBadgeProps) {
@@ -25,7 +25,7 @@ export function NodeBadge({ cx, cy, current, total }: NodeBadgeProps) {
       role="status"
       aria-label={`Branch ${current} of ${total}`}
       onClick={handleClick}
-      style={{ cursor: 'default' }}
+      className="nav-node-badge"
     >
       <rect
         x={cx - 4}
@@ -43,12 +43,13 @@ export function NodeBadge({ cx, cy, current, total }: NodeBadgeProps) {
         y={cy}
         textAnchor="middle"
         dominantBaseline="central"
-        fill="var(--nav-color-text)"
+        fill="#ffffff"
         fontSize="10"
+        fontWeight={600}
         fontFamily="var(--nav-font-family)"
         pointerEvents="none"
       >
-        🔀 {total}·{current}
+        {total}·{current}
       </text>
     </g>
   );

@@ -1,12 +1,18 @@
 // SVG tree container.
-// Distributes coordinates to child components based on node index.
-// Renders EmptyState when store.tree is null or contains no nodes.
+// Left rail of numbered circles + connector line, with the question label to the
+// right of each node (Claude Chat Navigation Figma layout). Width follows the
+// user-adjustable panel width (issue 02).
 
 import { usePanelStore } from '../store/panel-store';
 import {
-  PANEL_WIDTH,
+  NODE_RADIUS,
   NODE_STEP,
   LANE_OFFSET,
+  COLUMN_X,
+  LABEL_GAP,
+  ROW_INSET,
+  AVG_CHAR_PX_AT_12,
+  LABEL_TRAILING_MARGIN,
   calcSvgHeight,
   nodeCenterY,
 } from './constants';
@@ -17,6 +23,7 @@ import { EmptyState } from './EmptyState';
 
 export function TreeMapCanvas() {
   const tree = usePanelStore((s) => s.tree);
+  const width = usePanelStore((s) => s.settings.panelWidth);
 
   if (!tree || tree.nodes.length === 0) {
     return <EmptyState />;
@@ -24,22 +31,21 @@ export function TreeMapCanvas() {
 
   const { nodes } = tree;
   const height = calcSvgHeight(nodes.length);
-  const centerX = PANEL_WIDTH / 2;
+
+  const labelX = COLUMN_X + NODE_RADIUS + LABEL_GAP;
+  const labelMaxChars = Math.max(6, Math.floor((width - labelX - LABEL_TRAILING_MARGIN) / AVG_CHAR_PX_AT_12));
+  const rowWidth = width - ROW_INSET * 2;
+  const maxIndex = nodes.reduce((m, n) => Math.max(m, n.index), 0);
 
   return (
     <div
       data-testid="treemap-canvas"
-      style={{
-        width: '100%',
-        maxHeight: '50vh',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-      }}
+      className="nav-treemap"
     >
       <svg
-        width={PANEL_WIDTH}
+        width={width}
         height={height}
-        viewBox={`0 0 ${PANEL_WIDTH} ${height}`}
+        viewBox={`0 0 ${width} ${height}`}
         role="tree"
         aria-label="Chat node tree"
       >
@@ -47,7 +53,7 @@ export function TreeMapCanvas() {
         {nodes.slice(0, -1).map((node, i) => (
           <NodeConnector
             key={`conn-${node.id}`}
-            x={centerX}
+            x={COLUMN_X}
             yFrom={nodeCenterY(i)}
             yTo={nodeCenterY(i + 1)}
           />
@@ -58,21 +64,26 @@ export function TreeMapCanvas() {
           node.hasBranch ? (
             <BranchLane
               key={`lane-${node.id}`}
-              startX={centerX}
+              startX={COLUMN_X}
               startY={nodeCenterY(i)}
-              endX={centerX + LANE_OFFSET}
+              endX={COLUMN_X + LANE_OFFSET}
               endY={nodeCenterY(i) + NODE_STEP * 0.6}
             />
           ) : null,
         )}
 
-        {/* 3) Nodes on top so they cover the connectors. */}
+        {/* 3) Nodes (circle + number + label) on top. */}
         {nodes.map((node, i) => (
           <TreeNode
             key={node.id}
             node={node}
-            cx={centerX}
+            cx={COLUMN_X}
             cy={nodeCenterY(i)}
+            isLatest={node.index === maxIndex}
+            labelX={labelX}
+            labelMaxChars={labelMaxChars}
+            rowX={ROW_INSET}
+            rowWidth={rowWidth}
           />
         ))}
       </svg>
