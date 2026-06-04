@@ -22,11 +22,11 @@ export function BranchLane({ startX, startY, endX, endY }: BranchLaneProps) {
     <path
       d={path}
       fill="none"
-      stroke="var(--nav-color-node-inactive)"
+      stroke="var(--nav-color-accent)"
       strokeWidth={1.5}
-      strokeDasharray="4 4"
+      strokeDasharray="3 4"
       strokeLinecap="round"
-      opacity={0.7}
+      opacity={0.5}
     />
   );
 }

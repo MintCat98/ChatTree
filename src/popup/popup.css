@@ -100,3 +100,27 @@
   transition: left 150ms;
 }
 .cn-toggle__knob--on { left: 22px; }
+
+/* Light mode — follows the OS preference (issue 06).
+   The themeMode select here controls the *panel* theme; the popup surface
+   itself follows the OS so it never clashes with a light desktop. */
+@media (prefers-color-scheme: light) {
+  .cn-popup {
+    background-color: #ffffff;
+    color: #1e293b;
+  }
+  .cn-header { border-bottom-color: rgba(15, 23, 42, 0.12); }
+  .cn-version,
+  .cn-loading,
+  .cn-unsupported,
+  .cn-row__label { color: #64748b; }
+  .cn-unsupported__title { color: #1e293b; }
+  .cn-divider { border-top-color: rgba(15, 23, 42, 0.1); }
+  .cn-select {
+    background: rgba(15, 23, 42, 0.05);
+    color: #1e293b;
+    border-color: rgba(15, 23, 42, 0.15);
+  }
+  .cn-toggle { background: #cbd5e1; }
+  .cn-toggle--on { background: #7c3aed; }
+}

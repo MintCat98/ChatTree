@@ -4,6 +4,7 @@ import { onMessage } from '@background/message-handler';
 import { MessageType } from '@shared/message-types';
 import type { BridgeMessage } from '@shared/message-types';
 import type { ChatboxNode, TreeData, UserSettings } from '@shared/types';
+import { DEFAULT_SETTINGS } from '@shared/types';
 
 // ---------------------------------------------------------------------------
 // Mock session-store
@@ -27,16 +28,18 @@ const mockClearTree = clearTree as jest.MockedFunction<typeof clearTree>;
 
 let mockTabsSendMessage: jest.Mock;
 let mockStorageLocalSet: jest.Mock;
+let mockStorageLocalGet: jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
 
   mockTabsSendMessage = jest.fn().mockResolvedValue(undefined);
   mockStorageLocalSet = jest.fn().mockResolvedValue(undefined);
+  mockStorageLocalGet = jest.fn().mockResolvedValue({});
 
   (global as unknown as { chrome: typeof chrome }).chrome = {
     tabs: { sendMessage: mockTabsSendMessage },
-    storage: { local: { set: mockStorageLocalSet } },
+    storage: { local: { set: mockStorageLocalSet, get: mockStorageLocalGet } },
   } as unknown as typeof chrome;
 });
 
@@ -240,27 +243,48 @@ describe('SCROLL_TO_NODE', () => {
 // ---------------------------------------------------------------------------
 // SETTINGS_CHANGE
 // ---------------------------------------------------------------------------
+// New behavior (issue 05): payload is a settings PATCH (Partial<UserSettings>).
+// The handler merges it over the stored settings and writes the full object back
+// to chrome.storage.local under `userSettings`. The popup now writes storage
+// directly, so this path is defensive — but it must still merge correctly.
 
 describe('SETTINGS_CHANGE', () => {
-  const settings: UserSettings = {
-    panelPosition: 'top-right',
-    panelDirection: 'top-down',
-    backgroundOpacity: 0.85,
-    sortOrder: 'asc',
-    panelVisible: true,
-  };
+  const patch: Partial<UserSettings> = { panelPosition: 'bottom-left', themeMode: 'light' };
 
-  it('saves settings to chrome.storage.local', async () => {
-    dispatch({ type: MessageType.SETTINGS_CHANGE, payload: { settings } }, TAB_ID);
+  it('merges the patch over stored settings and saves to chrome.storage.local', async () => {
+    mockStorageLocalGet.mockResolvedValue({ userSettings: { ...DEFAULT_SETTINGS } });
+
+    dispatch({ type: MessageType.SETTINGS_CHANGE, payload: patch }, TAB_ID);
     await flush();
 
     expect(mockStorageLocalSet).toHaveBeenCalledWith(
-      expect.objectContaining({ userSettings: settings }),
+      expect.objectContaining({
+        userSettings: expect.objectContaining({
+          ...DEFAULT_SETTINGS,
+          panelPosition: 'bottom-left',
+          themeMode: 'light',
+        }),
+      }),
+    );
+  });
+
+  it('falls back to defaults when nothing is stored yet', async () => {
+    mockStorageLocalGet.mockResolvedValue({});
+
+    dispatch({ type: MessageType.SETTINGS_CHANGE, payload: patch }, TAB_ID);
+    await flush();
+
+    expect(mockStorageLocalSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userSettings: expect.objectContaining({ panelPosition: 'bottom-left', themeMode: 'light' }),
+      }),
     );
   });
 
   it('works when sender.tab is null (popup origin)', async () => {
-    dispatch({ type: MessageType.SETTINGS_CHANGE, payload: { settings } });
+    mockStorageLocalGet.mockResolvedValue({});
+
+    dispatch({ type: MessageType.SETTINGS_CHANGE, payload: patch });
     await flush();
 
     expect(mockStorageLocalSet).toHaveBeenCalled();

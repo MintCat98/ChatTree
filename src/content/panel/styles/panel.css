@@ -1,4 +1,12 @@
-/* Shadow DOM scoped styles. All variables use the --nav-* namespace. */
+/* Shadow DOM scoped design tokens. All variables use the --nav-* namespace.
+   Loaded by ui-injector.tsx (via ?raw) — single source of truth.
+
+   Design language mirrors the Claude Chat Navigation Figma: warm neutral
+   surfaces, Claude "clay" accent (#d97757), hairline borders, soft shadow,
+   flat/clean nodes (outlined = previous, coral-filled = latest).
+
+   Base :host = LIGHT (claude.ai default). Dark overrides in
+   :host([data-theme='dark']). App.tsx sets data-theme to follow claude.ai. */
 
 :host {
   all: initial;
@@ -11,35 +19,422 @@
 }
 
 :host {
-  /* Z-index */
   --nav-z-index: 2147483647;
 
   /* Shape */
-  --nav-border-radius: 12px;
+  --nav-border-radius: 16px;
+  --nav-border-radius-sm: 9px;
 
-  /* Shadows & borders */
-  --nav-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  --nav-color-border: rgba(255, 255, 255, 0.1);
+  /* Surfaces */
+  --nav-color-bg: #ffffff;
+  --nav-color-bg-rgb: 255 255 255;      /* composed with opacity in PanelShell */
+  --nav-color-surface-2: #f7f5f1;       /* hover / cream fill */
+
+  /* Shadow & borders (warm, soft) */
+  --nav-panel-shadow: 0 12px 32px rgba(60, 45, 30, 0.14), 0 2px 6px rgba(60, 45, 30, 0.07);
+  --nav-color-border: #e9e5df;          /* panel + control hairline */
+  --nav-color-divider: #efece7;
 
   /* Typography */
-  --nav-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --nav-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --nav-font-size-sm: 11px;
   --nav-font-size-base: 13px;
 
-  /* Colors */
-  --nav-color-text: #e8e8f0;
-  --nav-color-text-secondary: rgba(232, 232, 240, 0.55);
-  --nav-color-node-fill: rgba(255, 255, 255, 0.06);
-  --nav-color-node-active: rgba(124, 101, 246, 0.35);
-  --nav-color-edge: rgba(255, 255, 255, 0.2);
-  --nav-color-accent: #7c65f6;
+  /* Text */
+  --nav-color-text: #2a2723;
+  --nav-color-text-secondary: #57534e;
+  --nav-color-text-muted: #8d8881;
+
+  /* Accent — Claude clay */
+  --nav-color-accent: #d97757;
+  --nav-color-accent-hover: #c8643f;
+  --nav-color-accent-soft: rgba(217, 119, 87, 0.12);
+
+  /* Nodes */
+  --nav-color-node-fill:    #ffffff;    /* previous node fill (outlined) */
+  --nav-color-node-border:  #d9d4cb;    /* previous node ring */
+  --nav-color-node-number:  #8d8881;    /* previous node number */
+  --nav-color-node-active:  #d97757;    /* latest node fill */
+  --nav-color-node-active-text: #ffffff;
+  --nav-color-node-branch:  #d97757;    /* branch indicator */
+  --nav-color-edge:         #e4e0d9;    /* connector line */
+  --nav-active-glow: drop-shadow(0 2px 5px rgba(217, 119, 87, 0.45));
 
   /* Animation */
+  --nav-duration-fast: 150ms;
   --nav-duration-base: 200ms;
+  --nav-duration-slow: 300ms;
   --nav-transition: var(--nav-duration-base) ease;
+}
+
+/* Dark theme — coherent warm dark with the same clay accent. */
+:host([data-theme='dark']) {
+  --nav-color-bg: #1e1b18;
+  --nav-color-bg-rgb: 30 27 24;
+  --nav-color-surface-2: rgba(255, 255, 255, 0.06);
+
+  --nav-panel-shadow: 0 14px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+  --nav-color-border: rgba(255, 255, 255, 0.1);
+  --nav-color-divider: rgba(255, 255, 255, 0.08);
+
+  --nav-color-text: #f5f2ec;
+  --nav-color-text-secondary: rgba(245, 242, 236, 0.7);
+  --nav-color-text-muted: #a8a299;
+
+  --nav-color-accent: #e08a6e;
+  --nav-color-accent-hover: #ec9a7e;
+  --nav-color-accent-soft: rgba(224, 138, 110, 0.16);
+
+  --nav-color-node-fill: rgba(255, 255, 255, 0.05);
+  --nav-color-node-border: rgba(255, 255, 255, 0.2);
+  --nav-color-node-number: #b8b2a9;
+  --nav-color-node-active: #d97757;
+  --nav-color-node-active-text: #ffffff;
+  --nav-color-node-branch: #e08a6e;
+  --nav-color-edge: rgba(255, 255, 255, 0.16);
+  --nav-active-glow: drop-shadow(0 0 6px rgba(224, 138, 110, 0.6));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    --nav-duration-fast: 0ms;
+    --nav-duration-base: 0ms;
+    --nav-duration-slow: 0ms;
+    --nav-active-glow: none;
+  }
 }
 
 @keyframes nav-slide-in {
   from { transform: translateX(20px); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* Right-edge drag-resize handle (issue 02). */
+.nav-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: ew-resize;
+  border-top-right-radius: var(--nav-border-radius);
+  border-bottom-right-radius: var(--nav-border-radius);
+  transition: background var(--nav-duration-fast) ease;
+}
+.nav-resize-handle:hover {
+  background: linear-gradient(90deg, transparent, var(--nav-color-accent-soft));
+}
+
+/* Custom scrollbar inside the tree-map viewport. */
+.nav-treemap::-webkit-scrollbar {
+  width: 8px;
+}
+.nav-treemap::-webkit-scrollbar-track {
+  background: transparent;
+}
+.nav-treemap::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.3);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.nav-treemap::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.5);
+  background-clip: content-box;
+}
+
+/* Range input — themed track + clay thumb. */
+.nav-range {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--nav-color-border);
+  outline: none;
+  cursor: pointer;
+}
+.nav-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--nav-color-accent);
+  border: 2px solid var(--nav-color-bg);
+  box-shadow: 0 1px 3px rgba(60, 45, 30, 0.25);
+  transition: transform var(--nav-duration-fast) ease;
+}
+.nav-range::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* ─── Component classes ─────────────────────────────────────────────────────── */
+
+/* EmptyState */
+.nav-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  color: var(--nav-color-text-muted);
+  font-family: var(--nav-font-family);
+  font-size: var(--nav-font-size-sm);
+  text-align: center;
+  line-height: 1.6;
+}
+.nav-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: var(--nav-color-accent-soft);
+}
+
+/* PanelShell */
+.nav-panel {
+  position: fixed;
+  left: var(--panel-x);
+  top: var(--panel-y);
+  width: var(--panel-w);
+  max-height: 90vh;
+  background-color: rgb(var(--nav-color-bg-rgb) / var(--bg-alpha, 1));
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: var(--nav-border-radius);
+  box-shadow: var(--nav-panel-shadow);
+  border: 1px solid var(--nav-color-border);
+  z-index: var(--nav-z-index);
+  font-family: var(--nav-font-family);
+  color: var(--nav-color-text);
+  animation: nav-slide-in var(--nav-duration-base) ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 12px 12px 14px;
+  border-bottom: 1px solid var(--nav-color-divider);
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.nav-header.is-collapsed {
+  border-bottom: none;
+}
+.nav-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.nav-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--nav-color-accent-soft);
+  flex-shrink: 0;
+}
+.nav-header-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.nav-header-title {
+  font-size: var(--nav-font-size-base);
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  color: var(--nav-color-text);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.nav-header-subtitle {
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-color-text-muted);
+  line-height: 1.3;
+}
+.nav-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* IconButton */
+.nav-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: none;
+  color: var(--nav-color-text-muted);
+  cursor: pointer;
+  font-size: var(--nav-font-size-base);
+  border-radius: 8px;
+  line-height: 1;
+  transition: background var(--nav-duration-fast) ease, color var(--nav-duration-fast) ease;
+}
+.nav-icon-btn:hover {
+  background: var(--nav-color-surface-2);
+  color: var(--nav-color-text);
+}
+
+/* PillButton — :hover before [aria-pressed] so active state wins on same specificity */
+.nav-pill-btn {
+  height: 24px;
+  padding: 0 11px;
+  background: transparent;
+  border: 1px solid var(--nav-color-border);
+  color: var(--nav-color-text-secondary);
+  cursor: pointer;
+  font-size: var(--nav-font-size-sm);
+  font-weight: 600;
+  font-family: var(--nav-font-family);
+  border-radius: 999px;
+  line-height: 1;
+  transition: background var(--nav-duration-fast) ease, border-color var(--nav-duration-fast) ease, color var(--nav-duration-fast) ease;
+}
+.nav-pill-btn:hover {
+  background: var(--nav-color-surface-2);
+  border-color: var(--nav-color-accent);
+}
+.nav-pill-btn[aria-pressed="true"] {
+  background: var(--nav-color-accent-soft);
+  border-color: var(--nav-color-accent);
+  color: var(--nav-color-accent);
+}
+
+/* ControlBar */
+.nav-control-bar {
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--nav-color-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nav-control-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 0;
+  font-size: var(--nav-font-size-sm);
+}
+.nav-control-label {
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-color-text-muted);
+  margin-right: 8px;
+  min-width: 44px;
+  letter-spacing: 0.2px;
+}
+.nav-control {
+  flex: 1;
+  background: var(--nav-color-surface-2);
+  color: var(--nav-color-text);
+  border: 1px solid var(--nav-color-border);
+  border-radius: var(--nav-border-radius-sm);
+  padding: 5px 8px;
+  font-size: var(--nav-font-size-sm);
+  font-family: var(--nav-font-family);
+  outline: none;
+  cursor: pointer;
+  transition: background var(--nav-duration-fast) ease, border-color var(--nav-duration-fast) ease;
+}
+.nav-control:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.nav-control-sort:hover {
+  background: var(--nav-color-accent-soft);
+  border-color: var(--nav-color-accent);
+}
+.nav-control-readout {
+  min-width: 38px;
+  text-align: right;
+  color: var(--nav-color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* TreeMapCanvas container (scrollbar rules remain below) */
+.nav-treemap {
+  width: 100%;
+  max-height: 50vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0;
+}
+
+/* TreeNode — class modifiers on the <g> wrapper drive descendant SVG fill/stroke */
+.nav-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.nav-node .nav-node-row {
+  fill: transparent;
+  transition: fill var(--nav-duration-fast) ease;
+}
+.nav-node.is-latest .nav-node-row {
+  fill: var(--nav-color-accent-soft);
+}
+.nav-node.is-hovered:not(.is-latest) .nav-node-row {
+  fill: var(--nav-color-surface-2);
+}
+
+.nav-node .nav-node-circle {
+  fill: var(--nav-color-node-fill);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1.5;
+  transition: r var(--nav-duration-fast) ease, filter var(--nav-duration-fast) ease;
+}
+.nav-node.is-latest .nav-node-circle {
+  fill: var(--nav-color-node-active);
+  stroke: transparent;
+  stroke-width: 0;
+  filter: var(--nav-active-glow);
+}
+.nav-node.is-active:not(.is-latest) .nav-node-circle {
+  stroke: var(--nav-color-accent);
+  stroke-width: 2;
+}
+.nav-node.is-hovered:not(.is-latest):not(.is-active) .nav-node-circle {
+  stroke: var(--nav-color-accent);
+}
+
+.nav-node .nav-node-number {
+  fill: var(--nav-color-node-number);
+  font-size: var(--nav-font-size-sm);
+}
+.nav-node.is-latest .nav-node-number {
+  fill: var(--nav-color-node-active-text);
+}
+.nav-node.is-active:not(.is-latest) .nav-node-number {
+  fill: var(--nav-color-accent);
+}
+
+.nav-node .nav-node-label {
+  fill: var(--nav-color-text-secondary);
+  font-size: 12px;
+  font-weight: 450;
+}
+.nav-node.is-latest .nav-node-label {
+  fill: var(--nav-color-text);
+  font-weight: 600;
+}
+
+/* NodeBadge */
+.nav-node-badge {
+  cursor: default;
 }
