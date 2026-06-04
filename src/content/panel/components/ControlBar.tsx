@@ -101,6 +101,7 @@ export function ControlBar() {
           value={settings.panelWidth}
           onChange={handleWidth}
           aria-label="Panel width"
+          className="nav-range"
           style={{ flex: 1 }}
         />
         <span style={readoutStyle}>{settings.panelWidth}px</span>
@@ -117,6 +118,7 @@ export function ControlBar() {
           value={settings.backgroundOpacity}
           onChange={handleOpacity}
           aria-label="Background opacity"
+          className="nav-range"
           style={{ flex: 1 }}
         />
         <span style={readoutStyle}>{Math.round(settings.backgroundOpacity * 100)}%</span>

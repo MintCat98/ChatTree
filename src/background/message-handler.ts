@@ -75,7 +75,7 @@ async function handleAsync(
     case MessageType.SETTINGS_CHANGE: {
       // The payload is a settings PATCH (Partial<UserSettings>), not { settings }.
       // Primary sync path is now chrome.storage directly (popup writes the full
-      // settings; the panel subscribes to chrome.storage.onChanged — issue 05).
+      // settings; the panel subscribes to chrome.storage.onChanged — #05).
       // This handler is kept defensive: merge the patch into the stored settings
       // so any remaining SETTINGS_CHANGE sender stays consistent.
       const patch = (message.payload ?? {}) as Partial<UserSettings>;
