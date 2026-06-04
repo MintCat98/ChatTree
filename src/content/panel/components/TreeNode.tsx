@@ -5,7 +5,7 @@
 //   - previous nodes        → outlined gray circle, muted number
 // Full prompt text is also available on hover via <Tooltip>.
 
-import { useCallback, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
+import { useCallback, useRef, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
 import type { ChatboxNode } from '@shared/types';
 import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
@@ -98,8 +98,16 @@ export function TreeNode({
     [node.id, setHoveredNode, setHoverPos],
   );
 
+  const rafRef = useRef<number | null>(null);
   const handleMouseMove = useCallback(
-    (e: MouseEvent<SVGGElement>) => setHoverPos({ x: e.clientX, y: e.clientY }),
+    (e: MouseEvent<SVGGElement>) => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      const { clientX: x, clientY: y } = e;
+      rafRef.current = requestAnimationFrame(() => {
+        setHoverPos({ x, y });
+        rafRef.current = null;
+      });
+    },
     [setHoverPos],
   );
 
