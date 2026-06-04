@@ -28,6 +28,24 @@
 - **Human Review**: 완료
 - **Reflected**: `src/content/panel/App.tsx`, `src/content/ui-injector.tsx` 2파일 수정. Issue #68 업데이트, PR #69 생성.
 
+### AI Usage Log | 2026-06-03 (By @jglJGL000304)
+
+- **What**: feat/panel-ui-redesign — redesigned the panel UI to the Claude Chat Navigation Figma look and added/fixed six panel capabilities. (PR #66, 5 commits)
+- **Request**: "pull main, test, make the UI prettier", "differentiate latest vs previous questions, clean buttons (per Figma)", "yellow circle → Claude orange, remove the 🔀 emoji", "popup option changes don't reflect in the panel / resize / collapse toggle / options entry button / dark·light (follow Claude) — implement each", "place the hover tooltip on whichever side has more room".
+- **AI Suggestion**:
+  - **`62fc9f8` style(panel)** — found that the actually-loaded `styles/panel.css` was **missing** many `--nav-*` variables the components reference (node/branch/text-muted/bg/duration-fast, etc.), which rendered default nodes as black circles → defined all tokens + added gradient/glow/scrollbar/slider styling.
+  - **`eee0da3` chore(panel)** — removed the duplicate token file `src/content/panel/index.css` that was never imported (single source of truth is `styles/panel.css`).
+  - **`46d1b20` feat(panel)** — (1) **settings sync bug**: popup (`chrome.storage.local['settings']`), panel (web `localStorage 'chat-nav-settings'`), and background (`['userSettings']`) used three separate stores and the panel never subscribed to changes, so popup settings had no effect → unified to a **single source of truth `chrome.storage.local['userSettings']` + `chrome.storage.onChanged` subscription**. (2) panel **resize** (`panelWidth` + right-edge drag handle), (3) **collapse/expand** (`collapsed`), (4) **options entry button** (`settingsOpen` toggles the ControlBar), (5) **dark/light** (inject `data-theme` on the Shadow host + track Claude's theme, `themeMode`), (6) mounted the **hover tooltip**. Added `panelWidth`/`themeMode` to `UserSettings`.
+  - **`8fa783e` fix(panel)** — tooltip now picks the **side of the cursor with more room** + fixed 280px width; branch node/badge use **Claude clay orange (#d97757)**; removed the **🔀 emoji** from NodeBadge.
+  - **`62bacaa` feat(panel)** — full **Figma redesign**: violet→clay palette, light (default = Claude) / dark tokens, left rail of numbered circles + **question label on the right**, **latest question = clay-filled / previous = gray outline** differentiation + row highlight, header (icon + title + "메시지 N개" + clean "설정" pill). Dropped violet gradients/pulse.
+- **Human Review**: in progress — loaded dist on a claude.ai chat page for a visual check. (Sort-toggle application and active-node highlight wiring are follow-ups.)
+- **Reflected**:
+  - Modified: `src/shared/types.ts`, `src/content/panel/store/panel-store.ts`, `src/content/panel/App.tsx`, `src/content/panel/styles/panel.css`, `src/content/panel/components/{PanelShell,TreeMapCanvas,TreeNode,NodeConnector,BranchLane,Header,ControlBar,EmptyState,NodeBadge,Tooltip}.tsx`, `src/content/panel/components/constants.ts`, `src/popup/Popup.tsx`, `src/popup/popup.css`, `src/background/message-handler.ts`
+  - Added: `src/content/panel/theme.ts`
+  - Removed: `src/content/panel/index.css`
+  - Tests: updated `tests/unit/panel-store.test.ts`, `tests/unit/message-handler.test.ts` (new settings schema + SETTINGS_CHANGE merge behavior)
+  - Verification: `tsc --noEmit` and `npm run build` pass; `npm test` 64 pass / 7 fail (pre-existing branch-change-watcher, unrelated)
+
 ### AI Usage Log | 2026-05-31 (By @MintCat98)
 
 - **What**: fix — 브랜치 전환(‹/›) 시 트리 맵이 자동 업데이트되지 않는 버그 수정 (`branch-change-watcher.ts` 전면 재작성, `observer.ts` 콜백 변경)
