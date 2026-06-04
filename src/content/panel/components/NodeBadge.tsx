@@ -25,7 +25,7 @@ export function NodeBadge({ cx, cy, current, total }: NodeBadgeProps) {
       role="status"
       aria-label={`Branch ${current} of ${total}`}
       onClick={handleClick}
-      style={{ cursor: 'default' }}
+      className="nav-node-badge"
     >
       <rect
         x={cx - 4}
