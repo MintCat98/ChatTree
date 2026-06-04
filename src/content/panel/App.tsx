@@ -17,9 +17,7 @@ import { Header } from './components/Header';
 import { ControlBar } from './components/ControlBar';
 import { Tooltip } from './components/Tooltip';
 
-const HOST_ID = 'chat-nav-root';
-
-export default function App() {
+export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
   const setTree = usePanelStore((s) => s.setTree);
   const hydrateSettings = usePanelStore((s) => s.hydrateSettings);
   const settings = usePanelStore((s) => s.settings);
@@ -36,13 +34,22 @@ export default function App() {
     return () => window.removeEventListener(TREE_READY_EVENT, handler);
   }, [setTree]);
 
-  // 2) Settings: initial hydrate + live sync with chrome.storage.local.
+  // 2) Settings: initial hydrate (with legacy-key migration) + live sync.
   useEffect(() => {
     if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
 
-    chrome.storage.local.get(STORAGE_KEYS.USER_SETTINGS, (result) => {
-      const stored = result[STORAGE_KEYS.USER_SETTINGS] as Partial<UserSettings> | undefined;
-      if (stored) hydrateSettings(stored);
+    // Migrate settings stored under the old key ('settings') used before the redesign.
+    chrome.storage.local.get(['settings', STORAGE_KEYS.USER_SETTINGS], (result) => {
+      const legacy = result['settings'] as Partial<UserSettings> | undefined;
+      const current = result[STORAGE_KEYS.USER_SETTINGS] as Partial<UserSettings> | undefined;
+
+      if (legacy && !current) {
+        chrome.storage.local.set({ [STORAGE_KEYS.USER_SETTINGS]: legacy });
+        chrome.storage.local.remove('settings');
+        hydrateSettings(legacy);
+      } else if (current) {
+        hydrateSettings(current);
+      }
     });
 
     const onChanged = (
@@ -60,10 +67,7 @@ export default function App() {
   // 3) Apply the resolved theme to the Shadow host's data-theme attribute, and
   //    track claude.ai theme changes while in 'auto' mode.
   useEffect(() => {
-    const host = document.getElementById(HOST_ID);
-    if (!host) return;
-
-    const apply = () => host.setAttribute('data-theme', resolveTheme(settings.themeMode));
+    const apply = () => shadowHost.setAttribute('data-theme', resolveTheme(settings.themeMode));
     apply();
 
     if (settings.themeMode !== 'auto') return;
@@ -73,7 +77,7 @@ export default function App() {
       attributeFilter: ['class', 'data-theme', 'data-mode', 'style'],
     });
     return () => mo.disconnect();
-  }, [settings.themeMode]);
+  }, [settings.themeMode, shadowHost]);
 
   // Render nothing when the panel is hidden; the listeners above stay registered
   // so the store keeps catching updates in the background.
