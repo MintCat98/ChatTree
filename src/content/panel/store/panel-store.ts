@@ -1,9 +1,9 @@
 // Zustand store for panel UI state (tree data, settings, active/hovered node).
-// Settings persist to localStorage (issue #12) AND mirror to chrome.storage.local
-// so the popup and the panel stay in sync (issue #05).
+// Settings are read from chrome.storage.local on mount (App.tsx) and written back
+// via updateSettings → mirrorToChromeStorage (issue #05). chrome.storage is the
+// single source of truth — no localStorage fallback.
 
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import type { TreeData, UserSettings } from '@shared/types';
 import { DEFAULT_SETTINGS } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
@@ -44,41 +44,32 @@ interface PanelState {
 }
 
 export const usePanelStore = create<PanelState>()(
-  persist(
-    (set) => ({
-      tree:          null,
-      settings:      DEFAULT_SETTINGS,
-      activeNodeId:  null,
-      hoveredNodeId: null,
-      hoverPos:      null,
-      collapsed:     false,
-      settingsOpen:  false,
+  (set) => ({
+    tree:          null,
+    settings:      DEFAULT_SETTINGS,
+    activeNodeId:  null,
+    hoveredNodeId: null,
+    hoverPos:      null,
+    collapsed:     false,
+    settingsOpen:  false,
 
-      setTree: (tree) => set({ tree }),
+    setTree: (tree) => set({ tree }),
 
-      updateSettings: (patch) =>
-        set((s) => {
-          const next = { ...s.settings, ...patch };
-          mirrorToChromeStorage(next);
-          return { settings: next };
-        }),
+    updateSettings: (patch) =>
+      set((s) => {
+        const next = { ...s.settings, ...patch };
+        mirrorToChromeStorage(next);
+        return { settings: next };
+      }),
 
-      hydrateSettings: (patch) =>
-        set((s) => ({ settings: { ...s.settings, ...patch } })),
+    hydrateSettings: (patch) =>
+      set((s) => ({ settings: { ...s.settings, ...patch } })),
 
-      setActiveNode:  (id)  => set({ activeNodeId: id }),
-      setHoveredNode: (id)  => set({ hoveredNodeId: id }),
-      setHoverPos:    (pos) => set({ hoverPos: pos }),
+    setActiveNode:  (id)  => set({ activeNodeId: id }),
+    setHoveredNode: (id)  => set({ hoveredNodeId: id }),
+    setHoverPos:    (pos) => set({ hoverPos: pos }),
 
-      toggleCollapsed:    () => set((s) => ({ collapsed: !s.collapsed })),
-      toggleSettingsOpen: () => set((s) => ({ settingsOpen: !s.settingsOpen })),
-    }),
-    {
-      name:       'chat-nav-settings',
-      storage:    createJSONStorage(() => localStorage),
-      // Only `settings` is persisted; `tree` is reconstructed from the DOM on each
-      // page load, so persisting it would surface stale data before the observer runs.
-      partialize: (s) => ({ settings: s.settings }),
-    },
-  ),
+    toggleCollapsed:    () => set((s) => ({ collapsed: !s.collapsed })),
+    toggleSettingsOpen: () => set((s) => ({ settingsOpen: !s.settingsOpen })),
+  }),
 );
