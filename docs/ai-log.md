@@ -17,6 +17,42 @@
 
 ### AI Usage Log | 2026-06-04 (By @MintCat98)
 
+- **What**: refactor — Issue #70, panel 인라인 스타일 전량 `panel.css`로 이관 (visual no-op)
+- **Request**: "Issue #70을 확인해서 리팩터링을 진행하자"
+- **AI Suggestion**:
+  - **계획 수립** — Plan 모드에서 전체 컴포넌트 인라인 스타일 현황 파악 후 파일별 마이그레이션 플랜 작성
+  - **`panel.css`** — `EmptyState`, `PanelShell`, `Header` (container/brand/icon/title/subtitle/actions), `IconButton`, `PillButton`, `ControlBar` (bar/row/label/control/readout/sort), `TreeMapCanvas` 컨테이너, `TreeNode` 상태 모디파이어(`.is-latest`, `.is-active`, `.is-hovered`, `.is-branch`), `.nav-node-badge`, `.nav-range`에 `flex: 1` 추가 — 약 150줄 신규 클래스 추가
+  - **`Header.tsx`** — `IconButton` / `PillButton`의 hover `useState` + `onMouseEnter/Leave` 제거 → CSS `:hover` / `[aria-pressed="true"]`; `ICON_BTN_SIZE` 상수 삭제
+  - **`ControlBar.tsx`** — `sortHover` useState 제거; `labelStyle` / `rowStyle` / `controlStyle` / `readoutStyle` 모듈 스코프 객체 삭제; `<select>` 3개에 `aria-label` 추가 (a11y 오류 수정)
+  - **`TreeNode.tsx`** — `circleFill` / `circleStroke` / `circleStrokeW` / `numberFill` / `rowFill` / `labelFill` / `circleStyle` 7개 계산 변수 삭제; `<g>` 에 className 모디파이어, SVG 자식 요소에 `nav-node-*` className 부여; `ring` / `NODE_LABEL_FONT_SIZE` 불필요 변수 제거
+  - **`PanelShell.tsx`** — 18줄 인라인 스타일 → CSS 변수 4개 패스스루 `--panel-x / --panel-y / --panel-w / --bg-alpha`; `bgColor` 변수 삭제
+  - **`EmptyState.tsx`**, **`NodeBadge.tsx`**, **`TreeMapCanvas.tsx`** — 단순 className 교체 / style prop 제거
+  - **`Tooltip.tsx`** — 변경 없음; Portal로 Shadow DOM 외부 렌더 = 인라인 유지 이유 주석 1줄 추가
+- **Human Review**: 플랜 검토 후 승인; 커밋은 직접 수행
+- **Reflected**: `src/content/panel/styles/panel.css`, `src/content/panel/components/{Header,ControlBar,TreeNode,PanelShell,TreeMapCanvas,EmptyState,NodeBadge,Tooltip}.tsx` 수정. `tsc --noEmit` 통과, `webpack build` 성공. 테스트 실패 8건은 이번 작업 이전부터의 pre-existing 이슈.
+
+### AI Usage Log | 2026-06-04 (By @MintCat98)
+
+- **What**: refactor — 코드 리뷰 지적사항 전반 정리 (주석, 매직넘버/dead export, 사소한 개선, 로직/구조 우려 4개 섹션)
+- **Request**: "리뷰한 내용을 기반으로 지금 브랜치 내용을 좀 정리하려고 해. 먼저 주석부터 시작하자" → 섹션별 순차 진행
+- **AI Suggestion**:
+  - **주석 정리** — `Header.tsx` / `ControlBar.tsx` 한글 주석 영문 통일, `panel-store.ts` issue 포맷 `#05` 통일
+  - **Dead export / 상수 중복 제거** — `PANEL_WIDTH` 삭제, `TOOLTIP_DELAY_MS` constants.ts 단일화
+  - **Tooltip Portal 제거 (b)** — `createPortal` 제거 → `<PanelShell>` 밖 Shadow DOM 내부 이동 (`backdropFilter` containing block 회피). 하드코딩 색상 → `--nav-*` 토큰, 헤더 주석 트림
+  - **storage key 상수화 (c)** — `STORAGE_KEYS.LEGACY_USER_SETTINGS = 'settings'` 추가; `else if (current)` 분기에서 레거시 키 삭제 누락 수정
+  - **layout constants 추출 (d)** — `COLUMN_X` / `LABEL_GAP` / `ROW_INSET` / `AVG_CHAR_PX_AT_12` / `LABEL_TRAILING_MARGIN` / `ROW_V_GAP` / `NODE_LABEL_FONT_SIZE` → `constants.ts` 통합. SVG `fontSize` 하드코딩 → CSS 토큰/상수. `PANEL_INITIAL_HEIGHT` / `DRAG_BOTTOM_CLEARANCE` 명명
+  - **Header style 정리 (e)** — `ICON_BTN_SIZE = 26` 상수 추출, `fontSize: 13` → `var(--nav-font-size-base)`
+  - **`PANEL_WIDTH_DEFAULT` export** — `PANEL_WIDTH_MIN/MAX`와 나란히 정의, `DEFAULT_SETTINGS`에서 참조
+  - **선택자 범위 축소** — `input[type='range']` → `.nav-range` (ControlBar), `[data-testid='treemap-canvas']` → `.nav-treemap` (panel.css + 각 컴포넌트 className 추가)
+  - **stale-closure 수정** — PanelShell `useEffect` 내 `getState()` 제거 → 동일 closure의 `width` 직접 사용
+  - **`aria-selected` → `aria-current`** — TreeNode: `aria-selected={isActive}` + `aria-current={isLatest ? 'true' : undefined}`
+  - **mousemove rAF throttle** — `handleMouseMove`에 trailing `cancelAnimationFrame` + `requestAnimationFrame` 추가
+  - **zustand `persist` 제거** — localStorage 이중 저장 제거, `chrome.storage.local` 단일 SoT 확립. content.js 번들 79.5 KiB → 63.6 KiB (-16 KiB)
+- **Human Review**: 각 작업 단위별 커밋 직접 수행
+- **Reflected**: `src/content/panel/components/{Header,ControlBar,Tooltip,TreeMapCanvas,TreeNode,PanelShell,constants}.tsx·ts`, `src/content/panel/store/panel-store.ts`, `src/content/panel/App.tsx`, `src/content/panel/styles/panel.css`, `src/shared/{types,constants}.ts`, `src/background/message-handler.ts` 수정
+
+### AI Usage Log | 2026-06-04 (By @MintCat98)
+
 - **What**: refactor — 코드 리뷰 지적사항 전반 정리 (주석, 매직넘버/dead export, 사소한 개선, 로직/구조 우려 4개 섹션)
 - **Request**: "리뷰한 내용을 기반으로 지금 브랜치 내용을 좀 정리하려고 해. 먼저 주석부터 시작하자" → 섹션별 순차 진행
 - **AI Suggestion**:
