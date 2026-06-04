@@ -95,13 +95,13 @@ src/
 ## 6. Contributing
 
 We welcome all contributions — bug reports, feature suggestions, and pull requests!  
-Please read [CONTRIBUTING.md](./CONTRIBUTING.md) first.
+Please read [CONTRIBUTING.md](.github/CONTRIBUTING.md) first.
 
 
 
 ## 7. Team
 
-See [CONTRIBUTORS.md](./CONTRIBUTORS.md) for the full list.
+See [CONTRIBUTORS.md](.github/CONTRIBUTORS.md) for the full list.
 
 
 
