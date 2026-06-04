@@ -40,6 +40,7 @@ export function TreeMapCanvas() {
   return (
     <div
       data-testid="treemap-canvas"
+      className="nav-treemap"
       style={{
         width: '100%',
         maxHeight: '50vh',

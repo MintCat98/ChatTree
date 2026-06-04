@@ -50,7 +50,7 @@ export function PanelShell({ children }: PanelShellProps) {
   // Recompute initial position whenever panelPosition changes. (Width changes are
   // handled by clamping in the style below, so we don't reposition mid-resize.)
   useEffect(() => {
-    setPosition(getInitialPosition(settings.panelPosition, usePanelStore.getState().settings.panelWidth));
+    setPosition(getInitialPosition(settings.panelPosition, width));
   }, [settings.panelPosition]);
 
   // One document-level listener pair handles both drag-move and drag-resize.

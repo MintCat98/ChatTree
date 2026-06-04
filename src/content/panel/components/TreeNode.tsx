@@ -114,7 +114,8 @@ export function TreeNode({
     <g
       role="treeitem"
       aria-label={node.text}
-      aria-selected={isActive || isLatest}
+      aria-selected={isActive}
+      aria-current={isLatest ? 'true' : undefined}
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}

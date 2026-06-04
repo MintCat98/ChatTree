@@ -126,19 +126,19 @@
 }
 
 /* Custom scrollbar inside the tree-map viewport. */
-[data-testid='treemap-canvas']::-webkit-scrollbar {
+.nav-treemap::-webkit-scrollbar {
   width: 8px;
 }
-[data-testid='treemap-canvas']::-webkit-scrollbar-track {
+.nav-treemap::-webkit-scrollbar-track {
   background: transparent;
 }
-[data-testid='treemap-canvas']::-webkit-scrollbar-thumb {
+.nav-treemap::-webkit-scrollbar-thumb {
   background: rgba(120, 113, 108, 0.3);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
-[data-testid='treemap-canvas']::-webkit-scrollbar-thumb:hover {
+.nav-treemap::-webkit-scrollbar-thumb:hover {
   background: rgba(120, 113, 108, 0.5);
   background-clip: content-box;
 }
