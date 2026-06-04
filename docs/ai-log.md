@@ -17,6 +17,39 @@
 
 ### AI Usage Log | 2026-06-04 (By @MintCat98)
 
+- **What**: refactor — 코드 리뷰 지적사항 전반 정리 (주석, 매직넘버/dead export, 사소한 개선, 로직/구조 우려 4개 섹션)
+- **Request**: "리뷰한 내용을 기반으로 지금 브랜치 내용을 좀 정리하려고 해. 먼저 주석부터 시작하자" → 섹션별 순차 진행
+- **AI Suggestion**:
+  - **주석 정리** — `Header.tsx` / `ControlBar.tsx` 한글 주석 영문 통일, `panel-store.ts` issue 포맷 `#05` 통일
+  - **Dead export / 상수 중복 제거** — `PANEL_WIDTH` 삭제, `TOOLTIP_DELAY_MS` constants.ts 단일화
+  - **Tooltip Portal 제거 (b)** — `createPortal` 제거 → `<PanelShell>` 밖 Shadow DOM 내부 이동 (`backdropFilter` containing block 회피). 하드코딩 색상 → `--nav-*` 토큰, 헤더 주석 트림
+  - **storage key 상수화 (c)** — `STORAGE_KEYS.LEGACY_USER_SETTINGS = 'settings'` 추가; `else if (current)` 분기에서 레거시 키 삭제 누락 수정
+  - **layout constants 추출 (d)** — `COLUMN_X` / `LABEL_GAP` / `ROW_INSET` / `AVG_CHAR_PX_AT_12` / `LABEL_TRAILING_MARGIN` / `ROW_V_GAP` / `NODE_LABEL_FONT_SIZE` → `constants.ts` 통합. SVG `fontSize` 하드코딩 → CSS 토큰/상수. `PANEL_INITIAL_HEIGHT` / `DRAG_BOTTOM_CLEARANCE` 명명
+  - **Header style 정리 (e)** — `ICON_BTN_SIZE = 26` 상수 추출, `fontSize: 13` → `var(--nav-font-size-base)`
+  - **`PANEL_WIDTH_DEFAULT` export** — `PANEL_WIDTH_MIN/MAX`와 나란히 정의, `DEFAULT_SETTINGS`에서 참조
+  - **선택자 범위 축소** — `input[type='range']` → `.nav-range` (ControlBar), `[data-testid='treemap-canvas']` → `.nav-treemap` (panel.css + 각 컴포넌트 className 추가)
+  - **stale-closure 수정** — PanelShell `useEffect` 내 `getState()` 제거 → 동일 closure의 `width` 직접 사용
+  - **`aria-selected` → `aria-current`** — TreeNode: `aria-selected={isActive}` + `aria-current={isLatest ? 'true' : undefined}`
+  - **mousemove rAF throttle** — `handleMouseMove`에 trailing `cancelAnimationFrame` + `requestAnimationFrame` 추가
+  - **zustand `persist` 제거** — localStorage 이중 저장 제거, `chrome.storage.local` 단일 SoT 확립. content.js 번들 79.5 KiB → 63.6 KiB (-16 KiB)
+- **Human Review**: 각 작업 단위별 커밋 직접 수행
+- **Reflected**: `src/content/panel/components/{Header,ControlBar,Tooltip,TreeMapCanvas,TreeNode,PanelShell,constants}.tsx·ts`, `src/content/panel/store/panel-store.ts`, `src/content/panel/App.tsx`, `src/content/panel/styles/panel.css`, `src/shared/{types,constants}.ts`, `src/background/message-handler.ts` 수정
+
+### AI Usage Log | 2026-06-04 (By @MintCat98)
+
+- **What**: fix — 리디자인 후 재현된 "일반 모드(DevTools 닫힘)에서 패널 미작동" 버그 원인 분석 및 수정 (Issue #68, PR #69)
+- **Request**: "예전에 v0.1.0에서 개발자모드에선 잘 작동하는데 일반 모드에서는 작동되지 않는 버그가 있었지. 팀원이 ui 리디자인 작업을 하며 해당 문제가 또 발생했는데 어디때문인지 한 번 확인해줘" + "#63 PR에서 작업했던 거랑 관련이 있을지도 모르겠다"
+- **AI Suggestion**:
+  - **PR #63 바이패스 검증** — `observer.ts` CustomEvent dispatch, `App.tsx` `window.addEventListener`, `TreeNode.tsx` 직접 import, `index.ts` 리스너 제거 — 4가지 바이패스 모두 `feat/panel-ui-redesign`에서 정상 유지 확인. PR #63 회귀 아님.
+  - **Root Cause 1 (스토리지 키 불일치)** — 리디자인에서 팝업이 설정을 저장하는 `chrome.storage.local` 키가 `'settings'` → `'userSettings'`로 변경되었으나 마이그레이션 경로 없음. 기존 사용자 설정이 무시되고, 팝업 변경이 패널에 반영되지 않음.
+  - **Root Cause 2 (host 역탐색 불안정)** — `App.tsx`가 `document.getElementById('chat-nav-root')`로 닫힌 Shadow DOM의 host를 역탐색해 `data-theme`을 설정. `null` 반환 시 조용히 실패하여 테마 미적용(다크 모드에서 흰 배경 노출).
+  - **Fix 1** — `App.tsx` settings `useEffect`에 구 키(`'settings'`) → 신 키(`'userSettings'`) 일회성 마이그레이션 추가. 구 키 데이터가 있고 신 키가 없을 때만 이전 후 구 키 삭제.
+  - **Fix 2** — `ui-injector.tsx`에서 `host` 레퍼런스를 `<App shadowHost={host} />` prop으로 직접 전달. `App.tsx`의 `document.getElementById` 제거, `shadowHost` prop을 테마 effect에서 직접 사용.
+- **Human Review**: 완료
+- **Reflected**: `src/content/panel/App.tsx`, `src/content/ui-injector.tsx` 2파일 수정. Issue #68 업데이트, PR #69 생성.
+
+### AI Usage Log | 2026-06-04 (By @MintCat98)
+
 - **What**: fix — 리디자인 후 재현된 "일반 모드(DevTools 닫힘)에서 패널 미작동" 버그 원인 분석 및 수정 (Issue #68, PR #69)
 - **Request**: "예전에 v0.1.0에서 개발자모드에선 잘 작동하는데 일반 모드에서는 작동되지 않는 버그가 있었지. 팀원이 ui 리디자인 작업을 하며 해당 문제가 또 발생했는데 어디때문인지 한 번 확인해줘" + "#63 PR에서 작업했던 거랑 관련이 있을지도 모르겠다"
 - **AI Suggestion**:
