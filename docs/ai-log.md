@@ -15,6 +15,19 @@
 
 <!-- Start from here -->
 
+### AI Usage Log | 2026-06-04 (By @MintCat98)
+
+- **What**: fix — 리디자인 후 재현된 "일반 모드(DevTools 닫힘)에서 패널 미작동" 버그 원인 분석 및 수정 (Issue #68, PR #69)
+- **Request**: "예전에 v0.1.0에서 개발자모드에선 잘 작동하는데 일반 모드에서는 작동되지 않는 버그가 있었지. 팀원이 ui 리디자인 작업을 하며 해당 문제가 또 발생했는데 어디때문인지 한 번 확인해줘" + "#63 PR에서 작업했던 거랑 관련이 있을지도 모르겠다"
+- **AI Suggestion**:
+  - **PR #63 바이패스 검증** — `observer.ts` CustomEvent dispatch, `App.tsx` `window.addEventListener`, `TreeNode.tsx` 직접 import, `index.ts` 리스너 제거 — 4가지 바이패스 모두 `feat/panel-ui-redesign`에서 정상 유지 확인. PR #63 회귀 아님.
+  - **Root Cause 1 (스토리지 키 불일치)** — 리디자인에서 팝업이 설정을 저장하는 `chrome.storage.local` 키가 `'settings'` → `'userSettings'`로 변경되었으나 마이그레이션 경로 없음. 기존 사용자 설정이 무시되고, 팝업 변경이 패널에 반영되지 않음.
+  - **Root Cause 2 (host 역탐색 불안정)** — `App.tsx`가 `document.getElementById('chat-nav-root')`로 닫힌 Shadow DOM의 host를 역탐색해 `data-theme`을 설정. `null` 반환 시 조용히 실패하여 테마 미적용(다크 모드에서 흰 배경 노출).
+  - **Fix 1** — `App.tsx` settings `useEffect`에 구 키(`'settings'`) → 신 키(`'userSettings'`) 일회성 마이그레이션 추가. 구 키 데이터가 있고 신 키가 없을 때만 이전 후 구 키 삭제.
+  - **Fix 2** — `ui-injector.tsx`에서 `host` 레퍼런스를 `<App shadowHost={host} />` prop으로 직접 전달. `App.tsx`의 `document.getElementById` 제거, `shadowHost` prop을 테마 effect에서 직접 사용.
+- **Human Review**: 완료
+- **Reflected**: `src/content/panel/App.tsx`, `src/content/ui-injector.tsx` 2파일 수정. Issue #68 업데이트, PR #69 생성.
+
 ### AI Usage Log | 2026-05-31 (By @MintCat98)
 
 - **What**: fix — 브랜치 전환(‹/›) 시 트리 맵이 자동 업데이트되지 않는 버그 수정 (`branch-change-watcher.ts` 전면 재작성, `observer.ts` 콜백 변경)
