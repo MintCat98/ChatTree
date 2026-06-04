@@ -1,4 +1,4 @@
-// Control bar (settings) shown under the header when the 설정 button is on.
+// Control bar (settings) shown under the header when the Settings button is on.
 // Controls: direction (fixed), position, width, opacity, sort, theme. Every change
 // is committed via store.updateSettings → persisted to localStorage + mirrored to
 // chrome.storage.local (so the popup stays in sync).

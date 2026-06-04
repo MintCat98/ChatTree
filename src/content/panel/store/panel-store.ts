@@ -1,6 +1,6 @@
 // Zustand store for panel UI state (tree data, settings, active/hovered node).
 // Settings persist to localStorage (issue #12) AND mirror to chrome.storage.local
-// so the popup and the panel stay in sync (issue 05).
+// so the popup and the panel stay in sync (issue #05).
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';

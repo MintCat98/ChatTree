@@ -1,5 +1,5 @@
 // Panel header — drag handle + brand (icon, title, message count) + actions.
-// Actions, left→right: [collapse/expand] [설정 pill] [close].
+// Actions, left→right: [collapse/expand] [Settings pill] [close].
 // Marked with data-drag-handle="true" so PanelShell starts a drag from here;
 // buttons opt out so their clicks don't drag.
 
