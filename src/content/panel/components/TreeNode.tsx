@@ -5,11 +5,11 @@
 //   - previous nodes        → outlined gray circle, muted number
 // Full prompt text is also available on hover via <Tooltip>.
 
-import { useCallback, useRef, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
+import { useCallback, useRef, type KeyboardEvent, type MouseEvent } from 'react';
 import type { ChatboxNode } from '@shared/types';
 import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
-import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, NODE_LABEL_FONT_SIZE, ROW_V_GAP, truncate } from './constants';
+import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, truncate } from './constants';
 import { NodeBadge } from './NodeBadge';
 
 interface TreeNodeProps {
@@ -41,36 +41,9 @@ export function TreeNode({
   const isActive = activeNodeId === node.id;
   const isHovered = hoveredNodeId === node.id;
   const isBranch = node.hasBranch;
-  const filled = isLatest; // primary clay highlight = newest question
-  const ring = isActive && !isLatest; // "you are here" indicator
+  const filled = isLatest;
 
   const r = filled || isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
-
-  const circleFill = filled ? 'var(--nav-color-node-active)' : 'var(--nav-color-node-fill)';
-  const circleStroke = filled
-    ? 'transparent'
-    : ring || isHovered
-      ? 'var(--nav-color-accent)'
-      : 'var(--nav-color-node-border)';
-  const circleStrokeW = filled ? 0 : ring ? 2 : 1.5;
-  const numberFill = filled
-    ? 'var(--nav-color-node-active-text)'
-    : ring
-      ? 'var(--nav-color-accent)'
-      : 'var(--nav-color-node-number)';
-
-  const rowFill = isLatest
-    ? 'var(--nav-color-accent-soft)'
-    : isHovered
-      ? 'var(--nav-color-surface-2)'
-      : 'transparent';
-
-  const labelFill = isLatest ? 'var(--nav-color-text)' : 'var(--nav-color-text-secondary)';
-
-  const circleStyle: CSSProperties = {
-    transition: 'r var(--nav-duration-fast) ease',
-    filter: filled ? 'var(--nav-active-glow)' : 'none',
-  };
 
   const handleClick = useCallback(
     (e: MouseEvent<SVGGElement>) => {
@@ -118,6 +91,16 @@ export function TreeNode({
 
   const rowH = NODE_STEP - ROW_V_GAP;
 
+  const nodeClass = [
+    'nav-node',
+    isLatest ? 'is-latest' : '',
+    isActive && !isLatest ? 'is-active' : '',
+    isHovered ? 'is-hovered' : '',
+    isBranch ? 'is-branch' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <g
       role="treeitem"
@@ -130,7 +113,7 @@ export function TreeNode({
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      style={{ cursor: 'pointer', outline: 'none' }}
+      className={nodeClass}
       data-nav-id={node.id}
     >
       {/* Row highlight */}
@@ -141,8 +124,7 @@ export function TreeNode({
         height={rowH}
         rx={10}
         ry={10}
-        fill={rowFill}
-        style={{ transition: 'fill var(--nav-duration-fast) ease' }}
+        className="nav-node-row"
       />
 
       {/* Node circle */}
@@ -150,21 +132,17 @@ export function TreeNode({
         cx={cx}
         cy={cy}
         r={r}
-        fill={circleFill}
-        stroke={circleStroke}
-        strokeWidth={circleStrokeW}
-        style={circleStyle}
+        className="nav-node-circle"
       />
       <text
         x={cx}
         y={cy}
         textAnchor="middle"
         dominantBaseline="central"
-        fill={numberFill}
         fontFamily="var(--nav-font-family)"
-        style={{ fontSize: 'var(--nav-font-size-sm)' }}
         fontWeight={700}
         pointerEvents="none"
+        className="nav-node-number"
       >
         {node.index + 1}
       </text>
@@ -175,11 +153,9 @@ export function TreeNode({
         y={cy}
         textAnchor="start"
         dominantBaseline="central"
-        fill={labelFill}
         fontFamily="var(--nav-font-family)"
-        style={{ fontSize: NODE_LABEL_FONT_SIZE }}
-        fontWeight={isLatest ? 600 : 450}
         pointerEvents="none"
+        className="nav-node-label"
       >
         {truncate(node.text, labelMaxChars)}
       </text>

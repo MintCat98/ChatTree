@@ -41,13 +41,6 @@ export function TreeMapCanvas() {
     <div
       data-testid="treemap-canvas"
       className="nav-treemap"
-      style={{
-        width: '100%',
-        maxHeight: '50vh',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        padding: '6px 0',
-      }}
     >
       <svg
         width={width}

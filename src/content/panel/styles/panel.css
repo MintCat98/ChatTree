@@ -147,6 +147,7 @@
 .nav-range {
   -webkit-appearance: none;
   appearance: none;
+  flex: 1;
   height: 4px;
   border-radius: 999px;
   background: var(--nav-color-border);
@@ -166,4 +167,274 @@
 }
 .nav-range::-webkit-slider-thumb:hover {
   transform: scale(1.15);
+}
+
+/* ─── Component classes ─────────────────────────────────────────────────────── */
+
+/* EmptyState */
+.nav-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  color: var(--nav-color-text-muted);
+  font-family: var(--nav-font-family);
+  font-size: var(--nav-font-size-sm);
+  text-align: center;
+  line-height: 1.6;
+}
+.nav-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: var(--nav-color-accent-soft);
+}
+
+/* PanelShell */
+.nav-panel {
+  position: fixed;
+  left: var(--panel-x);
+  top: var(--panel-y);
+  width: var(--panel-w);
+  max-height: 90vh;
+  background-color: rgb(var(--nav-color-bg-rgb) / var(--bg-alpha, 1));
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: var(--nav-border-radius);
+  box-shadow: var(--nav-panel-shadow);
+  border: 1px solid var(--nav-color-border);
+  z-index: var(--nav-z-index);
+  font-family: var(--nav-font-family);
+  color: var(--nav-color-text);
+  animation: nav-slide-in var(--nav-duration-base) ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 12px 12px 14px;
+  border-bottom: 1px solid var(--nav-color-divider);
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.nav-header.is-collapsed {
+  border-bottom: none;
+}
+.nav-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.nav-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--nav-color-accent-soft);
+  flex-shrink: 0;
+}
+.nav-header-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.nav-header-title {
+  font-size: var(--nav-font-size-base);
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  color: var(--nav-color-text);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.nav-header-subtitle {
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-color-text-muted);
+  line-height: 1.3;
+}
+.nav-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* IconButton */
+.nav-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: none;
+  color: var(--nav-color-text-muted);
+  cursor: pointer;
+  font-size: var(--nav-font-size-base);
+  border-radius: 8px;
+  line-height: 1;
+  transition: background var(--nav-duration-fast) ease, color var(--nav-duration-fast) ease;
+}
+.nav-icon-btn:hover {
+  background: var(--nav-color-surface-2);
+  color: var(--nav-color-text);
+}
+
+/* PillButton — :hover before [aria-pressed] so active state wins on same specificity */
+.nav-pill-btn {
+  height: 24px;
+  padding: 0 11px;
+  background: transparent;
+  border: 1px solid var(--nav-color-border);
+  color: var(--nav-color-text-secondary);
+  cursor: pointer;
+  font-size: var(--nav-font-size-sm);
+  font-weight: 600;
+  font-family: var(--nav-font-family);
+  border-radius: 999px;
+  line-height: 1;
+  transition: background var(--nav-duration-fast) ease, border-color var(--nav-duration-fast) ease, color var(--nav-duration-fast) ease;
+}
+.nav-pill-btn:hover {
+  background: var(--nav-color-surface-2);
+  border-color: var(--nav-color-accent);
+}
+.nav-pill-btn[aria-pressed="true"] {
+  background: var(--nav-color-accent-soft);
+  border-color: var(--nav-color-accent);
+  color: var(--nav-color-accent);
+}
+
+/* ControlBar */
+.nav-control-bar {
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--nav-color-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nav-control-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 0;
+  font-size: var(--nav-font-size-sm);
+}
+.nav-control-label {
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-color-text-muted);
+  margin-right: 8px;
+  min-width: 44px;
+  letter-spacing: 0.2px;
+}
+.nav-control {
+  flex: 1;
+  background: var(--nav-color-surface-2);
+  color: var(--nav-color-text);
+  border: 1px solid var(--nav-color-border);
+  border-radius: var(--nav-border-radius-sm);
+  padding: 5px 8px;
+  font-size: var(--nav-font-size-sm);
+  font-family: var(--nav-font-family);
+  outline: none;
+  cursor: pointer;
+  transition: background var(--nav-duration-fast) ease, border-color var(--nav-duration-fast) ease;
+}
+.nav-control:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.nav-control-sort:hover {
+  background: var(--nav-color-accent-soft);
+  border-color: var(--nav-color-accent);
+}
+.nav-control-readout {
+  min-width: 38px;
+  text-align: right;
+  color: var(--nav-color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* TreeMapCanvas container (scrollbar rules remain below) */
+.nav-treemap {
+  width: 100%;
+  max-height: 50vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0;
+}
+
+/* TreeNode — class modifiers on the <g> wrapper drive descendant SVG fill/stroke */
+.nav-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.nav-node .nav-node-row {
+  fill: transparent;
+  transition: fill var(--nav-duration-fast) ease;
+}
+.nav-node.is-latest .nav-node-row {
+  fill: var(--nav-color-accent-soft);
+}
+.nav-node.is-hovered:not(.is-latest) .nav-node-row {
+  fill: var(--nav-color-surface-2);
+}
+
+.nav-node .nav-node-circle {
+  fill: var(--nav-color-node-fill);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1.5;
+  transition: r var(--nav-duration-fast) ease, filter var(--nav-duration-fast) ease;
+}
+.nav-node.is-latest .nav-node-circle {
+  fill: var(--nav-color-node-active);
+  stroke: transparent;
+  stroke-width: 0;
+  filter: var(--nav-active-glow);
+}
+.nav-node.is-active:not(.is-latest) .nav-node-circle {
+  stroke: var(--nav-color-accent);
+  stroke-width: 2;
+}
+.nav-node.is-hovered:not(.is-latest):not(.is-active) .nav-node-circle {
+  stroke: var(--nav-color-accent);
+}
+
+.nav-node .nav-node-number {
+  fill: var(--nav-color-node-number);
+  font-size: var(--nav-font-size-sm);
+}
+.nav-node.is-latest .nav-node-number {
+  fill: var(--nav-color-node-active-text);
+}
+.nav-node.is-active:not(.is-latest) .nav-node-number {
+  fill: var(--nav-color-accent);
+}
+
+.nav-node .nav-node-label {
+  fill: var(--nav-color-text-secondary);
+  font-size: 12px;
+  font-weight: 450;
+}
+.nav-node.is-latest .nav-node-label {
+  fill: var(--nav-color-text);
+  font-weight: 600;
+}
+
+/* NodeBadge */
+.nav-node-badge {
+  cursor: default;
 }
