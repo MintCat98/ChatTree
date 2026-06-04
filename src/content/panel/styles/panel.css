@@ -415,6 +415,7 @@
 
 .nav-node .nav-node-number {
   fill: var(--nav-color-node-number);
+  font-size: var(--nav-font-size-sm);
 }
 .nav-node.is-latest .nav-node-number {
   fill: var(--nav-color-node-active-text);
@@ -425,6 +426,7 @@
 
 .nav-node .nav-node-label {
   fill: var(--nav-color-text-secondary);
+  font-size: 12px;
   font-weight: 450;
 }
 .nav-node.is-latest .nav-node-label {

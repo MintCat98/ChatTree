@@ -2,6 +2,7 @@
 // Anchored to the cursor position (store.hoverPos) — nodes live inside a closed
 // Shadow DOM and can't be located via document.querySelector.
 // Fixed width for visual consistency; placement picks the side with more room.
+// Inline styles are intentional: Tooltip renders via Portal into document.body, outside the Shadow DOM, so --nav-* CSS variables and panel.css classes don't reach it.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePanelStore } from '../store/panel-store';
