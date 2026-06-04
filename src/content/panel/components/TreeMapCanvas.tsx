@@ -8,6 +8,11 @@ import {
   NODE_RADIUS,
   NODE_STEP,
   LANE_OFFSET,
+  COLUMN_X,
+  LABEL_GAP,
+  ROW_INSET,
+  AVG_CHAR_PX_AT_12,
+  LABEL_TRAILING_MARGIN,
   calcSvgHeight,
   nodeCenterY,
 } from './constants';
@@ -15,10 +20,6 @@ import { TreeNode } from './TreeNode';
 import { NodeConnector } from './NodeConnector';
 import { BranchLane } from './BranchLane';
 import { EmptyState } from './EmptyState';
-
-const COLUMN_X = 32;          // x of the node circle centers (left rail)
-const LABEL_GAP = 12;         // gap between circle edge and label
-const ROW_INSET = 10;         // left/right inset of the row hover background
 
 export function TreeMapCanvas() {
   const tree = usePanelStore((s) => s.tree);
@@ -32,8 +33,7 @@ export function TreeMapCanvas() {
   const height = calcSvgHeight(nodes.length);
 
   const labelX = COLUMN_X + NODE_RADIUS + LABEL_GAP;
-  // ~6.6px per char at the 12px label size; clamp so very narrow panels still show some text.
-  const labelMaxChars = Math.max(6, Math.floor((width - labelX - 16) / 6.6));
+  const labelMaxChars = Math.max(6, Math.floor((width - labelX - LABEL_TRAILING_MARGIN) / AVG_CHAR_PX_AT_12));
   const rowWidth = width - ROW_INSET * 2;
   const maxIndex = nodes.reduce((m, n) => Math.max(m, n.index), 0);
 

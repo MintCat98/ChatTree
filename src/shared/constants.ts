@@ -18,6 +18,7 @@ export const SELECTORS = {
 export const STORAGE_KEYS = {
   TREE_DATA: 'chatTreeData',
   USER_SETTINGS: 'userSettings',
+  LEGACY_USER_SETTINGS: 'settings',
 } as const;
 
 export const TIMING = {

@@ -9,7 +9,7 @@ import { useCallback, type CSSProperties, type KeyboardEvent, type MouseEvent } 
 import type { ChatboxNode } from '@shared/types';
 import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
-import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, truncate } from './constants';
+import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, NODE_LABEL_FONT_SIZE, ROW_V_GAP, truncate } from './constants';
 import { NodeBadge } from './NodeBadge';
 
 interface TreeNodeProps {
@@ -108,7 +108,7 @@ export function TreeNode({
     setHoverPos(null);
   }, [setHoveredNode, setHoverPos]);
 
-  const rowH = NODE_STEP - 10;
+  const rowH = NODE_STEP - ROW_V_GAP;
 
   return (
     <g
@@ -152,8 +152,8 @@ export function TreeNode({
         textAnchor="middle"
         dominantBaseline="central"
         fill={numberFill}
-        fontSize="11"
         fontFamily="var(--nav-font-family)"
+        style={{ fontSize: 'var(--nav-font-size-sm)' }}
         fontWeight={700}
         pointerEvents="none"
       >
@@ -167,8 +167,8 @@ export function TreeNode({
         textAnchor="start"
         dominantBaseline="central"
         fill={labelFill}
-        fontSize="12"
         fontFamily="var(--nav-font-family)"
+        style={{ fontSize: NODE_LABEL_FONT_SIZE }}
         fontWeight={isLatest ? 600 : 450}
         pointerEvents="none"
       >

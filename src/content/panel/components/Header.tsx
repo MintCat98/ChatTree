@@ -6,6 +6,8 @@
 import { useCallback, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { usePanelStore } from '../store/panel-store';
 
+const ICON_BTN_SIZE = 26;
+
 export function Header() {
   const updateSettings = usePanelStore((s) => s.updateSettings);
   const collapsed = usePanelStore((s) => s.collapsed);
@@ -134,13 +136,13 @@ function IconButton({ label, onClick, children, expanded }: IconButtonProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 26,
-        height: 26,
+        width: ICON_BTN_SIZE,
+        height: ICON_BTN_SIZE,
         background: hover ? 'var(--nav-color-surface-2)' : 'transparent',
         border: 'none',
         color: hover ? 'var(--nav-color-text)' : 'var(--nav-color-text-muted)',
         cursor: 'pointer',
-        fontSize: 13,
+        fontSize: 'var(--nav-font-size-base)',
         borderRadius: 8,
         lineHeight: 1,
         transition: 'background var(--nav-duration-fast) ease, color var(--nav-duration-fast) ease',

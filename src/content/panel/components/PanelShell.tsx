@@ -6,7 +6,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePanelStore } from '../store/panel-store';
 import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX } from '@shared/types';
 
-const PANEL_HEIGHT_MAX = 600; // Conservative estimate; actual height grows with content.
+const PANEL_INITIAL_HEIGHT = 600; // Estimated panel height for bottom-anchor initial placement.
+const DRAG_BOTTOM_CLEARANCE = 100; // Minimum px above the viewport bottom edge during drag.
 
 interface PanelShellProps {
   children: ReactNode;
@@ -24,11 +25,11 @@ function getInitialPosition(panelPosition: string, width: number): Position {
     case 'top-left':
       return { x: margin, y: margin };
     case 'bottom-left':
-      return { x: margin, y: window.innerHeight - PANEL_HEIGHT_MAX - margin };
+      return { x: margin, y: window.innerHeight - PANEL_INITIAL_HEIGHT - margin };
     case 'bottom-right':
       return {
         x: window.innerWidth - width - margin,
-        y: window.innerHeight - PANEL_HEIGHT_MAX - margin,
+        y: window.innerHeight - PANEL_INITIAL_HEIGHT - margin,
       };
     case 'top-right':
     default:
@@ -72,7 +73,7 @@ export function PanelShell({ children }: PanelShellProps) {
       const newX = e.clientX - dragOffsetRef.current.x;
       const newY = e.clientY - dragOffsetRef.current.y;
       const clampedX = Math.max(0, Math.min(window.innerWidth - w, newX));
-      const clampedY = Math.max(0, Math.min(window.innerHeight - 100, newY));
+      const clampedY = Math.max(0, Math.min(window.innerHeight - DRAG_BOTTOM_CLEARANCE, newY));
       setPosition({ x: clampedX, y: clampedY });
     }
     function handleMouseUp() {

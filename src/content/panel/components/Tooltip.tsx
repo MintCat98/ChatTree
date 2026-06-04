@@ -1,19 +1,11 @@
 // Tooltip showing the full prompt text when a node is hovered (issue 01).
-// Anchored to the cursor position (store.hoverPos) rather than the node element,
-// because nodes live inside a closed Shadow DOM and can't be located via
-// document.querySelector. Rendered through a Portal to document.body so it is not
-// clipped by the panel; colors are literal (not --nav-* vars) since those tokens
-// are scoped to the Shadow :host and don't apply at document.body.
-//
-// Sizing: a FIXED width so every tooltip looks consistent and never stretches
-// too wide; long text wraps and scrolls vertically.
-// Placement: shows on whichever side of the cursor (right vs left) has more room.
+// Anchored to the cursor position (store.hoverPos) — nodes live inside a closed
+// Shadow DOM and can't be located via document.querySelector.
+// Fixed width for visual consistency; placement picks the side with more room.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { usePanelStore } from '../store/panel-store';
-
-const TOOLTIP_DELAY_MS = 300;
+import { TOOLTIP_DELAY_MS } from './constants';
 const TOOLTIP_WIDTH = 280;      // fixed box width for visual consistency
 const TOOLTIP_MAX_HEIGHT = 200; // long prompts scroll inside this
 const CURSOR_OFFSET = 16;
@@ -80,7 +72,7 @@ export function Tooltip() {
 
   if (!visible || !node || !hoverPos) return null;
 
-  return createPortal(
+  return (
     <div
       ref={ref}
       role="tooltip"
@@ -94,15 +86,15 @@ export function Tooltip() {
         maxHeight: TOOLTIP_MAX_HEIGHT,
         overflowY: 'auto',
         padding: '10px 12px',
-        backgroundColor: 'rgba(17, 17, 27, 0.97)',
-        color: '#f1f5f9',
-        border: '1px solid rgba(255, 255, 255, 0.14)',
+        backgroundColor: 'rgb(var(--nav-color-bg-rgb) / 0.97)',
+        color: 'var(--nav-color-text)',
+        border: '1px solid var(--nav-color-border)',
         borderRadius: 8,
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+        boxShadow: 'var(--nav-panel-shadow)',
         fontSize: 12,
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: 'var(--nav-font-family)',
         lineHeight: 1.5,
-        zIndex: 2147483647,
+        zIndex: 'var(--nav-z-index)' as unknown as number,
         pointerEvents: 'none',
         whiteSpace: 'pre-wrap',
         overflowWrap: 'break-word',
@@ -110,7 +102,6 @@ export function Tooltip() {
       }}
     >
       {node.text}
-    </div>,
-    document.body,
+    </div>
   );
 }

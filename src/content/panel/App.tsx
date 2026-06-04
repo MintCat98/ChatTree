@@ -38,16 +38,17 @@ export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
   useEffect(() => {
     if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
 
-    // Migrate settings stored under the old key ('settings') used before the redesign.
-    chrome.storage.local.get(['settings', STORAGE_KEYS.USER_SETTINGS], (result) => {
-      const legacy = result['settings'] as Partial<UserSettings> | undefined;
+    // Migrate settings stored under the old key used before the redesign.
+    chrome.storage.local.get([STORAGE_KEYS.LEGACY_USER_SETTINGS, STORAGE_KEYS.USER_SETTINGS], (result) => {
+      const legacy = result[STORAGE_KEYS.LEGACY_USER_SETTINGS] as Partial<UserSettings> | undefined;
       const current = result[STORAGE_KEYS.USER_SETTINGS] as Partial<UserSettings> | undefined;
 
       if (legacy && !current) {
         chrome.storage.local.set({ [STORAGE_KEYS.USER_SETTINGS]: legacy });
-        chrome.storage.local.remove('settings');
+        chrome.storage.local.remove(STORAGE_KEYS.LEGACY_USER_SETTINGS);
         hydrateSettings(legacy);
       } else if (current) {
+        chrome.storage.local.remove(STORAGE_KEYS.LEGACY_USER_SETTINGS);
         hydrateSettings(current);
       }
     });
@@ -84,11 +85,13 @@ export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
   if (!settings.panelVisible) return null;
 
   return (
-    <PanelShell>
-      <Header />
-      {!collapsed && <TreeMapCanvas />}
-      {!collapsed && settingsOpen && <ControlBar />}
+    <>
+      <PanelShell>
+        <Header />
+        {!collapsed && <TreeMapCanvas />}
+        {!collapsed && settingsOpen && <ControlBar />}
+      </PanelShell>
       <Tooltip />
-    </PanelShell>
+    </>
   );
 }
