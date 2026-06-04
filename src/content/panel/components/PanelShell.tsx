@@ -111,33 +111,18 @@ export function PanelShell({ children }: PanelShellProps) {
     document.body.style.userSelect = 'none';
   }
 
-  // Theme-aware background: --nav-color-bg-rgb is a space-separated RGB triple
-  // (overridden per theme in panel.css). Compose with the opacity setting.
-  const bgColor = `rgb(var(--nav-color-bg-rgb) / ${settings.backgroundOpacity})`;
   const clampedLeft = Math.max(0, Math.min(window.innerWidth - width, position.x));
 
   return (
     <div
       data-testid="panel-shell"
+      className="nav-panel"
       style={{
-        position: 'fixed',
-        left: clampedLeft,
-        top: position.y,
-        width,
-        maxHeight: '90vh',
-        backgroundColor: bgColor,
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        borderRadius: 'var(--nav-border-radius)',
-        boxShadow: 'var(--nav-panel-shadow)',
-        border: '1px solid var(--nav-color-border)',
-        zIndex: 'var(--nav-z-index)' as unknown as number,
-        fontFamily: 'var(--nav-font-family)',
-        color: 'var(--nav-color-text)',
-        animation: `nav-slide-in var(--nav-duration-base) ease-out`,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
+        '--panel-x': `${clampedLeft}px`,
+        '--panel-y': `${position.y}px`,
+        '--panel-w': `${width}px`,
+        '--bg-alpha': settings.backgroundOpacity,
+      } as React.CSSProperties}
       onMouseDown={(e) => {
         if ((e.target as HTMLElement).dataset.dragHandle === 'true') {
           startDrag(e);
