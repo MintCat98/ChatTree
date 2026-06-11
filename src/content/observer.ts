@@ -23,19 +23,19 @@ function dispatchTree(tree: TreeData): void {
 }
 
 function handleDOMChange(): void {
-  console.log('[ChatTree DBG] handleDOMChange (debounce queued)');
+  // console.log('[ChatTree DBG] handleDOMChange (debounce queued)');
   if (debounceTimer) clearTimeout(debounceTimer);
 
   debounceTimer = setTimeout(() => {
     currentNodes = assignChatboxIds();
-    console.log('[ChatTree DBG] DOM change → tree built, nodeCount=', currentNodes.length);
+    // console.log('[ChatTree DBG] DOM change → tree built, nodeCount=', currentNodes.length);
     dispatchTree(buildTree(currentNodes));
   }, TIMING.OBSERVER_DEBOUNCE);
 }
 
 export function startObserving(): void {
   const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
-  console.log('[ChatTree DBG] startObserving — container found?', !!container, 'selector=', SELECTORS.CHAT_CONTAINER);
+  // console.log('[ChatTree DBG] startObserving — container found?', !!container, 'selector=', SELECTORS.CHAT_CONTAINER);
   if (!container) return;
 
   currentNodes = [];

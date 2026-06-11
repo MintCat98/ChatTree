@@ -19,7 +19,7 @@ function whenContainerReady(onReady: () => void): void {
     return;
   }
 
-  console.log('[ChatTree DBG] waiting for container', SELECTORS.CHAT_CONTAINER);
+  // console.log('[ChatTree DBG] waiting for container', SELECTORS.CHAT_CONTAINER);
   containerWatch = new MutationObserver(() => {
     if (!document.querySelector(SELECTORS.CHAT_CONTAINER)) return;
     containerWatch?.disconnect();
@@ -33,21 +33,21 @@ function bootstrap(): void {
   stopObserving();
   destroyPanel();
   whenContainerReady(() => {
-    console.log('[ChatTree DBG] container ready — injecting panel + observer');
+    // console.log('[ChatTree DBG] container ready — injecting panel + observer');
     injectPanel();
     startObserving();
   });
 }
 
 function init(): void {
-  console.log('[ChatTree DBG] init()', {
-    pathname: location.pathname,
-    readyState: document.readyState,
-  });
+  // console.log('[ChatTree DBG] init()', {
+  //   pathname: location.pathname,
+  //   readyState: document.readyState,
+  // });
 
   // Step 1 — Register SPA navigation listener first so no URL change is missed.
   watchPageChanges((url) => {
-    console.log('[ChatTree DBG] SPA nav → chat page', url);
+    // console.log('[ChatTree DBG] SPA nav → chat page', url);
     bootstrap();
   });
 
