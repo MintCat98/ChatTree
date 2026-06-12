@@ -1,4 +1,4 @@
-# ChatTree (v0.2.1 pre-release)
+# ChatTree (v0.2.2 pre-release)
 
 > **Navigate your AI conversations like a map, not a scroll.**  
 > A Chromium extension that visualizes your chat session as an interactive tree — so you never lose track of where you were.
