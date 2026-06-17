@@ -1,4 +1,4 @@
-# Chat Navigator — CLAUDE.md
+# ChatTree — CLAUDE.md
 
 Behavioral guidelines + project context for Claude Code.
 **Tradeoff:** These guidelines bias toward caution over speed. Use judgment on trivial tasks.
