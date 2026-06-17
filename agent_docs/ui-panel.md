@@ -9,7 +9,7 @@
 
 ```
 ┌──────────────────────────────────────┐
-│ ≡  Chat Navigator          [⚙] [✕]  │  ← Header (drag handle)
+│ ≡  ChatTree                [⚙] [✕]  │  ← Header (drag handle)
 ├──────────────────────────────────────┤
 │                                      │
 │   [Q0]──[Q1]──[Q2]                  │  ← TreeMap
