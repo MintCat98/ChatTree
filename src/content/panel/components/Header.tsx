@@ -35,7 +35,7 @@ export function Header() {
         </span>
         <div data-drag-handle="true" className="nav-header-text">
           <span data-drag-handle="true" className="nav-header-title">
-            Chat Navigator
+            ChatTree
           </span>
           <span data-drag-handle="true" className="nav-header-subtitle">
             메시지 {count}개
