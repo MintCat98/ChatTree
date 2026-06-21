@@ -56,7 +56,7 @@ export function Popup() {
   return (
     <div className="cn-popup">
       <header className="cn-header">
-        <h1 className="cn-title">Chat Navigator</h1>
+        <h1 className="cn-title">ChatTree</h1>
         <span className="cn-version">v{APP_VERSION}</span>
       </header>
 
