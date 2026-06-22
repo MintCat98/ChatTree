@@ -7,8 +7,6 @@ body {
 }
 
 .cn-popup {
-  /*width: 320px;*/
-  /*min-height: 360px;*/
   padding: 16px;
   background-color: #11111b;
   color: #f1f5f9;
@@ -92,38 +90,9 @@ body {
   justify-content: flex-end;
 }
 
-.cn-divider {
-  border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.cn-select {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.08);
-  color: #f1f5f9;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 13px;
-}
 .cn-select:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-/* Opacity slider */
-.cn-opacity {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  gap: 8px;
-}
-.cn-opacity__range {
-  flex: 1;
-}
-.cn-opacity__value {
-  min-width: 36px;
-  text-align: right;
 }
 
 /* Toggle switch */

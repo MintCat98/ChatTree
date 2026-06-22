@@ -12,7 +12,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import type { UserSettings } from '@shared/types';
-import { DEFAULT_SETTINGS, PANEL_WIDTH_MIN, PANEL_WIDTH_MAX } from '@shared/types';
+import { DEFAULT_SETTINGS } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
 import { isSupportedPage, mergeSettings, applyPatch } from './popup-logic';
 import './popup.css';
@@ -105,90 +105,6 @@ function SettingsForm({ settings, onChange }: SettingsFormProps) {
           onChange={(v) => onChange({ panelVisible: v })}
         />
       </Row>
-
-      {/*
-      <Divider />*/}
-
-      {/* Direction: Top-Down is fixed for now (tracked separately) */}
-      {/*<Row label="방향">
-        <select className="cn-select" disabled value={settings.panelDirection}>
-          <option value="top-down">Top-Down</option>
-          <option value="left-right">Left-Right (coming soon)</option>
-        </select>
-      </Row>*/}
-
-      {/* Position */}
-      {/*<Row label="위치">
-        <select
-          className="cn-select"
-          value={settings.panelPosition}
-          onChange={(e) =>
-            onChange({ panelPosition: e.target.value as UserSettings['panelPosition'] })
-          }
-        >
-          <option value="top-left">좌상단</option>
-          <option value="top-right">우상단</option>
-          <option value="bottom-left">좌하단</option>
-          <option value="bottom-right">우하단</option>
-        </select>
-      </Row>*/}
-
-      {/* Panel width (issue 02) */}
-      {/*<Row label="너비">
-        <div className="cn-opacity">
-          <input
-            className="cn-opacity__range"
-            type="range"
-            min={PANEL_WIDTH_MIN}
-            max={PANEL_WIDTH_MAX}
-            step={10}
-            value={settings.panelWidth}
-            onChange={(e) => onChange({ panelWidth: Number(e.target.value) })}
-          />
-          <span className="cn-opacity__value">{settings.panelWidth}px</span>
-        </div>
-      </Row>*/}
-
-      {/* Background opacity */}
-      {/*<Row label="배경 투명도">
-        <div className="cn-opacity">
-          <input
-            className="cn-opacity__range"
-            type="range"
-            min={0.3}
-            max={1}
-            step={0.05}
-            value={settings.backgroundOpacity}
-            onChange={(e) => onChange({ backgroundOpacity: Number(e.target.value) })}
-          />
-          <span className="cn-opacity__value">{Math.round(settings.backgroundOpacity * 100)}%</span>
-        </div>
-      </Row>*/}
-
-      {/* Sort order */}
-      {/*<Row label="정렬">
-        <select
-          className="cn-select"
-          value={settings.sortOrder}
-          onChange={(e) => onChange({ sortOrder: e.target.value as UserSettings['sortOrder'] })}
-        >
-          <option value="asc">오래된 순</option>
-          <option value="desc">최신 순</option>
-        </select>
-      </Row>*/}
-
-      {/* Theme (issue 06) */}
-      {/*<Row label="테마">
-        <select
-          className="cn-select"
-          value={settings.themeMode}
-          onChange={(e) => onChange({ themeMode: e.target.value as UserSettings['themeMode'] })}
-        >
-          <option value="auto">자동 (Claude 따름)</option>
-          <option value="light">라이트</option>
-          <option value="dark">다크</option>
-        </select>
-      </Row>*/}
     </div>
   );
 }
@@ -200,10 +116,6 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
       <div className="cn-row__control">{children}</div>
     </div>
   );
-}
-
-function Divider() {
-  return <hr className="cn-divider" />;
 }
 
 interface ToggleProps {
