@@ -172,7 +172,6 @@ interface TreeData {
 
 interface UserSettings {
   panelPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  panelDirection: 'top-down' | 'left-right';
   backgroundOpacity: number;  // 0.0 ~ 1.0
   sortOrder: 'asc' | 'desc';
   panelVisible: boolean;

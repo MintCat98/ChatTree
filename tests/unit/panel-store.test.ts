@@ -64,7 +64,6 @@ describe('usePanelStore — actions', () => {
     usePanelStore.getState().updateSettings({ panelPosition: 'bottom-left' });
     const after = usePanelStore.getState().settings;
     expect(after.panelPosition).toBe('bottom-left');
-    //expect(after.panelDirection).toBe(before.panelDirection);
     expect(after.backgroundOpacity).toBe(before.backgroundOpacity);
     expect(after.sortOrder).toBe(before.sortOrder);
     expect(after.summaryEnabled).toBe(before.summaryEnabled);
