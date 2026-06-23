@@ -33,13 +33,14 @@ const SAMPLE_TREE: TreeData = {
 function resetStore() {
   localStorage.clear();
   usePanelStore.setState({
-    tree:          null,
-    settings:      { ...DEFAULT_SETTINGS },
-    activeNodeId:  null,
-    hoveredNodeId: null,
-    hoverPos:      null,
-    collapsed:     false,
-    settingsOpen:  false,
+    tree:            null,
+    settings:        { ...DEFAULT_SETTINGS },
+    activeNodeId:    null,
+    hoveredNodeId:   null,
+    hoverPos:        null,
+    collapsed:       false,
+    settingsOpen:    false,
+    sessionMetadata: {},
   });
 }
 
@@ -85,6 +86,54 @@ describe('usePanelStore — actions', () => {
   it('setHoveredNode sets hoveredNodeId', () => {
     usePanelStore.getState().setHoveredNode('chatbox-1');
     expect(usePanelStore.getState().hoveredNodeId).toBe('chatbox-1');
+  });
+});
+
+describe('usePanelStore — sessionMetadata (issue #96)', () => {
+  beforeEach(resetStore);
+
+  it('starts with empty sessionMetadata', () => {
+    expect(usePanelStore.getState().sessionMetadata).toEqual({});
+  });
+
+  it('setSessionMetadata replaces the full metadata map', () => {
+    usePanelStore.getState().setSessionMetadata({
+      'chatbox-0': { bookmarked: true, tags: ['a'] },
+    });
+    expect(usePanelStore.getState().sessionMetadata).toEqual({
+      'chatbox-0': { bookmarked: true, tags: ['a'] },
+    });
+  });
+
+  it('patchNodeMetadata merges defaults with existing entry', () => {
+    usePanelStore.getState().setSessionMetadata({
+      'chatbox-0': { bookmarked: false, tags: ['x'] },
+    });
+    usePanelStore.getState().patchNodeMetadata('chatbox-0', { bookmarked: true });
+    expect(usePanelStore.getState().sessionMetadata['chatbox-0']).toEqual({
+      bookmarked: true,
+      tags: ['x'],
+    });
+  });
+
+  it('patchNodeMetadata creates a new entry using defaults when node has no prior metadata', () => {
+    usePanelStore.getState().patchNodeMetadata('chatbox-1', { bookmarked: true });
+    expect(usePanelStore.getState().sessionMetadata['chatbox-1']).toEqual({
+      bookmarked: true,
+      tags: [],
+    });
+  });
+
+  it('patchNodeMetadata does not affect other nodes', () => {
+    usePanelStore.getState().setSessionMetadata({
+      'chatbox-0': { bookmarked: false, tags: [] },
+      'chatbox-1': { bookmarked: true, tags: ['y'] },
+    });
+    usePanelStore.getState().patchNodeMetadata('chatbox-0', { bookmarked: true });
+    expect(usePanelStore.getState().sessionMetadata['chatbox-1']).toEqual({
+      bookmarked: true,
+      tags: ['y'],
+    });
   });
 });
 
