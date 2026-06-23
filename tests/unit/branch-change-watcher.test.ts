@@ -1,143 +1,128 @@
-// Unit tests for watchBranchChanges — branch-switch detection via characterData.
+/**
+ * @jest-environment jsdom
+ */
+// Unit tests for watchBranchChanges — branch-switch detection via click delegation + DOM-settle.
 
 import { watchBranchChanges } from '@content/branch-change-watcher';
 import { SELECTORS } from '@shared/constants';
 
-// Captured MutationObserver internals
-let capturedCallback: ((mutations: MutationRecord[]) => void) | null = null;
-let mockObserver: { observe: jest.Mock; disconnect: jest.Mock };
+let capturedSettleCallback: ((mutations: MutationRecord[]) => void) | null = null;
+let mockSettleObserver: { observe: jest.Mock; disconnect: jest.Mock };
+let registeredClickHandler: ((event: Event) => void) | null = null;
 
-// Helper: build a fake characterData MutationRecord that looks like a
-// branch-indicator text node sitting inside BRANCH_ACTIONS_WRAPPER,
-// whose sibling USER_MESSAGE_BUBBLE carries the given navId.
-function makeBranchMutation(navId: string): MutationRecord {
-  const attrs: Record<string, string> = { 'data-nav-id': navId };
-  const bubble = {
-    getAttribute: (k: string) => attrs[k] ?? null,
-    matches: () => false,
-  };
-  const sharedParent = { querySelector: () => bubble };
-  const wrapper = { parentElement: sharedParent };
+// Minimal mock container — only needs addEventListener / removeEventListener
+const mockContainer = {
+  addEventListener: jest.fn((type: string, fn: (e: Event) => void) => {
+    if (type === 'click') registeredClickHandler = fn;
+  }),
+  removeEventListener: jest.fn(),
+} as unknown as HTMLElement;
 
-  // span that matches SELECTORS.BRANCH_INDICATOR
-  const indicatorSpan = {
-    matches: (sel: string) => sel === SELECTORS.BRANCH_INDICATOR,
-    closest: () => wrapper,
-  };
-  const textNode = { parentElement: indicatorSpan };
+// Simulates a click whose target.closest() returns a branch button element
+function clickBranchBtn(): void {
+  registeredClickHandler!({ target: { closest: () => ({}) } } as unknown as Event);
+}
 
-  return { type: 'characterData', target: textNode } as unknown as MutationRecord;
+// Simulates a click on a non-branch target
+function clickNonBranchBtn(): void {
+  registeredClickHandler!({ target: { closest: () => null } } as unknown as Event);
 }
 
 beforeEach(() => {
   jest.useFakeTimers();
-  capturedCallback = null;
+  capturedSettleCallback = null;
+  registeredClickHandler = null;
+  (mockContainer.addEventListener as jest.Mock).mockClear();
+  (mockContainer.removeEventListener as jest.Mock).mockClear();
 
   const MockObserver = jest.fn((cb: (m: MutationRecord[]) => void) => {
-    capturedCallback = cb;
-    mockObserver = { observe: jest.fn(), disconnect: jest.fn() };
-    return mockObserver;
+    capturedSettleCallback = cb;
+    mockSettleObserver = { observe: jest.fn(), disconnect: jest.fn() };
+    return mockSettleObserver;
   });
   (global as Record<string, unknown>).MutationObserver = MockObserver;
 
-  // Default: not streaming
-  (global as Record<string, unknown>).document = {
-    querySelector: jest.fn(() => null),
-  };
+  jest.spyOn(document, 'querySelector').mockReturnValue(null);
 });
 
 afterEach(() => {
   jest.useRealTimers();
+  jest.restoreAllMocks();
 });
 
 describe('watchBranchChanges', () => {
-  it('calls onBranchChange with the navId after 150ms debounce', () => {
-    const cb = jest.fn();
-    watchBranchChanges({} as HTMLElement, cb);
+  it('attaches a click listener to the given container', () => {
+    watchBranchChanges(mockContainer, jest.fn());
+    expect(mockContainer.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+  });
 
-    capturedCallback!([makeBranchMutation('chatbox-1')]);
+  it('fires callback via fallback timer when no DOM mutations arrive', () => {
+    const cb = jest.fn();
+    watchBranchChanges(mockContainer, cb);
+
+    clickBranchBtn();
     expect(cb).not.toHaveBeenCalled();
 
-    jest.advanceTimersByTime(150);
+    jest.advanceTimersByTime(150); // TIMING.BRANCH_CHANGE_DEBOUNCE
     expect(cb).toHaveBeenCalledTimes(1);
-    expect(cb).toHaveBeenCalledWith('chatbox-1');
   });
 
-  it('debounces rapid events — fires callback only once', () => {
+  it('fires callback after DOM settles (50 ms quiesce after last mutation)', () => {
     const cb = jest.fn();
-    watchBranchChanges({} as HTMLElement, cb);
+    watchBranchChanges(mockContainer, cb);
 
-    capturedCallback!([makeBranchMutation('chatbox-1')]);
-    jest.advanceTimersByTime(50);
-    capturedCallback!([makeBranchMutation('chatbox-1')]);
-    jest.advanceTimersByTime(50);
-    capturedCallback!([makeBranchMutation('chatbox-1')]);
-    jest.advanceTimersByTime(150);
+    clickBranchBtn();
+    capturedSettleCallback!([{} as MutationRecord]); // simulate a DOM mutation
+    expect(cb).not.toHaveBeenCalled();
 
+    jest.advanceTimersByTime(50); // quiesce window
     expect(cb).toHaveBeenCalledTimes(1);
   });
 
-  it('does not fire during streaming', () => {
-    (document.querySelector as jest.Mock).mockImplementation((sel: string) =>
-      sel === '[data-testid="streaming-indicator"]' ? {} : null,
+  it('does not fire if streaming is active when the settle completes', () => {
+    jest.spyOn(document, 'querySelector').mockImplementation((sel) =>
+      sel === SELECTORS.STREAMING_INDICATOR ? ({} as Element) : null,
     );
     const cb = jest.fn();
-    watchBranchChanges({} as HTMLElement, cb);
+    watchBranchChanges(mockContainer, cb);
 
-    capturedCallback!([makeBranchMutation('chatbox-1')]);
+    clickBranchBtn();
     jest.advanceTimersByTime(200);
 
     expect(cb).not.toHaveBeenCalled();
   });
 
-  it('ignores non-characterData mutation types', () => {
+  it('ignores clicks not on branch buttons', () => {
     const cb = jest.fn();
-    watchBranchChanges({} as HTMLElement, cb);
+    watchBranchChanges(mockContainer, cb);
 
-    capturedCallback!([{ type: 'childList', target: {} } as unknown as MutationRecord]);
+    clickNonBranchBtn();
     jest.advanceTimersByTime(200);
 
     expect(cb).not.toHaveBeenCalled();
   });
 
-  it('ignores mutations whose parent does not match BRANCH_INDICATOR', () => {
+  it('resets the in-flight settle on rapid successive clicks', () => {
     const cb = jest.fn();
-    watchBranchChanges({} as HTMLElement, cb);
+    watchBranchChanges(mockContainer, cb);
 
-    const mutation = {
-      type: 'characterData',
-      target: {
-        parentElement: {
-          matches: () => false, // not a branch indicator span
-          closest: () => null,
-        },
-      },
-    } as unknown as MutationRecord;
+    clickBranchBtn();
+    jest.advanceTimersByTime(100); // mid-settle
+    clickBranchBtn(); // second click — resets the settle cycle
+    jest.advanceTimersByTime(150);
 
-    capturedCallback!([mutation]);
-    jest.advanceTimersByTime(200);
-
-    expect(cb).not.toHaveBeenCalled();
+    expect(cb).toHaveBeenCalledTimes(1);
   });
 
-  it('cleanup disconnects the observer and cancels a pending timer', () => {
+  it('cleanup removes the click listener and suppresses any pending callback', () => {
     const cb = jest.fn();
-    const cleanup = watchBranchChanges({} as HTMLElement, cb);
+    const cleanup = watchBranchChanges(mockContainer, cb);
 
-    capturedCallback!([makeBranchMutation('chatbox-1')]);
+    clickBranchBtn();
     cleanup();
     jest.advanceTimersByTime(200);
 
-    expect(mockObserver.disconnect).toHaveBeenCalled();
-    expect(cb).not.toHaveBeenCalled(); // timer was cancelled
-  });
-
-  it('attaches the observer to the given container', () => {
-    const container = {} as HTMLElement;
-    watchBranchChanges(container, jest.fn());
-    expect(mockObserver.observe).toHaveBeenCalledWith(container, {
-      subtree: true,
-      characterData: true,
-    });
+    expect(mockContainer.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+    expect(cb).not.toHaveBeenCalled();
   });
 });
