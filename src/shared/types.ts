@@ -21,7 +21,6 @@ export interface TreeData {
 
 export interface UserSettings {
   panelPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  //panelDirection: 'top-down' | 'left-right';
   backgroundOpacity: number; // 0.0 – 1.0
   sortOrder: 'asc' | 'desc';
   summaryEnabled: boolean;
@@ -37,7 +36,6 @@ export const PANEL_WIDTH_DEFAULT = 280;
 
 export const DEFAULT_SETTINGS: UserSettings = {
   panelPosition: 'top-right',
-  //panelDirection: 'top-down',
   backgroundOpacity: 0.85,
   sortOrder: 'asc',
   summaryEnabled: false,
