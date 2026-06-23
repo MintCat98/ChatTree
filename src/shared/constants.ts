@@ -19,6 +19,7 @@ export const STORAGE_KEYS = {
   TREE_DATA: 'chatTreeData',
   USER_SETTINGS: 'userSettings',
   LEGACY_USER_SETTINGS: 'settings',
+  NODE_METADATA: 'nodeMetadata',  // chrome.storage.local — NodeMetadataStore (issue #96)
 } as const;
 
 export const TIMING = {

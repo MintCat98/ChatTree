@@ -2,6 +2,25 @@
 // MVP scope only. Do NOT add fields not listed here without team agreement.
 // Future Work (out of scope): summary, aiSummary, or any LLM-related fields.
 
+// ---------------------------------------------------------------------------
+// Node Metadata — per-node user data (bookmarks, tags). Issue #96.
+// Persisted in chrome.storage.local under STORAGE_KEYS.NODE_METADATA,
+// keyed as: NodeMetadataStore[sessionId][nodeId].
+// ---------------------------------------------------------------------------
+
+export interface NodeMetadata {
+  bookmarked: boolean;
+  tags: string[];
+}
+
+// Full store shape written to chrome.storage.local
+export type NodeMetadataStore = Record<string, Record<string, NodeMetadata>>;
+
+export const DEFAULT_NODE_METADATA: NodeMetadata = {
+  bookmarked: false,
+  tags: [],
+};
+
 export interface ChatboxNode {
   id: string;            // "chatbox-0", "chatbox-1", ... (assigned by tracker.ts)
   index: number;         // DOM order index
