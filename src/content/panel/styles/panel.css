@@ -438,3 +438,45 @@
 .nav-node-badge {
   cursor: default;
 }
+
+/* BookmarkButton (foreignObject + lucide icon) */
+.nav-node-bookmark {
+  opacity: 0;
+  overflow: visible;
+  transition: opacity var(--nav-transition);
+}
+
+.nav-node:hover .nav-node-bookmark,
+.nav-node-bookmark.is-bookmarked {
+  opacity: 1;
+}
+
+.nav-bookmark-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  color: var(--nav-color-text-muted);
+  transition: color var(--nav-transition);
+}
+
+.nav-bookmark-btn:hover {
+  color: var(--nav-color-accent);
+}
+
+.nav-node-bookmark.is-bookmarked .nav-bookmark-btn {
+  color: var(--nav-color-accent);
+}
+
+.nav-node-bookmark.is-bookmarked .nav-bookmark-btn svg {
+  fill: var(--nav-color-accent);
+}
+
+/* Bookmarks-only filter: dim non-bookmarked nodes */
+.nav-treemap.is-filtered .nav-node:not(.is-bookmarked) {
+  opacity: 0.2;
+  pointer-events: none;
+}
