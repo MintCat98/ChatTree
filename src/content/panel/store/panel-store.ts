@@ -30,6 +30,7 @@ interface PanelState {
   hoverPos:         HoverPos | null;
   collapsed:        boolean;   // header-only minimized view (issue 03)
   settingsOpen:     boolean;   // controls ControlBar visibility (issue 04)
+  bookmarksOnlyFilter: boolean; // transient view filter — not persisted
   // Per-node metadata for the current session, keyed by nodeId (issue #96).
   // Loaded from chrome.storage.local when the tree is hydrated.
   sessionMetadata:  Record<string, NodeMetadata>;
@@ -42,8 +43,9 @@ interface PanelState {
   setActiveNode:        (id: string | null) => void;
   setHoveredNode:       (id: string | null) => void;
   setHoverPos:          (pos: HoverPos | null) => void;
-  toggleCollapsed:      () => void;
-  toggleSettingsOpen:   () => void;
+  toggleCollapsed:             () => void;
+  toggleSettingsOpen:          () => void;
+  toggleBookmarksOnlyFilter:   () => void;
   // Replace the entire session metadata map (called when tree/session changes).
   setSessionMetadata:   (meta: Record<string, NodeMetadata>) => void;
   // Optimistic local update for a single node (caller writes to chrome.storage).
@@ -57,9 +59,10 @@ export const usePanelStore = create<PanelState>()(
     activeNodeId:    null,
     hoveredNodeId:   null,
     hoverPos:        null,
-    collapsed:       false,
-    settingsOpen:    false,
-    sessionMetadata: {},
+    collapsed:             false,
+    settingsOpen:          false,
+    bookmarksOnlyFilter:   false,
+    sessionMetadata:       {},
 
     setTree: (tree) => set({ tree }),
 
@@ -77,8 +80,9 @@ export const usePanelStore = create<PanelState>()(
     setHoveredNode: (id)  => set({ hoveredNodeId: id }),
     setHoverPos:    (pos) => set({ hoverPos: pos }),
 
-    toggleCollapsed:    () => set((s) => ({ collapsed: !s.collapsed })),
-    toggleSettingsOpen: () => set((s) => ({ settingsOpen: !s.settingsOpen })),
+    toggleCollapsed:           () => set((s) => ({ collapsed: !s.collapsed })),
+    toggleSettingsOpen:        () => set((s) => ({ settingsOpen: !s.settingsOpen })),
+    toggleBookmarksOnlyFilter: () => set((s) => ({ bookmarksOnlyFilter: !s.bookmarksOnlyFilter })),
 
     setSessionMetadata: (meta) => set({ sessionMetadata: meta }),
 

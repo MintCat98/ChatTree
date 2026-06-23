@@ -24,6 +24,7 @@ import { EmptyState } from './EmptyState';
 export function TreeMapCanvas() {
   const tree = usePanelStore((s) => s.tree);
   const width = usePanelStore((s) => s.settings.panelWidth);
+  const bookmarksOnlyFilter = usePanelStore((s) => s.bookmarksOnlyFilter);
 
   if (!tree || tree.nodes.length === 0) {
     return <EmptyState />;
@@ -40,7 +41,7 @@ export function TreeMapCanvas() {
   return (
     <div
       data-testid="treemap-canvas"
-      className="nav-treemap"
+      className={bookmarksOnlyFilter ? 'nav-treemap is-filtered' : 'nav-treemap'}
     >
       <svg
         width={width}
