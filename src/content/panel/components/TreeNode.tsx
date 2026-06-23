@@ -7,10 +7,12 @@
 
 import { useCallback, useRef, type KeyboardEvent, type MouseEvent } from 'react';
 import type { ChatboxNode } from '@shared/types';
+import { setNodeMetadata } from '@shared/metadata-storage';
 import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
 import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, truncate } from './constants';
 import { NodeBadge } from './NodeBadge';
+import { BookmarkButton } from './BookmarkButton';
 
 interface TreeNodeProps {
   node: ChatboxNode;
@@ -37,10 +39,14 @@ export function TreeNode({
   const hoveredNodeId = usePanelStore((s) => s.hoveredNodeId);
   const setHoveredNode = usePanelStore((s) => s.setHoveredNode);
   const setHoverPos = usePanelStore((s) => s.setHoverPos);
+  const sessionMetadata = usePanelStore((s) => s.sessionMetadata);
+  const patchNodeMetadata = usePanelStore((s) => s.patchNodeMetadata);
+  const sessionId = usePanelStore((s) => s.tree?.sessionId ?? '');
 
   const isActive = activeNodeId === node.id;
   const isHovered = hoveredNodeId === node.id;
   const isBranch = node.hasBranch;
+  const isBookmarked = sessionMetadata[node.id]?.bookmarked ?? false;
   const filled = isLatest;
 
   const r = filled || isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
@@ -89,6 +95,16 @@ export function TreeNode({
     setHoverPos(null);
   }, [setHoveredNode, setHoverPos]);
 
+  const handleBookmarkToggle = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      const next = !isBookmarked;
+      patchNodeMetadata(node.id, { bookmarked: next });
+      setNodeMetadata(sessionId, node.id, { bookmarked: next });
+    },
+    [node.id, sessionId, isBookmarked, patchNodeMetadata],
+  );
+
   const rowH = NODE_STEP - ROW_V_GAP;
 
   const nodeClass = [
@@ -97,6 +113,7 @@ export function TreeNode({
     isActive && !isLatest ? 'is-active' : '',
     isHovered ? 'is-hovered' : '',
     isBranch ? 'is-branch' : '',
+    isBookmarked ? 'is-bookmarked' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -168,6 +185,13 @@ export function TreeNode({
           total={node.branchTotal}
         />
       ) : null}
+
+      <BookmarkButton
+        x={rowX + rowWidth - 20}
+        cy={cy}
+        isBookmarked={isBookmarked}
+        onToggle={handleBookmarkToggle}
+      />
     </g>
   );
 }
