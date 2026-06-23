@@ -10,10 +10,14 @@ export function scrollToNode(navId: string): void {
     return;
   }
 
-  el.scrollIntoView({
-    behavior: 'smooth',
-    block: 'center',
-  });
+  const scrollContainer = el.closest<HTMLElement>('div.overflow-y-auto');
+  if (scrollContainer) {
+    const delta =
+      el.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top - 24;
+    scrollContainer.scrollBy({ top: delta, behavior: 'smooth' });
+  } else {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   el.classList.add('nav-highlight');
   setTimeout(() => el.classList.remove('nav-highlight'), TIMING.HIGHLIGHT_DURATION);
