@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import type { TreeData, UserSettings } from '@shared/types';
 import { TREE_READY_EVENT } from '../observer';
 import { STORAGE_KEYS } from '@shared/constants';
+import { getSessionMetadata } from '@shared/metadata-storage';
 import { usePanelStore } from './store/panel-store';
 import { resolveTheme } from './theme';
 import { TreeMapCanvas } from './components/TreeMapCanvas';
@@ -19,6 +20,7 @@ import { Tooltip } from './components/Tooltip';
 
 export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
   const setTree = usePanelStore((s) => s.setTree);
+  const setSessionMetadata = usePanelStore((s) => s.setSessionMetadata);
   const hydrateSettings = usePanelStore((s) => s.hydrateSettings);
   const settings = usePanelStore((s) => s.settings);
   const collapsed = usePanelStore((s) => s.collapsed);
@@ -29,10 +31,13 @@ export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
     const handler = (e: Event) => {
       const tree = (e as CustomEvent<{ tree: TreeData }>).detail.tree;
       setTree(tree);
+      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        getSessionMetadata(tree.sessionId).then(setSessionMetadata);
+      }
     };
     window.addEventListener(TREE_READY_EVENT, handler);
     return () => window.removeEventListener(TREE_READY_EVENT, handler);
-  }, [setTree]);
+  }, [setTree, setSessionMetadata]);
 
   // 2) Settings: initial hydrate (with legacy-key migration) + live sync.
   useEffect(() => {
