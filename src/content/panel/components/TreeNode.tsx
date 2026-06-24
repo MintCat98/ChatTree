@@ -46,6 +46,7 @@ export function TreeNode({
   const tagEditNodeId = usePanelStore((s) => s.tagEditNodeId);
   const setTagEditNodeId = usePanelStore((s) => s.setTagEditNodeId);
   const activeTagFilters = usePanelStore((s) => s.activeTagFilters);
+  const searchQuery = usePanelStore((s) => s.searchQuery);
 
   const isActive = activeNodeId === node.id;
   const isHovered = hoveredNodeId === node.id;
@@ -56,6 +57,8 @@ export function TreeNode({
   const isTagOpen = tagEditNodeId === node.id;
   const isTagMatch =
     activeTagFilters.length === 0 || activeTagFilters.some((t) => nodeTags.includes(t));
+  const sq = searchQuery.toLowerCase().trim();
+  const isSearchMatch = !sq || node.text.toLowerCase().includes(sq);
   const filled = isLatest;
 
   const r = filled || isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
@@ -132,6 +135,7 @@ export function TreeNode({
     isBranch ? 'is-branch' : '',
     isBookmarked ? 'is-bookmarked' : '',
     isTagMatch ? 'is-tag-match' : '',
+    isSearchMatch ? 'is-search-match' : '',
   ]
     .filter(Boolean)
     .join(' ');
