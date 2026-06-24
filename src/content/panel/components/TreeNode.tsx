@@ -162,8 +162,8 @@ export function TreeNode({
 
       {isBranch && node.branchTotal > 1 ? ( // Check if there are two or more branches
         <NodeBadge
-          cx={cx}
-          cy={cy - NODE_RADIUS}
+          cx={cx + NODE_RADIUS}
+          cy={cy - 3 * NODE_RADIUS / 2}
           current={node.branchCurrent}
           total={node.branchTotal}
         />
