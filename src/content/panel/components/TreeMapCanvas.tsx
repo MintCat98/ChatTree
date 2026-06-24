@@ -60,6 +60,7 @@ export function TreeMapCanvas() {
         ))}
 
         {/* 2) Branch lanes at branch-point nodes. */}
+        {/*
         {nodes.map((node, i) =>
           node.hasBranch ? (
             <BranchLane
@@ -71,6 +72,7 @@ export function TreeMapCanvas() {
             />
           ) : null,
         )}
+          */}
 
         {/* 3) Nodes (circle + number + label) on top. */}
         {nodes.map((node, i) => (
