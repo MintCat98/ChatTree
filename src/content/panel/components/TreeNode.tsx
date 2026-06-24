@@ -10,7 +10,7 @@ import type { ChatboxNode } from '@shared/types';
 import { setNodeMetadata } from '@shared/metadata-storage';
 import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
-import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, truncate } from './constants';
+import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, ROW_INSET, ICON_HALF, truncate } from './constants';
 import { NodeBadge } from './NodeBadge';
 import { BookmarkButton } from './BookmarkButton';
 import { TagButton } from './TagButton';
@@ -204,18 +204,19 @@ export function TreeNode({
         />
       ) : null}
 
+      {/* Left-side icon stack: bookmark (top) + tag (bottom), vertically centered on cy */}
+      <BookmarkButton
+        x={ROW_INSET}
+        cy={cy - ICON_HALF}
+        isBookmarked={isBookmarked}
+        onToggle={handleBookmarkToggle}
+      />
       <TagButton
-        x={rowX + rowWidth - 40}
-        cy={cy}
+        x={ROW_INSET}
+        cy={cy + ICON_HALF}
         hasTags={hasTags}
         isOpen={isTagOpen}
         onClick={handleTagClick}
-      />
-      <BookmarkButton
-        x={rowX + rowWidth - 20}
-        cy={cy}
-        isBookmarked={isBookmarked}
-        onToggle={handleBookmarkToggle}
       />
     </g>
   );
