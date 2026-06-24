@@ -13,6 +13,7 @@ import { usePanelStore } from '../store/panel-store';
 import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, truncate } from './constants';
 import { NodeBadge } from './NodeBadge';
 import { BookmarkButton } from './BookmarkButton';
+import { TagButton } from './TagButton';
 
 interface TreeNodeProps {
   node: ChatboxNode;
@@ -42,11 +43,19 @@ export function TreeNode({
   const sessionMetadata = usePanelStore((s) => s.sessionMetadata);
   const patchNodeMetadata = usePanelStore((s) => s.patchNodeMetadata);
   const sessionId = usePanelStore((s) => s.tree?.sessionId ?? '');
+  const tagEditNodeId = usePanelStore((s) => s.tagEditNodeId);
+  const setTagEditNodeId = usePanelStore((s) => s.setTagEditNodeId);
+  const activeTagFilters = usePanelStore((s) => s.activeTagFilters);
 
   const isActive = activeNodeId === node.id;
   const isHovered = hoveredNodeId === node.id;
   const isBranch = node.hasBranch;
   const isBookmarked = sessionMetadata[node.id]?.bookmarked ?? false;
+  const nodeTags = sessionMetadata[node.id]?.tags ?? [];
+  const hasTags = nodeTags.length > 0;
+  const isTagOpen = tagEditNodeId === node.id;
+  const isTagMatch =
+    activeTagFilters.length === 0 || activeTagFilters.some((t) => nodeTags.includes(t));
   const filled = isLatest;
 
   const r = filled || isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
@@ -105,6 +114,14 @@ export function TreeNode({
     [node.id, sessionId, isBookmarked, patchNodeMetadata],
   );
 
+  const handleTagClick = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      setTagEditNodeId(isTagOpen ? null : node.id);
+    },
+    [node.id, isTagOpen, setTagEditNodeId],
+  );
+
   const rowH = NODE_STEP - ROW_V_GAP;
 
   const nodeClass = [
@@ -114,6 +131,7 @@ export function TreeNode({
     isHovered ? 'is-hovered' : '',
     isBranch ? 'is-branch' : '',
     isBookmarked ? 'is-bookmarked' : '',
+    isTagMatch ? 'is-tag-match' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -186,6 +204,13 @@ export function TreeNode({
         />
       ) : null}
 
+      <TagButton
+        x={rowX + rowWidth - 40}
+        cy={cy}
+        hasTags={hasTags}
+        isOpen={isTagOpen}
+        onClick={handleTagClick}
+      />
       <BookmarkButton
         x={rowX + rowWidth - 20}
         cy={cy}

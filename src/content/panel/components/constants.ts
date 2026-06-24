@@ -18,7 +18,7 @@ export const NODE_LABEL_FONT_SIZE = 12;  // Font size (px) for the question labe
 
 // Label width estimation (TreeMapCanvas).
 export const AVG_CHAR_PX_AT_12 = 6.6;    // Approximate px per char at 12px font size.
-export const LABEL_TRAILING_MARGIN = 16;  // Right-side padding subtracted from the label area.
+export const LABEL_TRAILING_MARGIN = 36;  // Right-side padding subtracted from the label area (accounts for TagButton + BookmarkButton).
 
 /**
  * Compute the SVG viewBox height for the given node count.

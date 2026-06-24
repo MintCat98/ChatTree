@@ -480,3 +480,40 @@
   opacity: 0.2;
   pointer-events: none;
 }
+
+/* TagButton (foreignObject + lucide Tag icon) */
+.nav-node-tag {
+  opacity: 0;
+  overflow: visible;
+  transition: opacity var(--nav-transition);
+}
+
+.nav-node:hover .nav-node-tag,
+.nav-node-tag.has-tags,
+.nav-node-tag.is-open {
+  opacity: 1;
+}
+
+.nav-tag-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  color: var(--nav-color-text-muted);
+  transition: color var(--nav-transition);
+}
+
+.nav-tag-btn:hover {
+  color: var(--nav-color-accent);
+}
+
+.nav-node-tag.has-tags .nav-tag-btn {
+  color: var(--nav-color-accent);
+}
+
+.nav-node-tag.is-open .nav-tag-btn {
+  color: var(--nav-color-accent);
+}
