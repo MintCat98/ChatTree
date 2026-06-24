@@ -222,7 +222,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 12px 12px 14px;
+  padding: 10px 10px 10px 14px;
   border-bottom: 1px solid var(--nav-color-divider);
   cursor: grab;
   -webkit-user-select: none;
@@ -232,6 +232,7 @@
   border-bottom: none;
 }
 .nav-header-brand {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -268,8 +269,16 @@
 .nav-header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   flex-shrink: 0;
+}
+.nav-header-toggles {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.nav-header-toggles.is-hidden {
+  visibility: hidden;
 }
 
 /* IconButton */
@@ -291,6 +300,10 @@
 .nav-icon-btn:hover {
   background: var(--nav-color-surface-2);
   color: var(--nav-color-text);
+}
+.nav-icon-btn[aria-pressed="true"] {
+  background: var(--nav-color-accent-soft);
+  color: var(--nav-color-accent);
 }
 
 /* PillButton — :hover before [aria-pressed] so active state wins on same specificity */

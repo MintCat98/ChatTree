@@ -1,9 +1,9 @@
-// Panel header — drag handle + brand (icon, title, message count) + actions.
-// Actions, left→right: [collapse/expand] [Settings pill] [close].
+// Panel header — drag handle + brand + right column (top: collapse/close, below: icon toggles).
 // Marked with data-drag-handle="true" so PanelShell starts a drag from here;
 // buttons opt out so their clicks don't drag.
 
 import { useCallback, type KeyboardEvent, type ReactNode } from 'react';
+import { Bookmark, Tag, Settings } from 'lucide-react';
 import { usePanelStore } from '../store/panel-store';
 
 export function Header() {
@@ -47,23 +47,23 @@ export function Header() {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="nav-header-actions">
         <IconButton label={collapsed ? '패널 펼치기' : '패널 접기'} expanded={!collapsed} onClick={toggleCollapsed}>
           {collapsed ? '▸' : '▾'}
         </IconButton>
 
-        <PillButton label="북마크만 보기" active={bookmarksOnlyFilter} onClick={toggleBookmarksOnlyFilter}>
-          ☆
-        </PillButton>
-
-        <PillButton label="태그 패널" active={tagPanelOpen} onClick={toggleTagPanel}>
-          태그
-        </PillButton>
-
-        <PillButton label="설정" active={settingsOpen} onClick={toggleSettingsOpen}>
-          설정
-        </PillButton>
+        {/* Always rendered to keep ▾ at a fixed position; hidden via visibility when collapsed */}
+        <div className={collapsed ? 'nav-header-toggles is-hidden' : 'nav-header-toggles'}>
+          <IconButton label="북마크만 보기" pressed={bookmarksOnlyFilter} onClick={toggleBookmarksOnlyFilter}>
+            <Bookmark size={13} />
+          </IconButton>
+          <IconButton label="태그 패널" pressed={tagPanelOpen} onClick={toggleTagPanel}>
+            <Tag size={13} />
+          </IconButton>
+          <IconButton label="설정" pressed={settingsOpen} onClick={toggleSettingsOpen}>
+            <Settings size={13} />
+          </IconButton>
+        </div>
 
         <IconButton label="패널 닫기" onClick={handleClose}>
           ✕
@@ -90,41 +90,20 @@ interface IconButtonProps {
   onClick: () => void;
   children: ReactNode;
   expanded?: boolean;
+  pressed?: boolean;
 }
 
-function IconButton({ label, onClick, children, expanded }: IconButtonProps) {
+function IconButton({ label, onClick, children, expanded, pressed }: IconButtonProps) {
   const onKey = useKeyActivate(onClick);
   return (
     <button
       type="button"
       aria-label={label}
       aria-expanded={expanded}
+      aria-pressed={pressed}
       onClick={onClick}
       onKeyDown={onKey}
       className="nav-icon-btn"
-    >
-      {children}
-    </button>
-  );
-}
-
-interface PillButtonProps {
-  label: string;
-  onClick: () => void;
-  children: ReactNode;
-  active?: boolean;
-}
-
-function PillButton({ label, onClick, children, active }: PillButtonProps) {
-  const onKey = useKeyActivate(onClick);
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={active}
-      onClick={onClick}
-      onKeyDown={onKey}
-      className="nav-pill-btn"
     >
       {children}
     </button>
