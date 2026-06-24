@@ -3,7 +3,7 @@
 // buttons opt out so their clicks don't drag.
 
 import { useCallback, type KeyboardEvent, type ReactNode } from 'react';
-import { Bookmark, Tag, Settings } from 'lucide-react';
+import { Bookmark, Tag, Search, Settings } from 'lucide-react';
 import { usePanelStore } from '../store/panel-store';
 
 export function Header() {
@@ -12,10 +12,12 @@ export function Header() {
   const settingsOpen = usePanelStore((s) => s.settingsOpen);
   const bookmarksOnlyFilter = usePanelStore((s) => s.bookmarksOnlyFilter);
   const tagPanelOpen = usePanelStore((s) => s.tagPanelOpen);
+  const searchPanelOpen = usePanelStore((s) => s.searchPanelOpen);
   const toggleCollapsed = usePanelStore((s) => s.toggleCollapsed);
   const toggleSettingsOpen = usePanelStore((s) => s.toggleSettingsOpen);
   const toggleBookmarksOnlyFilter = usePanelStore((s) => s.toggleBookmarksOnlyFilter);
   const toggleTagPanel = usePanelStore((s) => s.toggleTagPanel);
+  const toggleSearchPanel = usePanelStore((s) => s.toggleSearchPanel);
   const count = usePanelStore((s) => s.tree?.nodes.length ?? 0);
 
   const handleClose = useCallback(() => updateSettings({ panelVisible: false }), [updateSettings]);
@@ -59,6 +61,9 @@ export function Header() {
           </IconButton>
           <IconButton label="태그 패널" pressed={tagPanelOpen} onClick={toggleTagPanel}>
             <Tag size={13} />
+          </IconButton>
+          <IconButton label="검색" pressed={searchPanelOpen} onClick={toggleSearchPanel}>
+            <Search size={13} />
           </IconButton>
           <IconButton label="설정" pressed={settingsOpen} onClick={toggleSettingsOpen}>
             <Settings size={13} />

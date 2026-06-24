@@ -260,6 +260,8 @@
   color: var(--nav-color-text);
   line-height: 1.2;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .nav-header-subtitle {
   font-size: var(--nav-font-size-sm);
@@ -275,7 +277,7 @@
 .nav-header-toggles {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
 }
 .nav-header-toggles.is-hidden {
   visibility: hidden;
