@@ -99,6 +99,7 @@ export function PanelShell({ children }: PanelShellProps) {
     };
   }, []);
 
+  // Recompute position on window resize to keep the panel in view.
   useEffect(() => {
     function handleWindowResize() {
       const w = usePanelStore.getState().settings.panelWidth;
