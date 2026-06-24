@@ -11,9 +11,11 @@ export function Header() {
   const collapsed = usePanelStore((s) => s.collapsed);
   const settingsOpen = usePanelStore((s) => s.settingsOpen);
   const bookmarksOnlyFilter = usePanelStore((s) => s.bookmarksOnlyFilter);
+  const tagPanelOpen = usePanelStore((s) => s.tagPanelOpen);
   const toggleCollapsed = usePanelStore((s) => s.toggleCollapsed);
   const toggleSettingsOpen = usePanelStore((s) => s.toggleSettingsOpen);
   const toggleBookmarksOnlyFilter = usePanelStore((s) => s.toggleBookmarksOnlyFilter);
+  const toggleTagPanel = usePanelStore((s) => s.toggleTagPanel);
   const count = usePanelStore((s) => s.tree?.nodes.length ?? 0);
 
   const handleClose = useCallback(() => updateSettings({ panelVisible: false }), [updateSettings]);
@@ -53,6 +55,10 @@ export function Header() {
 
         <PillButton label="북마크만 보기" active={bookmarksOnlyFilter} onClick={toggleBookmarksOnlyFilter}>
           ☆
+        </PillButton>
+
+        <PillButton label="태그 패널" active={tagPanelOpen} onClick={toggleTagPanel}>
+          태그
         </PillButton>
 
         <PillButton label="설정" active={settingsOpen} onClick={toggleSettingsOpen}>

@@ -16,6 +16,7 @@ import { TreeMapCanvas } from './components/TreeMapCanvas';
 import { PanelShell } from './components/PanelShell';
 import { Header } from './components/Header';
 import { ControlBar } from './components/ControlBar';
+import { TagPanel } from './components/TagPanel';
 import { Tooltip } from './components/Tooltip';
 
 export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
@@ -25,6 +26,7 @@ export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
   const settings = usePanelStore((s) => s.settings);
   const collapsed = usePanelStore((s) => s.collapsed);
   const settingsOpen = usePanelStore((s) => s.settingsOpen);
+  const tagPanelOpen = usePanelStore((s) => s.tagPanelOpen);
 
   // 1) Tree data from the content observer.
   useEffect(() => {
@@ -95,6 +97,7 @@ export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
         <Header />
         {!collapsed && <TreeMapCanvas />}
         {!collapsed && settingsOpen && <ControlBar />}
+        {!collapsed && tagPanelOpen && <TagPanel />}
       </PanelShell>
       <Tooltip />
     </>
