@@ -35,7 +35,7 @@ export function TreeMapCanvas() {
   const labelX = COLUMN_X + NODE_RADIUS + LABEL_GAP;
   const labelMaxChars = Math.max(6, Math.floor((width - labelX - LABEL_TRAILING_MARGIN) / AVG_CHAR_PX_AT_12));
   const rowWidth = width - ROW_INSET * 2;
-  const maxIndex = nodes.reduce((m, n) => Math.max(m, n.index), 0);
+  //const maxIndex = nodes.reduce((m, n) => Math.max(m, n.index), 0);
 
   return (
     <div
@@ -81,7 +81,7 @@ export function TreeMapCanvas() {
             node={node}
             cx={COLUMN_X}
             cy={nodeCenterY(i)}
-            isLatest={node.index === maxIndex}
+            //isLatest={node.index === maxIndex}
             labelX={labelX}
             labelMaxChars={labelMaxChars}
             rowX={ROW_INSET}

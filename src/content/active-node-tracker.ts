@@ -2,6 +2,7 @@
 
 import { SELECTORS, TIMING } from '@shared/constants';
 import { MessageType } from '@shared/message-types';
+import { TOOLTIP_DELAY_MS } from './panel/components/constants';
 
 let intersectionObserver: IntersectionObserver | null = null;
 // Tracks all currently visible nodes and their ratios across callbacks.
@@ -34,11 +35,21 @@ export function startTracking(_onActiveChange: (navId: string) => void): void {
 
         // Pick the node with the highest visibility ratio
         let bestId: string | null = null;
-        let bestRatio = -1;
+        //const bestRatio = -1;
+        let bestTop = Infinity;
 
-        for (const [navId, ratio] of visibleNodes) {
-          if (ratio > bestRatio) {
+        //for (const [navId, ratio] of visibleNodes) {
+        for (const [navId] of visibleNodes){
+          /*if (ratio > bestRatio) {
             bestRatio = ratio;
+            bestId = navId;
+          }
+            */
+          const el = document.querySelector(`[${SELECTORS.NAV_ID_ATTR}="${navId}"]`);
+          if (!el) continue;
+          const top = el.getBoundingClientRect().top;
+          if (top >= 0 && top < bestTop) {
+            bestTop = top;
             bestId = navId;
           }
         }
