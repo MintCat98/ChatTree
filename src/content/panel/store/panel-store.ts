@@ -34,6 +34,10 @@ interface PanelState {
   // Per-node metadata for the current session, keyed by nodeId (issue #96).
   // Loaded from chrome.storage.local when the tree is hydrated.
   sessionMetadata:  Record<string, NodeMetadata>;
+  // Tag management state (issue #98) — all transient, not persisted.
+  activeTagFilters: string[];      // tag names currently active as filters
+  tagPanelOpen:     boolean;       // controls TagPanel visibility
+  tagEditNodeId:    string | null; // nodeId whose tag editor popover is open
 
   setTree:              (tree: TreeData | null) => void;
   updateSettings:       (patch: Partial<UserSettings>) => void;
@@ -46,6 +50,10 @@ interface PanelState {
   toggleCollapsed:             () => void;
   toggleSettingsOpen:          () => void;
   toggleBookmarksOnlyFilter:   () => void;
+  toggleTagFilter:    (tag: string) => void;
+  clearTagFilters:    () => void;
+  toggleTagPanel:     () => void;
+  setTagEditNodeId:   (id: string | null) => void;
   // Replace the entire session metadata map (called when tree/session changes).
   setSessionMetadata:   (meta: Record<string, NodeMetadata>) => void;
   // Optimistic local update for a single node (caller writes to chrome.storage).
@@ -63,8 +71,11 @@ export const usePanelStore = create<PanelState>()(
     settingsOpen:          false,
     bookmarksOnlyFilter:   false,
     sessionMetadata:       {},
+    activeTagFilters:      [],
+    tagPanelOpen:          false,
+    tagEditNodeId:         null,
 
-    setTree: (tree) => set({ tree }),
+    setTree: (tree) => set({ tree, tagEditNodeId: null, activeTagFilters: [] }),
 
     updateSettings: (patch) =>
       set((s) => {
@@ -83,6 +94,16 @@ export const usePanelStore = create<PanelState>()(
     toggleCollapsed:           () => set((s) => ({ collapsed: !s.collapsed })),
     toggleSettingsOpen:        () => set((s) => ({ settingsOpen: !s.settingsOpen })),
     toggleBookmarksOnlyFilter: () => set((s) => ({ bookmarksOnlyFilter: !s.bookmarksOnlyFilter })),
+
+    toggleTagFilter: (tag) =>
+      set((s) => ({
+        activeTagFilters: s.activeTagFilters.includes(tag)
+          ? s.activeTagFilters.filter((t) => t !== tag)
+          : [...s.activeTagFilters, tag],
+      })),
+    clearTagFilters:  () => set({ activeTagFilters: [] }),
+    toggleTagPanel:   () => set((s) => ({ tagPanelOpen: !s.tagPanelOpen })),
+    setTagEditNodeId: (id) => set({ tagEditNodeId: id }),
 
     setSessionMetadata: (meta) => set({ sessionMetadata: meta }),
 
