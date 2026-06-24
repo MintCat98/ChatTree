@@ -25,6 +25,7 @@ export function TreeMapCanvas() {
   const tree = usePanelStore((s) => s.tree);
   const width = usePanelStore((s) => s.settings.panelWidth);
   const sortOrder = usePanelStore((s) => s.settings.sortOrder);
+  const maxVisibleNodes = usePanelStore((s) => s.settings.maxVisibleNodes);
 
   if (!tree || tree.nodes.length === 0) {
     return <EmptyState />;
@@ -39,7 +40,12 @@ export function TreeMapCanvas() {
   const maxIndex = sortedNodes.reduce((m, n) => Math.max(m, n.index), 0);
 
   return (
-    <div data-testid="treemap-canvas" className="nav-treemap">
+    <div data-testid="treemap-canvas" className="nav-treemap"
+      style={{
+        maxHeight: calcSvgHeight(maxVisibleNodes),
+        overflowY: 'auto',
+      }}
+    >
       <svg
         width={width}
         height={height}
