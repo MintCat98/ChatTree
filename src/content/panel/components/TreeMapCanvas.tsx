@@ -43,7 +43,7 @@ export function TreeMapCanvas() {
   return (
     <div data-testid="treemap-canvas" className="nav-treemap"
       style={{
-        maxHeight: PANEL_PADDING + maxVisibleNodes * NODE_STEP,
+        maxHeight: maxVisibleNodes * NODE_STEP,
         overflowY: 'auto',
       }}
     >
