@@ -57,6 +57,8 @@ export function TagEditorPopover({
 
   const handleInputKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
+      // Prevent keystrokes from reaching Claude.ai's global listeners.
+      e.stopPropagation();
       if (e.key === 'Enter' || e.key === ',') {
         e.preventDefault();
         addTag(inputValue);
@@ -78,6 +80,7 @@ export function TagEditorPopover({
       className="nav-tag-popover"
       style={{ top: topPx }}
       onMouseDown={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
     >
       <div className="nav-tag-popover-header">
         <span className="nav-tag-popover-title">태그 편집</span>
