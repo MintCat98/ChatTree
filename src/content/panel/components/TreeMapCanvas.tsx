@@ -15,6 +15,7 @@ import {
   LABEL_TRAILING_MARGIN,
   calcSvgHeight,
   nodeCenterY,
+  PANEL_PADDING,
 } from './constants';
 import { TreeNode } from './TreeNode';
 import { NodeConnector } from './NodeConnector';
@@ -42,7 +43,7 @@ export function TreeMapCanvas() {
   return (
     <div data-testid="treemap-canvas" className="nav-treemap"
       style={{
-        maxHeight: calcSvgHeight(maxVisibleNodes),
+        maxHeight: PANEL_PADDING + maxVisibleNodes * NODE_STEP,
         overflowY: 'auto',
       }}
     >
