@@ -4,7 +4,7 @@
 export const NODE_RADIUS = 13;         // Default node radius (26px diameter, matches Figma).
 export const NODE_RADIUS_ACTIVE = 14;  // Latest/active node radius (28px diameter).
 export const NODE_STEP = 58;           // Vertical distance between adjacent nodes.
-export const PANEL_PADDING = 22;       // Top/bottom padding inside the SVG.
+export const PANEL_PADDING = 21;       // Top/bottom padding inside the SVG.
 export const LANE_OFFSET = 20;         // Horizontal offset of the branch lane from the main lane.
 export const LABEL_MAX_CHARS = 25;     // Max characters displayed inside a node before truncation.
 export const TOOLTIP_DELAY_MS = 300;   // Delay before showing the tooltip on hover.
