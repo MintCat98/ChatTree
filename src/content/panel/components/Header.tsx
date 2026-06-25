@@ -10,8 +10,10 @@ export function Header() {
   const updateSettings = usePanelStore((s) => s.updateSettings);
   const collapsed = usePanelStore((s) => s.collapsed);
   const settingsOpen = usePanelStore((s) => s.settingsOpen);
+  const bookmarksOnlyFilter = usePanelStore((s) => s.bookmarksOnlyFilter);
   const toggleCollapsed = usePanelStore((s) => s.toggleCollapsed);
   const toggleSettingsOpen = usePanelStore((s) => s.toggleSettingsOpen);
+  const toggleBookmarksOnlyFilter = usePanelStore((s) => s.toggleBookmarksOnlyFilter);
   const count = usePanelStore((s) => s.tree?.nodes.length ?? 0);
 
   const handleClose = useCallback(() => updateSettings({ panelVisible: false }), [updateSettings]);
@@ -48,6 +50,10 @@ export function Header() {
         <IconButton label={collapsed ? '패널 펼치기' : '패널 접기'} expanded={!collapsed} onClick={toggleCollapsed}>
           {collapsed ? '▸' : '▾'}
         </IconButton>
+
+        <PillButton label="북마크만 보기" active={bookmarksOnlyFilter} onClick={toggleBookmarksOnlyFilter}>
+          ☆
+        </PillButton>
 
         <PillButton label="설정" active={settingsOpen} onClick={toggleSettingsOpen}>
           설정

@@ -41,14 +41,15 @@ const SAMPLE_TREE: TreeData = {
 function resetStore() {
   localStorage.clear();
   usePanelStore.setState({
-    tree:            null,
-    settings:        { ...DEFAULT_SETTINGS },
-    activeNodeId:    null,
-    hoveredNodeId:   null,
-    hoverPos:        null,
-    collapsed:       false,
-    settingsOpen:    false,
-    sessionMetadata: {},
+    tree:                null,
+    settings:            { ...DEFAULT_SETTINGS },
+    activeNodeId:        null,
+    hoveredNodeId:       null,
+    hoverPos:            null,
+    collapsed:           false,
+    settingsOpen:        false,
+    bookmarksOnlyFilter: false,
+    sessionMetadata:     {},
   });
 }
 
