@@ -2,7 +2,7 @@
 
 import { startObserving, stopObserving } from './observer';
 import { watchPageChanges } from './page-watcher';
-import { injectPanel, destroyPanel } from './ui-injector';
+import { injectPanel, destroyPanel, isPanelMounted } from './ui-injector';
 import { CHAT_URL_PATTERN, SELECTORS } from '@shared/constants';
 
 let containerWatch: MutationObserver | null = null;
@@ -39,6 +39,10 @@ function bootstrap(): void {
   });
 }
 
+function ensureActive(): void {
+  if (CHAT_URL_PATTERN.test(location.pathname) && !isPanelMounted()) bootstrap();
+}
+
 function init(): void {
   // console.log('[ChatTree DBG] init()', {
   //   pathname: location.pathname,
@@ -53,6 +57,16 @@ function init(): void {
 
   // Step 2 — If the extension loads while already on a chat page, bootstrap immediately.
   if (CHAT_URL_PATTERN.test(location.pathname)) bootstrap();
+
+  // Step 3 - If background new tab is appeared
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') ensureActive();
+  });
+
+  // Step 4 - When session is restored, ensure the panel is mounted
+  window.addEventListener('pageshow', (e) => {
+    if ((e as PageTransitionEvent).persisted) ensureActive();
+  });
 }
 
 init();

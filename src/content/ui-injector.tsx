@@ -34,3 +34,7 @@ export function destroyPanel(): void {
   shadowHost?.remove();
   shadowHost = null;
 }
+
+export function isPanelMounted(): boolean {
+  return shadowHost !== null && document.body.contains(shadowHost);
+}
