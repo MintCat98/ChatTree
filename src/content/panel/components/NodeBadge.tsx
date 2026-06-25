@@ -49,7 +49,7 @@ export function NodeBadge({ cx, cy, current, total }: NodeBadgeProps) {
         fontFamily="var(--nav-font-family)"
         pointerEvents="none"
       >
-        {total}·{current}
+        {current}/{total}
       </text>
     </g>
   );
