@@ -192,17 +192,26 @@ export function TreeNode({
           style={{
             display: 'flex',
             alignItems: 'center',
+            width: '100%',
             height: '100%',
             overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
             fontSize: 'var(--nav-font-size-md)',
             fontFamily: 'var(--nav-font-family)',
             color: 'var(--nav-color-text-secondary)',
             pointerEvents: 'none',
           }}
         >
-          {node.text}
+          <span
+            style={{
+              flex: '1 1 0',
+              minWidth: 0,
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {node.text}
+          </span>
         </div>
       </foreignObject>
 
