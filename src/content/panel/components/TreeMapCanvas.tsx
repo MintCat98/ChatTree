@@ -26,6 +26,7 @@ export function TreeMapCanvas() {
   const width = usePanelStore((s) => s.settings.panelWidth);
   const bookmarksOnlyFilter = usePanelStore((s) => s.bookmarksOnlyFilter);
   const activeTagFilters = usePanelStore((s) => s.activeTagFilters);
+  const searchQuery = usePanelStore((s) => s.searchQuery);
   const tagEditNodeId   = usePanelStore((s) => s.tagEditNodeId);
   const sessionMetadata = usePanelStore((s) => s.sessionMetadata);
   const sessionId       = usePanelStore((s) => s.tree?.sessionId ?? '');
@@ -49,8 +50,9 @@ export function TreeMapCanvas() {
 
   const treemapClass = [
     'nav-treemap',
-    bookmarksOnlyFilter         ? 'is-filtered'     : '',
-    activeTagFilters.length > 0 ? 'is-tag-filtered' : '',
+    bookmarksOnlyFilter         ? 'is-filtered'        : '',
+    activeTagFilters.length > 0 ? 'is-tag-filtered'    : '',
+    searchQuery.trim()          ? 'is-search-filtered' : '',
   ]
     .filter(Boolean)
     .join(' ');

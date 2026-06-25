@@ -38,6 +38,9 @@ interface PanelState {
   activeTagFilters: string[];      // tag names currently active as filters
   tagPanelOpen:     boolean;       // controls TagPanel visibility
   tagEditNodeId:    string | null; // nodeId whose tag editor popover is open
+  // Search state (issue #99) — transient, not persisted.
+  searchPanelOpen:  boolean;
+  searchQuery:      string;
 
   setTree:              (tree: TreeData | null) => void;
   updateSettings:       (patch: Partial<UserSettings>) => void;
@@ -54,6 +57,8 @@ interface PanelState {
   clearTagFilters:    () => void;
   toggleTagPanel:     () => void;
   setTagEditNodeId:   (id: string | null) => void;
+  toggleSearchPanel:  () => void;
+  setSearchQuery:     (query: string) => void;
   // Replace the entire session metadata map (called when tree/session changes).
   setSessionMetadata:   (meta: Record<string, NodeMetadata>) => void;
   // Optimistic local update for a single node (caller writes to chrome.storage).
@@ -74,8 +79,10 @@ export const usePanelStore = create<PanelState>()(
     activeTagFilters:    [],
     tagPanelOpen:        false,
     tagEditNodeId:       null,
+    searchPanelOpen:     false,
+    searchQuery:         '',
 
-    setTree: (tree) => set({ tree, tagEditNodeId: null, activeTagFilters: [] }),
+    setTree: (tree) => set({ tree, tagEditNodeId: null, activeTagFilters: [], searchQuery: '' }),
 
     updateSettings: (patch) =>
       set((s) => {
@@ -104,6 +111,8 @@ export const usePanelStore = create<PanelState>()(
     clearTagFilters:  () => set({ activeTagFilters: [] }),
     toggleTagPanel:   () => set((s) => ({ tagPanelOpen: !s.tagPanelOpen })),
     setTagEditNodeId: (id) => set({ tagEditNodeId: id }),
+    toggleSearchPanel: () => set((s) => ({ searchPanelOpen: !s.searchPanelOpen })),
+    setSearchQuery:    (query) => set({ searchQuery: query }),
 
     setSessionMetadata: (meta) => set({ sessionMetadata: meta }),
 

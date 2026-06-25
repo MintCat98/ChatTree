@@ -53,6 +53,8 @@ function resetStore() {
     activeTagFilters:    [],
     tagPanelOpen:        false,
     tagEditNodeId:       null,
+    searchPanelOpen:     false,
+    searchQuery:         '',
   });
 }
 
