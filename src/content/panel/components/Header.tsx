@@ -3,8 +3,9 @@
 // buttons opt out so their clicks don't drag.
 
 import { useCallback, type KeyboardEvent, type ReactNode } from 'react';
-import { Bookmark, Tag, Search, Settings, Flag } from 'lucide-react';
+import { Bookmark, Tag, Search, Settings, Flag, CircleHelp } from 'lucide-react';
 import { usePanelStore } from '../store/panel-store';
+import { GITHUB_URLS } from '../../../shared/constants';
 
 const FEEDBACK_URL =
   'https://github.com/MintCat98/ChatTree/issues?q=sort%3Aupdated-desc+is%3Aissue+state%3Aopen+';
@@ -24,6 +25,10 @@ export function Header() {
   const count = usePanelStore((s) => s.tree?.nodes.length ?? 0);
 
   const handleClose = useCallback(() => updateSettings({ panelVisible: false }), [updateSettings]);
+  const openUserGuide = useCallback(
+    () => window.open(GITHUB_URLS.USER_GUIDE, '_blank', 'noopener,noreferrer'),
+    [],
+  );
 
   return (
     <div
@@ -75,6 +80,9 @@ export function Header() {
             </IconButton>
             <IconButton label="검색" pressed={searchPanelOpen} onClick={toggleSearchPanel}>
               <Search size={13} />
+            </IconButton>
+            <IconButton label="사용자 가이드" tooltip onClick={openUserGuide}>
+              <CircleHelp size={13} />
             </IconButton>
             <IconButton label="설정" pressed={settingsOpen} onClick={toggleSettingsOpen}>
               <Settings size={13} />
