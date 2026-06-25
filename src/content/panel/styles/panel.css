@@ -293,6 +293,7 @@
 
 /* IconButton */
 .nav-icon-btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -314,6 +315,28 @@
 .nav-icon-btn[aria-pressed="true"] {
   background: var(--nav-color-accent-soft);
   color: var(--nav-color-accent);
+}
+.nav-icon-btn[data-label]::after {
+  content: attr(data-label);
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: var(--nav-color-text);
+  color: var(--nav-color-bg);
+  font-size: 10px;
+  font-family: var(--nav-font-family);
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 100;
+  transition: opacity 0ms;
+}
+.nav-icon-btn[data-label]:hover::after {
+  opacity: 1;
 }
 
 /* PillButton — :hover before [aria-pressed] so active state wins on same specificity */
