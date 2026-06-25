@@ -3,8 +3,9 @@
 // buttons opt out so their clicks don't drag.
 
 import { useCallback, type KeyboardEvent, type ReactNode } from 'react';
-import { Bookmark, Tag, Search, Settings } from 'lucide-react';
+import { Bookmark, Tag, Search, Settings, CircleHelp } from 'lucide-react';
 import { usePanelStore } from '../store/panel-store';
+import { GITHUB_URLS } from '../../../shared/constants';
 
 export function Header() {
   const updateSettings = usePanelStore((s) => s.updateSettings);
@@ -21,6 +22,10 @@ export function Header() {
   const count = usePanelStore((s) => s.tree?.nodes.length ?? 0);
 
   const handleClose = useCallback(() => updateSettings({ panelVisible: false }), [updateSettings]);
+  const openUserGuide = useCallback(
+    () => window.open(GITHUB_URLS.USER_GUIDE, '_blank', 'noopener,noreferrer'),
+    [],
+  );
 
   return (
     <div
@@ -70,6 +75,9 @@ export function Header() {
             <IconButton label="검색" pressed={searchPanelOpen} onClick={toggleSearchPanel}>
               <Search size={13} />
             </IconButton>
+            <IconButton label="사용자 가이드" title="User Guide" onClick={openUserGuide}>
+              <CircleHelp size={13} />
+            </IconButton>
             <IconButton label="설정" pressed={settingsOpen} onClick={toggleSettingsOpen}>
               <Settings size={13} />
             </IconButton>
@@ -98,9 +106,10 @@ interface IconButtonProps {
   children: ReactNode;
   expanded?: boolean;
   pressed?: boolean;
+  title?: string;
 }
 
-function IconButton({ label, onClick, children, expanded, pressed }: IconButtonProps) {
+function IconButton({ label, onClick, children, expanded, pressed, title }: IconButtonProps) {
   const onKey = useKeyActivate(onClick);
   return (
     <button
@@ -111,6 +120,7 @@ function IconButton({ label, onClick, children, expanded, pressed }: IconButtonP
       onClick={onClick}
       onKeyDown={onKey}
       className="nav-icon-btn"
+      title={title}
     >
       {children}
     </button>
