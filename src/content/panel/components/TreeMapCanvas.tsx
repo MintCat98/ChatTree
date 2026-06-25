@@ -11,8 +11,6 @@ import {
   COLUMN_X,
   LABEL_GAP,
   ROW_INSET,
-  AVG_CHAR_PX_AT_12,
-  LABEL_TRAILING_MARGIN,
   calcSvgHeight,
   nodeCenterY,
   PANEL_PADDING,
@@ -36,7 +34,6 @@ export function TreeMapCanvas() {
   const height = calcSvgHeight(sortedNodes.length);
 
   const labelX = COLUMN_X + NODE_RADIUS + LABEL_GAP;
-  const labelMaxChars = Math.max(6, Math.floor((width - labelX - LABEL_TRAILING_MARGIN) / AVG_CHAR_PX_AT_12));
   const rowWidth = width - ROW_INSET * 2;
   const maxIndex = sortedNodes.reduce((m, n) => Math.max(m, n.index), 0);
 
@@ -86,7 +83,6 @@ export function TreeMapCanvas() {
             cx={COLUMN_X}
             cy={nodeCenterY(i)}
             labelX={labelX}
-            labelMaxChars={labelMaxChars}
             rowX={ROW_INSET}
             rowWidth={rowWidth}
           />
