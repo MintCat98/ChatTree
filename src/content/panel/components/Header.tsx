@@ -81,7 +81,7 @@ export function Header() {
             <IconButton label="검색" pressed={searchPanelOpen} onClick={toggleSearchPanel}>
               <Search size={13} />
             </IconButton>
-            <IconButton label="사용자 가이드" title="User Guide" onClick={openUserGuide}>
+            <IconButton label="사용자 가이드" tooltip onClick={openUserGuide}>
               <CircleHelp size={13} />
             </IconButton>
             <IconButton label="설정" pressed={settingsOpen} onClick={toggleSettingsOpen}>
@@ -127,7 +127,6 @@ function IconButton({ label, onClick, children, expanded, pressed, tooltip }: Ic
       onClick={onClick}
       onKeyDown={onKey}
       className="nav-icon-btn"
-      title={title}
     >
       {children}
     </button>
