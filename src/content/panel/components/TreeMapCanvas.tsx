@@ -76,6 +76,7 @@ export function TreeMapCanvas() {
             />
           ) : null
         )}
+          */}
 
         {/* 3) Nodes (circle + number + label) on top. */}
         {sortedNodes.map((node, i) => (
@@ -84,7 +85,6 @@ export function TreeMapCanvas() {
             node={node}
             cx={COLUMN_X}
             cy={nodeCenterY(i)}
-            isLatest={node.index === maxIndex}
             labelX={labelX}
             labelMaxChars={labelMaxChars}
             rowX={ROW_INSET}
