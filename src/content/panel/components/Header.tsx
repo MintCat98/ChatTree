@@ -59,6 +59,9 @@ export function Header() {
           <IconButton label="피드백 보내기" tooltip onClick={() => window.open(FEEDBACK_URL, '_blank')}>
             <Flag size={13} />
           </IconButton>
+          <IconButton label="설정" pressed={settingsOpen} onClick={toggleSettingsOpen}>
+            <Settings size={13} />
+          </IconButton>
           <IconButton label="패널 닫기" onClick={handleClose}>
             ✕
           </IconButton>
@@ -83,9 +86,6 @@ export function Header() {
             </IconButton>
             <IconButton label="사용자 가이드" tooltip onClick={openUserGuide}>
               <CircleHelp size={13} />
-            </IconButton>
-            <IconButton label="설정" pressed={settingsOpen} onClick={toggleSettingsOpen}>
-              <Settings size={13} />
             </IconButton>
           </div>
         </div>
