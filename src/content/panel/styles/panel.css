@@ -293,7 +293,7 @@
 .nav-header-tools {
   display: flex;
   align-items: center;
-  gap: 1px;
+  gap: var(--nav-spacing-1);
   flex-shrink: 0;
 }
 .nav-header-toggles {
