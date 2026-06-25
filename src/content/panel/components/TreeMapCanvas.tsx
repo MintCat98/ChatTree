@@ -7,6 +7,7 @@ import { usePanelStore } from '../store/panel-store';
 import {
   NODE_RADIUS,
   NODE_STEP,
+  LANE_OFFSET,
   COLUMN_X,
   LABEL_GAP,
   ROW_INSET,
@@ -18,7 +19,7 @@ import {
 } from './constants';
 import { TreeNode } from './TreeNode';
 import { NodeConnector } from './NodeConnector';
-
+import { BranchLane } from './BranchLane';
 import { EmptyState } from './EmptyState';
 
 export function TreeMapCanvas() {
