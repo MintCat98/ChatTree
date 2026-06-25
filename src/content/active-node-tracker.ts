@@ -35,16 +35,9 @@ export function startTracking(_onActiveChange: (navId: string) => void): void {
 
         // Pick the node with the highest visibility ratio
         let bestId: string | null = null;
-        //const bestRatio = -1;
         let bestTop = Infinity;
 
-        //for (const [navId, ratio] of visibleNodes) {
         for (const [navId] of visibleNodes){
-          /*if (ratio > bestRatio) {
-            bestRatio = ratio;
-            bestId = navId;
-          }
-            */
           const el = document.querySelector(`[${SELECTORS.NAV_ID_ATTR}="${navId}"]`);
           if (!el) continue;
           const top = el.getBoundingClientRect().top;

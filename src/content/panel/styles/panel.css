@@ -386,11 +386,7 @@
   fill: transparent;
   transition: fill var(--nav-duration-fast) ease;
 }
-/*
-.nav-node.is-latest .nav-node-row {
-  fill: var(--nav-color-accent-soft);
-}
-  */
+
 .nav-node.is-hovered:not(.is-latest) .nav-node-row {
   fill: var(--nav-color-surface-2);
 }
@@ -401,14 +397,7 @@
   stroke-width: 1.5;
   transition: r var(--nav-duration-fast) ease, filter var(--nav-duration-fast) ease;
 }
-/*
-.nav-node.is-latest .nav-node-circle {
-  fill: var(--nav-color-node-active);
-  stroke: transparent;
-  stroke-width: 0;
-  filter: var(--nav-active-glow);
-}
-  */
+
 .nav-node.is-active:not(.is-latest) .nav-node-circle {
   fill:var(--nav-color-node-active);
   stroke:transparent;
@@ -429,23 +418,12 @@
   fill: var(--nav-color-node-number);
   font-size: var(--nav-font-size-sm);
 }
-/*
-.nav-node.is-latest .nav-node-number {
-  fill: var(--nav-color-node-active-text);
-}
-  */
 
 .nav-node .nav-node-label {
   fill: var(--nav-color-text-secondary);
   font-size: 12px;
   font-weight: 450;
 }
-/*
-.nav-node.is-latest .nav-node-label {
-  fill: var(--nav-color-text);
-  font-weight: 600;
-}
-  */
 
 /* NodeBadge */
 .nav-node-badge {

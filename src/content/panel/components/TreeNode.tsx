@@ -16,7 +16,6 @@ interface TreeNodeProps {
   node: ChatboxNode;
   cx: number;
   cy: number;
-  //isLatest: boolean;
   labelX: number;
   labelMaxChars: number;
   rowX: number;
@@ -27,7 +26,6 @@ export function TreeNode({
   node,
   cx,
   cy,
-  //isLatest,
   labelX,
   labelMaxChars,
   rowX,
@@ -41,9 +39,7 @@ export function TreeNode({
   const isActive = activeNodeId === node.id;
   const isHovered = hoveredNodeId === node.id;
   const isBranch = node.hasBranch;
-  //const filled = isLatest;
 
-  // const r = filled || isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
   const r = isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
 
   const handleClick = useCallback(
@@ -94,8 +90,6 @@ export function TreeNode({
 
   const nodeClass = [
     'nav-node',
-    //isLatest ? 'is-latest' : '',
-    //isActive && !isLatest ? 'is-active' : '',
     isActive? 'is-active' : '',
     isHovered ? 'is-hovered' : '',
     isBranch ? 'is-branch' : '',
@@ -108,7 +102,6 @@ export function TreeNode({
       role="treeitem"
       aria-label={node.text}
       aria-selected={isActive}
-      //aria-current={isLatest ? 'true' : undefined}
       aria-current={isActive ? 'true' : undefined}
       tabIndex={0}
       onClick={handleClick}
