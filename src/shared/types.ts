@@ -27,12 +27,16 @@ export interface UserSettings {
   panelVisible: boolean;
   panelWidth: number; // px — panel width (resizable). See issue 02.
   themeMode: 'auto' | 'light' | 'dark'; // 'auto' follows the claude.ai theme. See issue 06.
+  maxVisibleNodes: number; // maximum number of chat nodes visible on UI
 }
 
 // Panel width bounds and default (used by the resize handle and width controls).
 export const PANEL_WIDTH_MIN = 240;
 export const PANEL_WIDTH_MAX = 520;
 export const PANEL_WIDTH_DEFAULT = 280;
+
+// Maximum number of chat nodes default
+export const MAX_VISIBLE_NODES = 4;
 
 export const DEFAULT_SETTINGS: UserSettings = {
   panelPosition: 'top-right',
@@ -42,4 +46,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   panelVisible: true,
   panelWidth: PANEL_WIDTH_DEFAULT,
   themeMode: 'auto',
+  maxVisibleNodes: MAX_VISIBLE_NODES,
 };
