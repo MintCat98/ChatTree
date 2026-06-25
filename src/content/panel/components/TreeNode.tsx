@@ -10,7 +10,7 @@ import type { ChatboxNode } from '@shared/types';
 import { setNodeMetadata } from '@shared/metadata-storage';
 import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
-import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, truncate } from './constants';
+import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, LABEL_TRAILING_MARGIN } from './constants';
 import { NodeBadge } from './NodeBadge';
 import { BookmarkButton } from './BookmarkButton';
 
@@ -18,9 +18,7 @@ interface TreeNodeProps {
   node: ChatboxNode;
   cx: number;
   cy: number;
-  isLatest: boolean;
   labelX: number;
-  labelMaxChars: number;
   rowX: number;
   rowWidth: number;
 }
@@ -29,9 +27,7 @@ export function TreeNode({
   node,
   cx,
   cy,
-  isLatest,
   labelX,
-  labelMaxChars,
   rowX,
   rowWidth,
 }: TreeNodeProps) {
@@ -47,9 +43,11 @@ export function TreeNode({
   const isHovered = hoveredNodeId === node.id;
   const isBranch = node.hasBranch;
   const isBookmarked = sessionMetadata[node.id]?.bookmarked ?? false;
-  const filled = isLatest;
 
-  const r = filled || isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
+  const r = isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
+
+  const labelWidth = rowWidth - labelX + rowX - LABEL_TRAILING_MARGIN;
+  const rowH = NODE_STEP - ROW_V_GAP;
 
   const handleClick = useCallback(
     (e: MouseEvent<SVGGElement>) => {
@@ -105,12 +103,9 @@ export function TreeNode({
     [node.id, sessionId, isBookmarked, patchNodeMetadata],
   );
 
-  const rowH = NODE_STEP - ROW_V_GAP;
-
   const nodeClass = [
     'nav-node',
-    isLatest ? 'is-latest' : '',
-    isActive && !isLatest ? 'is-active' : '',
+    isActive? 'is-active' : '',
     isHovered ? 'is-hovered' : '',
     isBranch ? 'is-branch' : '',
     isBookmarked ? 'is-bookmarked' : '',
@@ -123,7 +118,7 @@ export function TreeNode({
       role="treeitem"
       aria-label={node.text}
       aria-selected={isActive}
-      aria-current={isLatest ? 'true' : undefined}
+      aria-current={isActive ? 'true' : undefined}
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -165,22 +160,34 @@ export function TreeNode({
       </text>
 
       {/* Question label */}
-      <text
+      <foreignObject
         x={labelX}
-        y={cy}
-        textAnchor="start"
-        dominantBaseline="central"
-        fontFamily="var(--nav-font-family)"
-        pointerEvents="none"
-        className="nav-node-label"
+        y={cy - rowH / 2}
+        width={labelWidth}
+        height={rowH}
       >
-        {truncate(node.text, labelMaxChars)}
-      </text>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            height: '100%',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'elliopsis',
+            fontSize: '12px',
+            fontFamily: 'var(--nav-font-family)',
+            color: 'var(--nav-color-text-secondary)',
+            pointerEvents: 'none',
+          }}
+        >
+          {node.text}
+        </div>
+      </foreignObject>
 
-      {isBranch ? (
+      {isBranch && node.branchTotal > 1 ? ( // Check if there are two or more branches
         <NodeBadge
           cx={cx + NODE_RADIUS}
-          cy={cy - NODE_RADIUS}
+          cy={cy - 3 * NODE_RADIUS / 2}
           current={node.branchCurrent}
           total={node.branchTotal}
         />

@@ -54,15 +54,15 @@ interface PanelState {
 
 export const usePanelStore = create<PanelState>()(
   (set) => ({
-    tree:            null,
-    settings:        DEFAULT_SETTINGS,
-    activeNodeId:    null,
-    hoveredNodeId:   null,
-    hoverPos:        null,
-    collapsed:             false,
-    settingsOpen:          false,
-    bookmarksOnlyFilter:   false,
-    sessionMetadata:       {},
+    tree:                null,
+    settings:            DEFAULT_SETTINGS,
+    activeNodeId:        null,
+    hoveredNodeId:       null,
+    hoverPos:            null,
+    collapsed:           false,
+    settingsOpen:        false,
+    bookmarksOnlyFilter: false,
+    sessionMetadata:     {},
 
     setTree: (tree) => set({ tree }),
 

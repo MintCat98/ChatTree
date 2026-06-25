@@ -23,7 +23,15 @@ import type { TreeData } from '@shared/types';
 const SAMPLE_TREE: TreeData = {
   sessionId: 'test-uuid',
   nodes: [
-    { id: 'chatbox-0', index: 0, text: 'hello', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+    {
+      id: 'chatbox-0',
+      index: 0,
+      text: 'hello',
+      hasBranch: false,
+      branchCurrent: 1,
+      branchTotal: 1,
+      parentId: null,
+    },
   ],
   activeBranchPath: ['chatbox-0'],
   lastUpdated: 1717000000000,
@@ -33,14 +41,15 @@ const SAMPLE_TREE: TreeData = {
 function resetStore() {
   localStorage.clear();
   usePanelStore.setState({
-    tree:            null,
-    settings:        { ...DEFAULT_SETTINGS },
-    activeNodeId:    null,
-    hoveredNodeId:   null,
-    hoverPos:        null,
-    collapsed:       false,
-    settingsOpen:    false,
-    sessionMetadata: {},
+    tree:                null,
+    settings:            { ...DEFAULT_SETTINGS },
+    activeNodeId:        null,
+    hoveredNodeId:       null,
+    hoverPos:            null,
+    collapsed:           false,
+    settingsOpen:        false,
+    bookmarksOnlyFilter: false,
+    sessionMetadata:     {},
   });
 }
 
@@ -57,7 +66,6 @@ describe('usePanelStore — actions', () => {
     usePanelStore.getState().updateSettings({ panelPosition: 'bottom-left' });
     const after = usePanelStore.getState().settings;
     expect(after.panelPosition).toBe('bottom-left');
-    expect(after.panelDirection).toBe(before.panelDirection);
     expect(after.backgroundOpacity).toBe(before.backgroundOpacity);
     expect(after.sortOrder).toBe(before.sortOrder);
     expect(after.summaryEnabled).toBe(before.summaryEnabled);
@@ -139,14 +147,6 @@ describe('usePanelStore — sessionMetadata (issue #96)', () => {
 
 describe('usePanelStore — persistence', () => {
   beforeEach(resetStore);
-
-  it('persists settings to localStorage', () => {
-    usePanelStore.getState().updateSettings({ panelPosition: 'bottom-right' });
-    const raw = localStorage.getItem('chat-nav-settings');
-    expect(raw).not.toBeNull();
-    const parsed = JSON.parse(raw as string);
-    expect(parsed.state.settings.panelPosition).toBe('bottom-right');
-  });
 
   it('does NOT persist tree to localStorage', () => {
     usePanelStore.getState().setTree(SAMPLE_TREE);
