@@ -195,7 +195,7 @@ export function TreeNode({
             height: '100%',
             overflow: 'hidden',
             whiteSpace: 'nowrap',
-            textOverflow: 'elliopsis',
+            textOverflow: 'ellipsis',
             fontSize: 'var(--nav-font-size-md)',
             fontFamily: 'var(--nav-font-family)',
             color: 'var(--nav-color-text-secondary)',
