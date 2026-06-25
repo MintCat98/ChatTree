@@ -33,3 +33,7 @@ export const TIMING = {
 } as const;
 
 export const CHAT_URL_PATTERN = /\/chat\/([0-9a-f-]{36})/;
+
+export const GITHUB_URLS = {
+  USER_GUIDE: 'https://github.com/MintCat98/ChatTree/blob/main/docs/USER_GUIDE.md',
+} as const;
