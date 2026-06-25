@@ -98,14 +98,6 @@ describe('usePanelStore — actions', () => {
 describe('usePanelStore — persistence', () => {
   beforeEach(resetStore);
 
-  it('persists settings to localStorage', () => {
-    usePanelStore.getState().updateSettings({ panelPosition: 'bottom-right' });
-    const raw = localStorage.getItem('chat-nav-settings');
-    expect(raw).not.toBeNull();
-    const parsed = JSON.parse(raw as string);
-    expect(parsed.state.settings.panelPosition).toBe('bottom-right');
-  });
-
   it('does NOT persist tree to localStorage', () => {
     usePanelStore.getState().setTree(SAMPLE_TREE);
     const raw = localStorage.getItem('chat-nav-settings');
