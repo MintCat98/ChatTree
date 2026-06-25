@@ -32,13 +32,9 @@ export function TreeMapCanvas() {
 
   const labelX = COLUMN_X + NODE_RADIUS + LABEL_GAP;
   const rowWidth = width - ROW_INSET * 2;
-  //const maxIndex = nodes.reduce((m, n) => Math.max(m, n.index), 0);
 
   return (
-    <div
-      data-testid="treemap-canvas"
-      className="nav-treemap"
-    >
+    <div data-testid="treemap-canvas" className="nav-treemap">
       <svg
         width={width}
         height={height}
