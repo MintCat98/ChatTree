@@ -99,7 +99,13 @@ export const usePanelStore = create<PanelState>()(
     setHoverPos:    (pos) => set({ hoverPos: pos }),
 
     toggleCollapsed:           () => set((s) => ({ collapsed: !s.collapsed })),
-    toggleSettingsOpen:        () => set((s) => ({ settingsOpen: !s.settingsOpen })),
+    toggleSettingsOpen: () =>
+      set((s) => {
+        const opening = !s.settingsOpen;
+        return opening
+          ? { settingsOpen: true, tagPanelOpen: false, searchPanelOpen: false }
+          : { settingsOpen: false };
+      }),
     toggleBookmarksOnlyFilter: () => set((s) => ({ bookmarksOnlyFilter: !s.bookmarksOnlyFilter })),
 
     toggleTagFilter: (tag) =>
@@ -109,9 +115,21 @@ export const usePanelStore = create<PanelState>()(
           : [...s.activeTagFilters, tag],
       })),
     clearTagFilters:  () => set({ activeTagFilters: [] }),
-    toggleTagPanel:   () => set((s) => ({ tagPanelOpen: !s.tagPanelOpen })),
+    toggleTagPanel: () =>
+      set((s) => {
+        const opening = !s.tagPanelOpen;
+        return opening
+          ? { tagPanelOpen: true, settingsOpen: false }
+          : { tagPanelOpen: false };
+      }),
     setTagEditNodeId: (id) => set({ tagEditNodeId: id }),
-    toggleSearchPanel: () => set((s) => ({ searchPanelOpen: !s.searchPanelOpen })),
+    toggleSearchPanel: () =>
+      set((s) => {
+        const opening = !s.searchPanelOpen;
+        return opening
+          ? { searchPanelOpen: true, settingsOpen: false }
+          : { searchPanelOpen: false };
+      }),
     setSearchQuery:    (query) => set({ searchQuery: query }),
 
     setSessionMetadata: (meta) => set({ sessionMetadata: meta }),
