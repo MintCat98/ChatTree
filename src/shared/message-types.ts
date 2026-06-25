@@ -18,6 +18,9 @@ export const MessageType = {
 
   // Popup → Background
   SETTINGS_CHANGE:      'SETTINGS_CHANGE',
+
+  // Popup → Content (direct, no Background relay)
+  GET_RESOLVED_THEME:   'GET_RESOLVED_THEME',
 } as const;
 
 export type MessageType = typeof MessageType[keyof typeof MessageType];

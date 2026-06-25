@@ -38,3 +38,7 @@ export function destroyPanel(): void {
 export function isPanelMounted(): boolean {
   return shadowHost !== null && document.body.contains(shadowHost);
 }
+
+export function getResolvedTheme(): string | null {
+  return shadowHost?.getAttribute('data-theme') ?? null;
+}
