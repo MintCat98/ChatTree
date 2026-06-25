@@ -14,6 +14,7 @@ import ReactDOM from 'react-dom/client';
 import type { UserSettings } from '@shared/types';
 import { DEFAULT_SETTINGS } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
+import { MessageType } from '@shared/message-types';
 import { isSupportedPage, mergeSettings, applyPatch } from './popup-logic';
 import './popup.css';
 
@@ -43,6 +44,33 @@ export function Popup() {
       );
     });
   }, [status]);
+
+  // 3) Sync popup theme with the panel's resolved theme.
+  //    - explicit 'light'/'dark' → apply directly via data-theme attribute
+  //    - 'auto' → ask the active tab's content script for the current resolved
+  //      theme (the shadow host's data-theme, set by App.tsx via resolveTheme()).
+  //      Falls back to OS @media preference when no claude.ai tab is open.
+  useEffect(() => {
+    const html = document.documentElement;
+    if (settings.themeMode !== 'auto') {
+      html.dataset.theme = settings.themeMode;
+      return;
+    }
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (!tab?.id) { delete html.dataset.theme; return; }
+      chrome.tabs.sendMessage(
+        tab.id,
+        { type: MessageType.GET_RESOLVED_THEME },
+        (response: { theme?: string } | undefined) => {
+          if (chrome.runtime.lastError || !response?.theme) {
+            delete html.dataset.theme; // content script not available → OS fallback
+            return;
+          }
+          html.dataset.theme = response.theme;
+        },
+      );
+    });
+  }, [settings.themeMode]);
 
   // Apply a partial change: persist the FULL merged settings to chrome.storage.local.
   // The panel picks it up via chrome.storage.onChanged — no extra messaging needed.
@@ -101,6 +129,7 @@ function SettingsForm({ settings, onChange }: SettingsFormProps) {
       {/* Panel visibility toggle */}
       <Row label="패널 표시">
         <ToggleSwitch
+          label="패널 표시"
           checked={settings.panelVisible}
           onChange={(v) => onChange({ panelVisible: v })}
         />
@@ -121,14 +150,16 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 interface ToggleProps {
   checked: boolean;
   onChange: (v: boolean) => void;
+  label: string;
 }
 
-function ToggleSwitch({ checked, onChange }: ToggleProps) {
+function ToggleSwitch({ checked, onChange, label }: ToggleProps) {
   return (
     <button
       type="button"
       role="switch"
-      aria-checked={checked}
+      aria-label={label}
+      aria-checked={checked ? 'true' : 'false'}
       onClick={() => onChange(!checked)}
       className={checked ? 'cn-toggle cn-toggle--on' : 'cn-toggle'}
     >
