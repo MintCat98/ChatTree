@@ -148,7 +148,7 @@
 }
 .nav-treemap::-webkit-scrollbar-thumb {
   background: rgba(120, 113, 108, 0.3);
-  border-radius: 8px;
+  border-radius: var(--nav-radius-md);
   border: 2px solid transparent;
   background-clip: content-box;
 }
@@ -163,7 +163,7 @@
   appearance: none;
   flex: 1;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--nav-radius-pill);
   background: var(--nav-color-border);
   outline: none;
   cursor: pointer;
@@ -204,7 +204,7 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  margin-bottom: 12px;
+  margin-bottom: var(--nav-spacing-6);
   border-radius: 12px;
   background: var(--nav-color-accent-soft);
 }
@@ -221,7 +221,7 @@
   backdrop-filter: blur(10px);
   border-radius: var(--nav-border-radius);
   box-shadow: var(--nav-panel-shadow);
-  border: 1px solid var(--nav-color-border);
+  border: var(--nav-border-width) solid var(--nav-color-border);
   z-index: var(--nav-z-index);
   font-family: var(--nav-font-family);
   color: var(--nav-color-text);
@@ -234,9 +234,9 @@
 .nav-header {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px 8px 14px;
-  border-bottom: 1px solid var(--nav-color-divider);
+  gap: var(--nav-spacing-1);
+  padding: var(--nav-spacing-4) var(--nav-spacing-5) var(--nav-spacing-4) var(--nav-spacing-7);
+  border-bottom: var(--nav-border-width) solid var(--nav-color-divider);
   cursor: grab;
   -webkit-user-select: none;
   user-select: none;
@@ -248,13 +248,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: var(--nav-spacing-3);
 }
 .nav-header-brand {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nav-spacing-4);
   min-width: 0;
   flex: 1;
 }
@@ -264,7 +264,7 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 8px;
+  border-radius: var(--nav-radius-md);
   background: var(--nav-color-accent-soft);
   flex-shrink: 0;
 }
@@ -287,7 +287,7 @@
 .nav-header-controls {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--nav-spacing-1);
   flex-shrink: 0;
 }
 .nav-header-tools {
@@ -299,7 +299,7 @@
 .nav-header-toggles {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--nav-spacing-1);
 }
 .nav-header-toggles.is-hidden {
   visibility: hidden;
@@ -318,7 +318,7 @@
   color: var(--nav-color-text-muted);
   cursor: pointer;
   font-size: var(--nav-font-size-base);
-  border-radius: 8px;
+  border-radius: var(--nav-radius-md);
   line-height: 1;
   transition: background var(--nav-duration-fast) ease, color var(--nav-duration-fast) ease;
 }
@@ -339,11 +339,11 @@
   white-space: nowrap;
   background: var(--nav-color-text);
   color: var(--nav-color-bg);
-  font-size: 10px;
+  font-size: var(--nav-font-size-xs);
   font-family: var(--nav-font-family);
   font-weight: 500;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--nav-radius-pill);
   pointer-events: none;
   opacity: 0;
   z-index: 100;
@@ -358,13 +358,13 @@
   height: 24px;
   padding: 0 11px;
   background: transparent;
-  border: 1px solid var(--nav-color-border);
+  border: var(--nav-border-width) solid var(--nav-color-border);
   color: var(--nav-color-text-secondary);
   cursor: pointer;
   font-size: var(--nav-font-size-sm);
   font-weight: 600;
   font-family: var(--nav-font-family);
-  border-radius: 999px;
+  border-radius: var(--nav-radius-pill);
   line-height: 1;
   transition: background var(--nav-duration-fast) ease, border-color var(--nav-duration-fast) ease, color var(--nav-duration-fast) ease;
 }
@@ -380,11 +380,11 @@
 
 /* ControlBar */
 .nav-control-bar {
-  padding: 10px 14px 12px;
-  border-top: 1px solid var(--nav-color-divider);
+  padding: var(--nav-spacing-5) var(--nav-spacing-7) var(--nav-spacing-6);
+  border-top: var(--nav-border-width) solid var(--nav-color-divider);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--nav-spacing-3);
 }
 .nav-control-row {
   display: flex;
@@ -395,7 +395,7 @@
 .nav-control-label {
   font-size: var(--nav-font-size-sm);
   color: var(--nav-color-text-muted);
-  margin-right: 8px;
+  margin-right: var(--nav-spacing-4);
   min-width: 44px;
   letter-spacing: 0.2px;
 }
@@ -403,7 +403,7 @@
   flex: 1;
   background: var(--nav-color-surface-2);
   color: var(--nav-color-text);
-  border: 1px solid var(--nav-color-border);
+  border: var(--nav-border-width) solid var(--nav-color-border);
   border-radius: var(--nav-border-radius-sm);
   padding: 5px 8px;
   font-size: var(--nav-font-size-sm);
@@ -438,7 +438,7 @@
   max-height: 50vh;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 6px 0;
+  padding: var(--nav-spacing-3) 0;
 }
 
 /* TreeNode — class modifiers on the <g> wrapper drive descendant SVG fill/stroke */
@@ -486,7 +486,7 @@
 
 .nav-node .nav-node-label {
   fill: var(--nav-color-text-secondary);
-  font-size: 12px;
+  font-size: var(--nav-font-size-md);
   font-weight: 450;
 }
 
@@ -580,14 +580,14 @@
   right: 8px;
   width: 180px;
   background: var(--nav-color-bg);
-  border: 1px solid var(--nav-color-border);
+  border: var(--nav-border-width) solid var(--nav-color-border);
   border-radius: var(--nav-border-radius-sm);
   box-shadow: var(--nav-panel-shadow);
-  padding: 8px 10px;
+  padding: var(--nav-spacing-4) var(--nav-spacing-5);
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--nav-spacing-3);
 }
 
 .nav-tag-popover-header {
@@ -623,7 +623,7 @@
 .nav-tag-chip-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--nav-spacing-2);
 }
 
 .nav-tag-chip {
@@ -631,11 +631,11 @@
   align-items: center;
   gap: 3px;
   height: 20px;
-  padding: 0 6px 0 8px;
+  padding: 0 var(--nav-spacing-3) 0 var(--nav-spacing-4);
   background: var(--nav-color-accent-soft);
-  border: 1px solid var(--nav-color-accent);
-  border-radius: 999px;
-  font-size: 10px;
+  border: var(--nav-border-width) solid var(--nav-color-accent);
+  border-radius: var(--nav-radius-pill);
+  font-size: var(--nav-font-size-xs);
   font-weight: 600;
   color: var(--nav-color-accent);
   font-family: var(--nav-font-family);
@@ -669,9 +669,9 @@
   display: block;
   width: 100%;
   height: 26px;
-  padding: 0 8px;
+  padding: 0 var(--nav-spacing-4);
   background: var(--nav-color-surface-2);
-  border: 1px solid var(--nav-color-border);
+  border: var(--nav-border-width) solid var(--nav-color-border);
   border-radius: var(--nav-border-radius-sm);
   font-size: var(--nav-font-size-sm);
   font-family: var(--nav-font-family);
@@ -702,17 +702,17 @@
 
 /* TagPanel — collapsible panel below tree map (mirrors ControlBar pattern) */
 .nav-tag-panel {
-  padding: 10px 14px 12px;
-  border-top: 1px solid var(--nav-color-divider);
+  padding: var(--nav-spacing-5) var(--nav-spacing-7) var(--nav-spacing-6);
+  border-top: var(--nav-border-width) solid var(--nav-color-divider);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--nav-spacing-4);
 }
 
 .nav-tag-panel-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--nav-spacing-3);
 }
 
 .nav-tag-panel-chip {
@@ -721,8 +721,8 @@
   align-items: center;
   height: 24px;
   padding: 0 11px;
-  border: 1px solid var(--nav-color-border);
-  border-radius: 999px;
+  border: var(--nav-border-width) solid var(--nav-color-border);
+  border-radius: var(--nav-radius-pill);
   font-size: var(--nav-font-size-sm);
   font-weight: 600;
   color: var(--nav-color-text-secondary);
@@ -749,13 +749,13 @@
   display: inline-flex;
   align-items: center;
   height: 22px;
-  padding: 0 10px;
-  font-size: 10px;
+  padding: 0 var(--nav-spacing-5);
+  font-size: var(--nav-font-size-xs);
   font-weight: 600;
   font-family: var(--nav-font-family);
   color: var(--nav-color-text-muted);
-  border: 1px solid var(--nav-color-border);
-  border-radius: 999px;
+  border: var(--nav-border-width) solid var(--nav-color-border);
+  border-radius: var(--nav-radius-pill);
   cursor: pointer;
   align-self: flex-start;
   transition: color var(--nav-transition), border-color var(--nav-transition);
@@ -774,11 +774,11 @@
 
 /* SearchPanel — collapsible panel below tree map (mirrors TagPanel pattern) */
 .nav-search-panel {
-  padding: 10px 14px 12px;
-  border-top: 1px solid var(--nav-color-divider);
+  padding: var(--nav-spacing-5) var(--nav-spacing-7) var(--nav-spacing-6);
+  border-top: var(--nav-border-width) solid var(--nav-color-divider);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--nav-spacing-4);
 }
 
 .nav-search-input-wrap {
@@ -793,7 +793,7 @@
   height: 28px;
   padding: 0 28px 0 10px;
   background: var(--nav-color-surface-2);
-  border: 1px solid var(--nav-color-border);
+  border: var(--nav-border-width) solid var(--nav-color-border);
   border-radius: var(--nav-border-radius-sm);
   font-size: var(--nav-font-size-sm);
   font-family: var(--nav-font-family);
@@ -818,7 +818,7 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  font-size: 10px;
+  font-size: var(--nav-font-size-xs);
   color: var(--nav-color-text-muted);
   cursor: pointer;
   border-radius: 4px;
@@ -832,7 +832,7 @@
 .nav-search-results {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--nav-spacing-1);
   max-height: 160px;
   overflow-y: auto;
 }
@@ -840,15 +840,15 @@
 .nav-search-count {
   font-size: var(--nav-font-size-sm);
   color: var(--nav-color-text-muted);
-  padding: 0 2px 2px;
+  padding: 0 var(--nav-spacing-1) var(--nav-spacing-1);
 }
 
 .nav-search-result {
   all: unset;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
+  gap: var(--nav-spacing-4);
+  padding: var(--nav-spacing-2) var(--nav-spacing-3);
   border-radius: 7px;
   cursor: pointer;
   transition: background var(--nav-duration-fast) ease;
@@ -867,8 +867,8 @@
   padding: 0 5px;
   background: var(--nav-color-accent-soft);
   color: var(--nav-color-accent);
-  border-radius: 999px;
-  font-size: 10px;
+  border-radius: var(--nav-radius-pill);
+  font-size: var(--nav-font-size-xs);
   font-weight: 700;
   font-family: var(--nav-font-family);
   flex-shrink: 0;
