@@ -24,24 +24,22 @@ import { EmptyState } from './EmptyState';
 export function TreeMapCanvas() {
   const tree = usePanelStore((s) => s.tree);
   const width = usePanelStore((s) => s.settings.panelWidth);
+  const sortOrder = usePanelStore((s) => s.settings.sortOrder);
 
   if (!tree || tree.nodes.length === 0) {
     return <EmptyState />;
   }
 
-  const { nodes } = tree;
-  const height = calcSvgHeight(nodes.length);
+  const sortedNodes = sortOrder === 'asc' ? [...tree.nodes] : [...tree.nodes].reverse();
+  const height = calcSvgHeight(sortedNodes.length);
 
   const labelX = COLUMN_X + NODE_RADIUS + LABEL_GAP;
   const labelMaxChars = Math.max(6, Math.floor((width - labelX - LABEL_TRAILING_MARGIN) / AVG_CHAR_PX_AT_12));
   const rowWidth = width - ROW_INSET * 2;
-  const maxIndex = nodes.reduce((m, n) => Math.max(m, n.index), 0);
+  const maxIndex = sortedNodes.reduce((m, n) => Math.max(m, n.index), 0);
 
   return (
-    <div
-      data-testid="treemap-canvas"
-      className="nav-treemap"
-    >
+    <div data-testid="treemap-canvas" className="nav-treemap">
       <svg
         width={width}
         height={height}
@@ -50,7 +48,7 @@ export function TreeMapCanvas() {
         aria-label="Chat node tree"
       >
         {/* 1) Connectors first so nodes render on top of them. */}
-        {nodes.slice(0, -1).map((node, i) => (
+        {sortedNodes.slice(0, -1).map((node, i) => (
           <NodeConnector
             key={`conn-${node.id}`}
             x={COLUMN_X}
@@ -60,7 +58,7 @@ export function TreeMapCanvas() {
         ))}
 
         {/* 2) Branch lanes at branch-point nodes. */}
-        {nodes.map((node, i) =>
+        {sortedNodes.map((node, i) =>
           node.hasBranch ? (
             <BranchLane
               key={`lane-${node.id}`}
@@ -69,11 +67,11 @@ export function TreeMapCanvas() {
               endX={COLUMN_X + LANE_OFFSET}
               endY={nodeCenterY(i) + NODE_STEP * 0.6}
             />
-          ) : null,
+          ) : null
         )}
 
         {/* 3) Nodes (circle + number + label) on top. */}
-        {nodes.map((node, i) => (
+        {sortedNodes.map((node, i) => (
           <TreeNode
             key={node.id}
             node={node}
