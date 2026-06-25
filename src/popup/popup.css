@@ -8,8 +8,8 @@ body {
 
 .cn-popup {
   padding: 16px;
-  background-color: #11111b;
-  color: #f1f5f9;
+  background-color: #1e1b18;
+  color: #f5f2ec;
   font-family:
     'Inter',
     -apple-system,
@@ -25,7 +25,7 @@ body {
   align-items: baseline;
   justify-content: space-between;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
 }
 .cn-title {
   font-size: 16px;
@@ -34,21 +34,21 @@ body {
 }
 .cn-version {
   font-size: 11px;
-  color: #94a3b8;
+  color: #a8a299;
 }
 
 /* Loading */
 .cn-loading {
   padding: 24px 0;
   text-align: center;
-  color: #94a3b8;
+  color: #a8a299;
 }
 
 /* Unsupported notice */
 .cn-unsupported {
   padding: 32px 16px;
   text-align: center;
-  color: #94a3b8;
+  color: #a8a299;
   line-height: 1.6;
 }
 .cn-unsupported__icon {
@@ -56,7 +56,7 @@ body {
   margin-bottom: 12px;
 }
 .cn-unsupported__title {
-  color: #f1f5f9;
+  color: #f5f2ec;
 }
 .cn-unsupported p {
   margin-top: 8px;
@@ -80,7 +80,7 @@ body {
   gap: 12px;
 }
 .cn-row__label {
-  color: #94a3b8;
+  color: #a8a299;
   min-width: 80px;
 }
 .cn-row__control {
@@ -99,7 +99,7 @@ body {
 .cn-toggle {
   width: 44px;
   height: 24px;
-  background: #374151;
+  background: #3d3830;
   border: none;
   border-radius: 12px;
   position: relative;
@@ -107,7 +107,7 @@ body {
   transition: background 150ms;
 }
 .cn-toggle--on {
-  background: #7c3aed;
+  background: #d97757;
 }
 .cn-toggle__knob {
   position: absolute;
@@ -115,7 +115,7 @@ body {
   left: 2px;
   width: 20px;
   height: 20px;
-  background: #f1f5f9;
+  background: #f5f2ec;
   border-radius: 50%;
   transition: left 150ms;
 }
@@ -129,32 +129,35 @@ body {
 @media (prefers-color-scheme: light) {
   .cn-popup {
     background-color: #ffffff;
-    color: #1e293b;
+    color: #2a2723;
   }
   .cn-header {
-    border-bottom-color: rgba(15, 23, 42, 0.12);
+    border-bottom-color: rgba(42, 39, 35, 0.12);
   }
   .cn-version,
   .cn-loading,
   .cn-unsupported,
   .cn-row__label {
-    color: #64748b;
+    color: #8d8881;
   }
   .cn-unsupported__title {
-    color: #1e293b;
+    color: #2a2723;
   }
   .cn-divider {
-    border-top-color: rgba(15, 23, 42, 0.1);
+    border-top-color: rgba(42, 39, 35, 0.1);
   }
   .cn-select {
-    background: rgba(15, 23, 42, 0.05);
-    color: #1e293b;
-    border-color: rgba(15, 23, 42, 0.15);
+    background: rgba(42, 39, 35, 0.05);
+    color: #2a2723;
+    border-color: rgba(42, 39, 35, 0.15);
   }
   .cn-toggle {
-    background: #cbd5e1;
+    background: #d9d4cb;
   }
   .cn-toggle--on {
-    background: #7c3aed;
+    background: #d97757;
+  }
+  .cn-toggle__knob {
+    background: #ffffff;
   }
 }
