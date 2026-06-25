@@ -412,6 +412,10 @@
   color: var(--nav-color-text-secondary);
   font-variant-numeric: tabular-nums;
 }
+.nav-control option {
+  background-color: var(--nav-color-bg);
+  color: var(--nav-color-text);
+}
 
 /* TreeMapCanvas container (scrollbar rules remain below) */
 .nav-treemap {
