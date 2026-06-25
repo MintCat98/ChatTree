@@ -43,8 +43,8 @@ export function NodeBadge({ cx, cy, current, total }: NodeBadgeProps) {
         y={cy}
         textAnchor="middle"
         dominantBaseline="central"
-        fill="#ffffff"
-        fontSize="10"
+        fill="var(--nav-color-node-active-text)"
+        fontSize="var(--nav-font-size-xs)"
         fontWeight={600}
         fontFamily="var(--nav-font-family)"
         pointerEvents="none"
