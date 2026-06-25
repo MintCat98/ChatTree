@@ -55,11 +55,13 @@ The following is a set of guidelines for contributing to ChatTree.
 ```
 main          ← stable, production-ready
 dev           ← integration branch for ongoing development
-feat/xxx      ← new features       (e.g. feat/tree-renderer)
-fix/xxx       ← bug fixes          (e.g. fix/node-scroll-offset)
+feat/xxx      ← new features       (e.g. feat/tree-renderer, feat/42-tree-renderer)
+fix/xxx       ← bug fixes          (e.g. fix/node-scroll-offset, fix/42-node-scroll-offset)
 docs/xxx      ← documentation only (e.g. docs/update-readme)
 chore/xxx     ← config, tooling    (e.g. chore/update-webpack)
 ```
+
+- If the work has a corresponding issue, include the issue number: `feat/<issue#>-<name>` (e.g. `feat/42-tree-renderer`)
 
 - All PRs must target **`dev`**, not `main`.
 - `main` is updated via a release PR from `dev` by the core team only.
@@ -71,12 +73,12 @@ chore/xxx     ← config, tooling    (e.g. chore/update-webpack)
 We follow the [Conventional Commits](https://www.conventionalcommits.org/) standard.
 
 ```
-<type>(<scope>): <short summary>
+<type>: <short summary>
 
-feat(content): add hover popup for node preview
-fix(background): resolve message passing error on reload
-docs(readme): add installation instructions
-chore(deps): update webpack to v5.99
+feat: add hover popup for node preview
+fix: resolve message passing error on reload
+docs: add installation instructions
+chore: update webpack to v5.99
 ```
 
 | Type | When to use |
@@ -104,7 +106,7 @@ chore(deps): update webpack to v5.99
 ### PR Title Format
 Follow the same convention as commit messages:
 ```
-feat(popup): add opacity slider for navigation map
+feat: add opacity slider for navigation map
 ```
 
 ---
