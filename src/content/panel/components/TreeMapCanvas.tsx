@@ -23,6 +23,7 @@ import { EmptyState } from './EmptyState';
 export function TreeMapCanvas() {
   const tree = usePanelStore((s) => s.tree);
   const width = usePanelStore((s) => s.settings.panelWidth);
+  const bookmarksOnlyFilter = usePanelStore((s) => s.bookmarksOnlyFilter);
   const sortOrder = usePanelStore((s) => s.settings.sortOrder);
   const maxVisibleNodes = usePanelStore((s) => s.settings.maxVisibleNodes);
 
@@ -38,7 +39,9 @@ export function TreeMapCanvas() {
   const maxIndex = sortedNodes.reduce((m, n) => Math.max(m, n.index), 0);
 
   return (
-    <div data-testid="treemap-canvas" className="nav-treemap"
+    <div
+      data-testid="treemap-canvas"
+      className={bookmarksOnlyFilter ? 'nav-treemap is-filtered' : 'nav-treemap'}
       style={{
         maxHeight: maxVisibleNodes * NODE_STEP,
         overflowY: 'auto',
@@ -73,7 +76,6 @@ export function TreeMapCanvas() {
             />
           ) : null
         )}
-          */}
 
         {/* 3) Nodes (circle + number + label) on top. */}
         {sortedNodes.map((node, i) => (
