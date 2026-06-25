@@ -3,8 +3,11 @@
 // buttons opt out so their clicks don't drag.
 
 import { useCallback, type KeyboardEvent, type ReactNode } from 'react';
-import { Bookmark, Tag, Search, Settings } from 'lucide-react';
+import { Bookmark, Tag, Search, Settings, Flag } from 'lucide-react';
 import { usePanelStore } from '../store/panel-store';
+
+const FEEDBACK_URL =
+  'https://github.com/MintCat98/ChatTree/issues?q=sort%3Aupdated-desc+is%3Aissue+state%3Aopen+';
 
 export function Header() {
   const updateSettings = usePanelStore((s) => s.updateSettings);
@@ -47,6 +50,9 @@ export function Header() {
         <div className="nav-header-controls">
           <IconButton label={collapsed ? '패널 펼치기' : '패널 접기'} expanded={!collapsed} onClick={toggleCollapsed}>
             {collapsed ? '▸' : '▾'}
+          </IconButton>
+          <IconButton label="피드백 보내기" tooltip onClick={() => window.open(FEEDBACK_URL, '_blank')}>
+            <Flag size={13} />
           </IconButton>
           <IconButton label="패널 닫기" onClick={handleClose}>
             ✕
@@ -98,14 +104,16 @@ interface IconButtonProps {
   children: ReactNode;
   expanded?: boolean;
   pressed?: boolean;
+  tooltip?: boolean;
 }
 
-function IconButton({ label, onClick, children, expanded, pressed }: IconButtonProps) {
+function IconButton({ label, onClick, children, expanded, pressed, tooltip }: IconButtonProps) {
   const onKey = useKeyActivate(onClick);
   return (
     <button
       type="button"
       aria-label={label}
+      data-label={tooltip ? label : undefined}
       aria-expanded={expanded}
       aria-pressed={pressed}
       onClick={onClick}
