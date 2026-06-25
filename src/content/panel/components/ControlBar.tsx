@@ -6,7 +6,7 @@
 import { type ChangeEvent } from 'react';
 import { usePanelStore } from '../store/panel-store';
 import type { UserSettings } from '@shared/types';
-import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, MAX_VISIBLE_NODES } from '@shared/types';
+import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, MAX_VISIBLE_NODES, DEFAULT_SETTINGS } from '@shared/types';
 
 export function ControlBar() {
   const settings = usePanelStore((s) => s.settings);
@@ -24,6 +24,7 @@ export function ControlBar() {
     updateSettings({ themeMode: e.target.value as UserSettings['themeMode'] });
   const handleMaxVisibleNodes = (e: ChangeEvent<HTMLInputElement>) =>
     updateSettings({ maxVisibleNodes: Number(e.target.value) });
+  const handleReset = () => updateSettings(DEFAULT_SETTINGS);
 
   return (
     <div data-testid="control-bar" className="nav-control-bar">
@@ -117,6 +118,18 @@ export function ControlBar() {
           className="nav-range"
         />
         <span className="nav-control-readout">{settings.maxVisibleNodes}</span>
+      </div>
+
+      {/* Reset to Default*/}
+      <div className="nav-control-row">
+        <button
+          type="button"
+          onClick={handleReset}
+          className="nav-control"
+          aria-label="Reset to default settings"
+        >
+          기본값으로 설정
+        </button>
       </div>
     </div>
   );
