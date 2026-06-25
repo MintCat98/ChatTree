@@ -3,7 +3,7 @@
 // buttons opt out so their clicks don't drag.
 
 import { useCallback, type KeyboardEvent, type ReactNode } from 'react';
-import { Bookmark, Tag, Search, Settings, Flag, CircleHelp } from 'lucide-react';
+import { Bookmark, Tag, Search, Settings, Flag, CircleHelp, Heart } from 'lucide-react';
 import { usePanelStore } from '../store/panel-store';
 import { GITHUB_URLS } from '../../../shared/constants';
 
@@ -27,6 +27,10 @@ export function Header() {
   const handleClose = useCallback(() => updateSettings({ panelVisible: false }), [updateSettings]);
   const openUserGuide = useCallback(
     () => window.open(GITHUB_URLS.USER_GUIDE, '_blank', 'noopener,noreferrer'),
+    [],
+  );
+  const openFunding = useCallback(
+    () => window.open(GITHUB_URLS.SPONSORS, '_blank', 'noopener,noreferrer'),
     [],
   );
 
@@ -71,9 +75,12 @@ export function Header() {
       {/* Row 2: message count (left) | tool icons (right) — hidden when collapsed */}
       {!collapsed && (
         <div className="nav-header-row">
-          <span data-drag-handle="true" className="nav-header-subtitle">
-            메시지 {count}개
-          </span>
+          <div data-drag-handle="true" className="nav-header-subtitle">
+            <IconButton label="후원하기" tooltip onClick={openFunding}>
+              <Heart size={12} />
+            </IconButton>
+            <span data-drag-handle="true">메시지 {count}개</span>
+          </div>
           <div className="nav-header-tools">
             <IconButton label="북마크만 보기" pressed={bookmarksOnlyFilter} onClick={toggleBookmarksOnlyFilter}>
               <Bookmark size={13} />
