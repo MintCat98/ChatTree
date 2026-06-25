@@ -25,19 +25,15 @@ export function ControlBar() {
 
   return (
     <div data-testid="control-bar" className="nav-control-bar">
-      {/* Direction — Top-Down is fixed; Left-Right is reserved for a future PR. */}
-      <div className="nav-control-row">
-        <span className="nav-control-label">방향</span>
-        <select disabled value={settings.panelDirection} className="nav-control" aria-label="패널 방향">
-          <option value="top-down">Top-Down</option>
-          <option value="left-right">Left-Right (coming soon)</option>
-        </select>
-      </div>
-
       {/* Position */}
       <div className="nav-control-row">
         <span className="nav-control-label">위치</span>
-        <select value={settings.panelPosition} onChange={handlePosition} className="nav-control" aria-label="패널 위치">
+        <select
+          value={settings.panelPosition}
+          onChange={handlePosition}
+          className="nav-control"
+          aria-label="패널 위치"
+        >
           <option value="top-left">좌상단</option>
           <option value="top-right">우상단</option>
           <option value="bottom-left">좌하단</option>
@@ -93,7 +89,12 @@ export function ControlBar() {
       {/* Theme (issue 06) */}
       <div className="nav-control-row">
         <span className="nav-control-label">테마</span>
-        <select value={settings.themeMode} onChange={handleTheme} className="nav-control" aria-label="테마">
+        <select
+          value={settings.themeMode}
+          onChange={handleTheme}
+          className="nav-control"
+          aria-label="테마"
+        >
           <option value="auto">자동 (Claude 따름)</option>
           <option value="light">라이트</option>
           <option value="dark">다크</option>
