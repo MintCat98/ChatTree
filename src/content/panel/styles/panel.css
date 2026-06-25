@@ -356,6 +356,18 @@
   opacity: 1;
 }
 
+/* Sponsor button — heart always filled pink */
+.nav-icon-btn[aria-label="후원하기"] {
+  color: #f472b6;
+}
+.nav-icon-btn[aria-label="후원하기"] svg {
+  fill: currentColor;
+}
+.nav-icon-btn[aria-label="후원하기"]:hover {
+  background: rgba(244, 114, 182, 0.12);
+  color: #ec4899;
+}
+
 /* PillButton — :hover before [aria-pressed] so active state wins on same specificity */
 .nav-pill-btn {
   height: 24px;
