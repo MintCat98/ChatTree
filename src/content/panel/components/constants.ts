@@ -10,11 +10,12 @@ export const LABEL_MAX_CHARS = 25;     // Max characters displayed inside a node
 export const TOOLTIP_DELAY_MS = 300;   // Delay before showing the tooltip on hover.
 
 // SVG layout coordinates (shared by TreeMapCanvas and TreeNode).
-export const COLUMN_X = 32;              // x of the node circle centers (left rail).
+export const COLUMN_X = 44;              // x of the node circle centers (left rail). Shifted right to make room for left-side icon buttons.
 export const LABEL_GAP = 12;             // Gap between circle edge and label.
 export const ROW_INSET = 10;             // Left/right inset of the row hover background.
 export const ROW_V_GAP = 10;             // Vertical gap trimmed from NODE_STEP for the row rect height.
 export const NODE_LABEL_FONT_SIZE = 12;  // Font size (px) for the question label text.
+export const ICON_HALF = 8;              // Half-size (px) of BookmarkButton / TagButton (SIZE=16).
 
 // Label width estimation (TreeMapCanvas).
 export const AVG_CHAR_PX_AT_12 = 6.6;    // Approximate px per char at 12px font size.

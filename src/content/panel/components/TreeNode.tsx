@@ -10,9 +10,10 @@ import type { ChatboxNode } from '@shared/types';
 import { setNodeMetadata } from '@shared/metadata-storage';
 import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
-import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, LABEL_TRAILING_MARGIN } from './constants';
+import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, LABEL_TRAILING_MARGIN, ROW_INSET, ICON_HALF } from './constants';
 import { NodeBadge } from './NodeBadge';
 import { BookmarkButton } from './BookmarkButton';
+import { TagButton } from './TagButton';
 
 interface TreeNodeProps {
   node: ChatboxNode;
@@ -38,11 +39,19 @@ export function TreeNode({
   const sessionMetadata = usePanelStore((s) => s.sessionMetadata);
   const patchNodeMetadata = usePanelStore((s) => s.patchNodeMetadata);
   const sessionId = usePanelStore((s) => s.tree?.sessionId ?? '');
+  const tagEditNodeId = usePanelStore((s) => s.tagEditNodeId);
+  const setTagEditNodeId = usePanelStore((s) => s.setTagEditNodeId);
+  const activeTagFilters = usePanelStore((s) => s.activeTagFilters);
 
   const isActive = activeNodeId === node.id;
   const isHovered = hoveredNodeId === node.id;
   const isBranch = node.hasBranch;
   const isBookmarked = sessionMetadata[node.id]?.bookmarked ?? false;
+  const nodeTags = sessionMetadata[node.id]?.tags ?? [];
+  const hasTags = nodeTags.length > 0;
+  const isTagOpen = tagEditNodeId === node.id;
+  const isTagMatch =
+    activeTagFilters.length === 0 || activeTagFilters.some((t) => nodeTags.includes(t));
 
   const r = isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
 
@@ -103,12 +112,21 @@ export function TreeNode({
     [node.id, sessionId, isBookmarked, patchNodeMetadata],
   );
 
+  const handleTagClick = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      setTagEditNodeId(isTagOpen ? null : node.id);
+    },
+    [node.id, isTagOpen, setTagEditNodeId],
+  );
+
   const nodeClass = [
     'nav-node',
     isActive? 'is-active' : '',
     isHovered ? 'is-hovered' : '',
     isBranch ? 'is-branch' : '',
     isBookmarked ? 'is-bookmarked' : '',
+    isTagMatch ? 'is-tag-match' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -193,11 +211,19 @@ export function TreeNode({
         />
       ) : null}
 
+      {/* Left-side icon stack: bookmark (top) + tag (bottom), vertically centered on cy */}
       <BookmarkButton
-        x={rowX + rowWidth - 20}
-        cy={cy}
+        x={ROW_INSET}
+        cy={cy - ICON_HALF}
         isBookmarked={isBookmarked}
         onToggle={handleBookmarkToggle}
+      />
+      <TagButton
+        x={ROW_INSET}
+        cy={cy + ICON_HALF}
+        hasTags={hasTags}
+        isOpen={isTagOpen}
+        onClick={handleTagClick}
       />
     </g>
   );

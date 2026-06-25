@@ -222,7 +222,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 12px 12px 14px;
+  padding: 10px 10px 10px 14px;
   border-bottom: 1px solid var(--nav-color-divider);
   cursor: grab;
   -webkit-user-select: none;
@@ -232,6 +232,7 @@
   border-bottom: none;
 }
 .nav-header-brand {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -268,8 +269,16 @@
 .nav-header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   flex-shrink: 0;
+}
+.nav-header-toggles {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.nav-header-toggles.is-hidden {
+  visibility: hidden;
 }
 
 /* IconButton */
@@ -291,6 +300,10 @@
 .nav-icon-btn:hover {
   background: var(--nav-color-surface-2);
   color: var(--nav-color-text);
+}
+.nav-icon-btn[aria-pressed="true"] {
+  background: var(--nav-color-accent-soft);
+  color: var(--nav-color-accent);
 }
 
 /* PillButton — :hover before [aria-pressed] so active state wins on same specificity */
@@ -369,6 +382,7 @@
 
 /* TreeMapCanvas container (scrollbar rules remain below) */
 .nav-treemap {
+  position: relative;
   width: 100%;
   max-height: 50vh;
   overflow-y: auto;
@@ -470,4 +484,233 @@
 .nav-treemap.is-filtered .nav-node:not(.is-bookmarked) {
   opacity: 0.2;
   pointer-events: none;
+}
+
+/* TagButton (foreignObject + lucide Tag icon) */
+.nav-node-tag {
+  opacity: 0;
+  overflow: visible;
+  transition: opacity var(--nav-transition);
+}
+
+.nav-node:hover .nav-node-tag,
+.nav-node-tag.has-tags,
+.nav-node-tag.is-open {
+  opacity: 1;
+}
+
+.nav-tag-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  color: var(--nav-color-text-muted);
+  transition: color var(--nav-transition);
+}
+
+.nav-tag-btn:hover {
+  color: var(--nav-color-accent);
+}
+
+.nav-node-tag.has-tags .nav-tag-btn {
+  color: var(--nav-color-accent);
+}
+
+.nav-node-tag.is-open .nav-tag-btn {
+  color: var(--nav-color-accent);
+}
+
+/* TagEditorPopover — absolute-positioned HTML overlay inside nav-treemap */
+.nav-tag-popover {
+  position: absolute;
+  right: 8px;
+  width: 180px;
+  background: var(--nav-color-bg);
+  border: 1px solid var(--nav-color-border);
+  border-radius: var(--nav-border-radius-sm);
+  box-shadow: var(--nav-panel-shadow);
+  padding: 8px 10px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nav-tag-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-tag-popover-title {
+  font-size: var(--nav-font-size-sm);
+  font-weight: 600;
+  color: var(--nav-color-text-secondary);
+}
+
+.nav-tag-popover-close {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  color: var(--nav-color-text-muted);
+  border-radius: 4px;
+  transition: color var(--nav-transition), background var(--nav-transition);
+}
+
+.nav-tag-popover-close:hover {
+  color: var(--nav-color-text);
+  background: var(--nav-color-surface-2);
+}
+
+.nav-tag-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.nav-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 6px 0 8px;
+  background: var(--nav-color-accent-soft);
+  border: 1px solid var(--nav-color-accent);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--nav-color-accent);
+  font-family: var(--nav-font-family);
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-tag-chip-remove {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+  color: var(--nav-color-accent);
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: background var(--nav-transition);
+}
+
+.nav-tag-chip-remove:hover {
+  background: var(--nav-color-accent);
+  color: #ffffff;
+}
+
+.nav-tag-input {
+  all: unset;
+  display: block;
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  background: var(--nav-color-surface-2);
+  border: 1px solid var(--nav-color-border);
+  border-radius: var(--nav-border-radius-sm);
+  font-size: var(--nav-font-size-sm);
+  font-family: var(--nav-font-family);
+  color: var(--nav-color-text);
+  transition: border-color var(--nav-transition);
+  box-sizing: border-box;
+}
+
+.nav-tag-input:focus {
+  border-color: var(--nav-color-accent);
+}
+
+.nav-tag-input::placeholder {
+  color: var(--nav-color-text-muted);
+}
+
+/* Tag filter: dim non-matching nodes when tag filters are active */
+.nav-treemap.is-tag-filtered .nav-node:not(.is-tag-match) {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+/* TagPanel — collapsible panel below tree map (mirrors ControlBar pattern) */
+.nav-tag-panel {
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--nav-color-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-tag-panel-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nav-tag-panel-chip {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 11px;
+  border: 1px solid var(--nav-color-border);
+  border-radius: 999px;
+  font-size: var(--nav-font-size-sm);
+  font-weight: 600;
+  color: var(--nav-color-text-secondary);
+  font-family: var(--nav-font-family);
+  cursor: pointer;
+  transition: background var(--nav-duration-fast) ease,
+              border-color var(--nav-duration-fast) ease,
+              color var(--nav-duration-fast) ease;
+}
+
+.nav-tag-panel-chip:hover {
+  background: var(--nav-color-surface-2);
+  border-color: var(--nav-color-accent);
+}
+
+.nav-tag-panel-chip.is-active {
+  background: var(--nav-color-accent-soft);
+  border-color: var(--nav-color-accent);
+  color: var(--nav-color-accent);
+}
+
+.nav-tag-panel-clear {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--nav-font-family);
+  color: var(--nav-color-text-muted);
+  border: 1px solid var(--nav-color-border);
+  border-radius: 999px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: color var(--nav-transition), border-color var(--nav-transition);
+}
+
+.nav-tag-panel-clear:hover {
+  color: var(--nav-color-text);
+  border-color: var(--nav-color-text-muted);
+}
+
+.nav-tag-panel-empty {
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-color-text-muted);
+  margin: 0;
 }

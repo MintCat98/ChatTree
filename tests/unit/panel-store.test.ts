@@ -50,6 +50,9 @@ function resetStore() {
     settingsOpen:        false,
     bookmarksOnlyFilter: false,
     sessionMetadata:     {},
+    activeTagFilters:    [],
+    tagPanelOpen:        false,
+    tagEditNodeId:       null,
   });
 }
 

@@ -19,11 +19,16 @@ import { TreeNode } from './TreeNode';
 import { NodeConnector } from './NodeConnector';
 import { BranchLane } from './BranchLane';
 import { EmptyState } from './EmptyState';
+import { TagEditorPopover } from './TagEditorPopover';
 
 export function TreeMapCanvas() {
   const tree = usePanelStore((s) => s.tree);
   const width = usePanelStore((s) => s.settings.panelWidth);
   const bookmarksOnlyFilter = usePanelStore((s) => s.bookmarksOnlyFilter);
+  const activeTagFilters = usePanelStore((s) => s.activeTagFilters);
+  const tagEditNodeId   = usePanelStore((s) => s.tagEditNodeId);
+  const sessionMetadata = usePanelStore((s) => s.sessionMetadata);
+  const sessionId       = usePanelStore((s) => s.tree?.sessionId ?? '');
   const sortOrder = usePanelStore((s) => s.settings.sortOrder);
   const maxVisibleNodes = usePanelStore((s) => s.settings.maxVisibleNodes);
 
@@ -38,10 +43,22 @@ export function TreeMapCanvas() {
   const rowWidth = width - ROW_INSET * 2;
   const maxIndex = sortedNodes.reduce((m, n) => Math.max(m, n.index), 0);
 
+  const tagEditNode = tagEditNodeId
+    ? sortedNodes.find((n) => n.id === tagEditNodeId) ?? null
+    : null;
+
+  const treemapClass = [
+    'nav-treemap',
+    bookmarksOnlyFilter         ? 'is-filtered'     : '',
+    activeTagFilters.length > 0 ? 'is-tag-filtered' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div
       data-testid="treemap-canvas"
-      className={bookmarksOnlyFilter ? 'nav-treemap is-filtered' : 'nav-treemap'}
+      className={treemapClass}
       style={{
         maxHeight: maxVisibleNodes * NODE_STEP,
         overflowY: 'auto',
@@ -90,6 +107,15 @@ export function TreeMapCanvas() {
           />
         ))}
       </svg>
+
+      {tagEditNode && (
+        <TagEditorPopover
+          nodeIndex={sortedNodes.indexOf(tagEditNode)}
+          nodeId={tagEditNode.id}
+          sessionId={sessionId}
+          currentTags={sessionMetadata[tagEditNode.id]?.tags ?? []}
+        />
+      )}
     </div>
   );
 }
