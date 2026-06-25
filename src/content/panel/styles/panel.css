@@ -235,7 +235,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--nav-spacing-1);
-  padding: var(--nav-spacing-4) var(--nav-spacing-5) var(--nav-spacing-4) var(--nav-spacing-7);
+  padding: var(--nav-spacing-4) var(--nav-spacing-5) var(--nav-spacing-4) var(--nav-spacing-4);
   border-bottom: var(--nav-border-width) solid var(--nav-color-divider);
   cursor: grab;
   -webkit-user-select: none;
@@ -281,7 +281,7 @@
 .nav-header-subtitle {
   display: flex;
   align-items: center;
-  gap: var(--nav-spacing-2);
+  gap: var(--nav-spacing-4);
   font-size: var(--nav-font-size-sm);
   color: var(--nav-color-text-muted);
   line-height: 1;
