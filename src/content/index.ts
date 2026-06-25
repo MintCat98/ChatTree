@@ -2,8 +2,9 @@
 
 import { startObserving, stopObserving } from './observer';
 import { watchPageChanges } from './page-watcher';
-import { injectPanel, destroyPanel, isPanelMounted } from './ui-injector';
+import { injectPanel, destroyPanel, isPanelMounted, getResolvedTheme } from './ui-injector';
 import { CHAT_URL_PATTERN, SELECTORS } from '@shared/constants';
+import { MessageType } from '@shared/message-types';
 
 let containerWatch: MutationObserver | null = null;
 
@@ -68,5 +69,13 @@ function init(): void {
     if ((e as PageTransitionEvent).persisted) ensureActive();
   });
 }
+
+// Respond to popup queries for the current resolved theme.
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === MessageType.GET_RESOLVED_THEME) {
+    sendResponse({ theme: getResolvedTheme() });
+    return false;
+  }
+});
 
 init();
