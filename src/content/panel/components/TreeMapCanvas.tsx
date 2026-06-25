@@ -7,7 +7,6 @@ import { usePanelStore } from '../store/panel-store';
 import {
   NODE_RADIUS,
   NODE_STEP,
-  LANE_OFFSET,
   COLUMN_X,
   LABEL_GAP,
   ROW_INSET,
@@ -17,7 +16,6 @@ import {
 } from './constants';
 import { TreeNode } from './TreeNode';
 import { NodeConnector } from './NodeConnector';
-import { BranchLane } from './BranchLane';
 import { EmptyState } from './EmptyState';
 import { TagEditorPopover } from './TagEditorPopover';
 
@@ -83,20 +81,7 @@ export function TreeMapCanvas() {
           />
         ))}
 
-        {/* 2) Branch lanes at branch-point nodes. */}
-        {sortedNodes.map((node, i) =>
-          node.hasBranch ? (
-            <BranchLane
-              key={`lane-${node.id}`}
-              startX={COLUMN_X}
-              startY={nodeCenterY(i)}
-              endX={COLUMN_X + LANE_OFFSET}
-              endY={nodeCenterY(i) + NODE_STEP * 0.6}
-            />
-          ) : null
-        )}
-
-        {/* 3) Nodes (circle + number + label) on top. */}
+        {/* 2) Nodes (circle + number + label) on top. */}
         {sortedNodes.map((node, i) => (
           <TreeNode
             key={node.id}
