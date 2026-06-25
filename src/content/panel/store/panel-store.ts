@@ -4,8 +4,8 @@
 // single source of truth — no localStorage fallback.
 
 import { create } from 'zustand';
-import type { TreeData, UserSettings } from '@shared/types';
-import { DEFAULT_SETTINGS } from '@shared/types';
+import type { TreeData, UserSettings, NodeMetadata } from '@shared/types';
+import { DEFAULT_SETTINGS, DEFAULT_NODE_METADATA } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
 
 // Cursor position used to anchor the hover tooltip. Stored here because the
@@ -23,35 +23,43 @@ function mirrorToChromeStorage(settings: UserSettings): void {
 }
 
 interface PanelState {
-  tree:          TreeData | null;
-  settings:      UserSettings;
-  activeNodeId:  string | null;
-  hoveredNodeId: string | null;
-  hoverPos:      HoverPos | null;
-  collapsed:     boolean;   // header-only minimized view (issue 03)
-  settingsOpen:  boolean;   // controls ControlBar visibility (issue 04)
+  tree:             TreeData | null;
+  settings:         UserSettings;
+  activeNodeId:     string | null;
+  hoveredNodeId:    string | null;
+  hoverPos:         HoverPos | null;
+  collapsed:        boolean;   // header-only minimized view (issue 03)
+  settingsOpen:     boolean;   // controls ControlBar visibility (issue 04)
+  // Per-node metadata for the current session, keyed by nodeId (issue #96).
+  // Loaded from chrome.storage.local when the tree is hydrated.
+  sessionMetadata:  Record<string, NodeMetadata>;
 
-  setTree:           (tree: TreeData | null) => void;
-  updateSettings:    (patch: Partial<UserSettings>) => void;
+  setTree:              (tree: TreeData | null) => void;
+  updateSettings:       (patch: Partial<UserSettings>) => void;
   // Update settings WITHOUT writing back to chrome.storage. Used for incoming
   // storage-change hydration (avoids a write loop) and for live drag-resize.
-  hydrateSettings:   (patch: Partial<UserSettings>) => void;
-  setActiveNode:     (id: string | null) => void;
-  setHoveredNode:    (id: string | null) => void;
-  setHoverPos:       (pos: HoverPos | null) => void;
-  toggleCollapsed:   () => void;
-  toggleSettingsOpen: () => void;
+  hydrateSettings:      (patch: Partial<UserSettings>) => void;
+  setActiveNode:        (id: string | null) => void;
+  setHoveredNode:       (id: string | null) => void;
+  setHoverPos:          (pos: HoverPos | null) => void;
+  toggleCollapsed:      () => void;
+  toggleSettingsOpen:   () => void;
+  // Replace the entire session metadata map (called when tree/session changes).
+  setSessionMetadata:   (meta: Record<string, NodeMetadata>) => void;
+  // Optimistic local update for a single node (caller writes to chrome.storage).
+  patchNodeMetadata:    (nodeId: string, patch: Partial<NodeMetadata>) => void;
 }
 
 export const usePanelStore = create<PanelState>()(
   (set) => ({
-    tree:          null,
-    settings:      DEFAULT_SETTINGS,
-    activeNodeId:  null,
-    hoveredNodeId: null,
-    hoverPos:      null,
-    collapsed:     false,
-    settingsOpen:  false,
+    tree:            null,
+    settings:        DEFAULT_SETTINGS,
+    activeNodeId:    null,
+    hoveredNodeId:   null,
+    hoverPos:        null,
+    collapsed:       false,
+    settingsOpen:    false,
+    sessionMetadata: {},
 
     setTree: (tree) => set({ tree }),
 
@@ -71,5 +79,15 @@ export const usePanelStore = create<PanelState>()(
 
     toggleCollapsed:    () => set((s) => ({ collapsed: !s.collapsed })),
     toggleSettingsOpen: () => set((s) => ({ settingsOpen: !s.settingsOpen })),
+
+    setSessionMetadata: (meta) => set({ sessionMetadata: meta }),
+
+    patchNodeMetadata: (nodeId, patch) =>
+      set((s) => ({
+        sessionMetadata: {
+          ...s.sessionMetadata,
+          [nodeId]: { ...DEFAULT_NODE_METADATA, ...s.sessionMetadata[nodeId], ...patch },
+        },
+      })),
   }),
 );
