@@ -141,7 +141,7 @@
 
 /* Custom scrollbar inside the tree-map viewport. */
 .nav-treemap::-webkit-scrollbar {
-  width: 8px;
+  width: var(--nav-spacing-4);
 }
 .nav-treemap::-webkit-scrollbar-track {
   background: transparent;
@@ -162,7 +162,7 @@
   -webkit-appearance: none;
   appearance: none;
   flex: 1;
-  height: 4px;
+  height: var(--nav-spacing-2);
   border-radius: var(--nav-radius-pill);
   background: var(--nav-color-border);
   outline: none;
@@ -580,7 +580,7 @@
 /* TagEditorPopover — absolute-positioned HTML overlay inside nav-treemap */
 .nav-tag-popover {
   position: absolute;
-  right: 8px;
+  right: var(--nav-spacing-4);
   width: 180px;
   background: var(--nav-color-bg);
   border: var(--nav-border-width) solid var(--nav-color-border);
@@ -815,7 +815,7 @@
 .nav-search-clear {
   all: unset;
   position: absolute;
-  right: 6px;
+  right: var(--nav-spacing-3);
   display: flex;
   align-items: center;
   justify-content: center;
