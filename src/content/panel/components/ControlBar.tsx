@@ -128,7 +128,7 @@ export function ControlBar() {
           className="nav-control"
           aria-label="Reset to default settings"
         >
-          Reset to Default
+          기본값으로 설정
         </button>
       </div>
     </div>
