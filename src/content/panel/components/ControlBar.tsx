@@ -6,7 +6,7 @@
 import { type ChangeEvent } from 'react';
 import { usePanelStore } from '../store/panel-store';
 import type { UserSettings } from '@shared/types';
-import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX } from '@shared/types';
+import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, MAX_VISIBLE_NODES } from '@shared/types';
 
 export function ControlBar() {
   const settings = usePanelStore((s) => s.settings);
@@ -22,22 +22,20 @@ export function ControlBar() {
     updateSettings({ sortOrder: settings.sortOrder === 'asc' ? 'desc' : 'asc' });
   const handleTheme = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ themeMode: e.target.value as UserSettings['themeMode'] });
+  const handleMaxVisibleNodes = (e: ChangeEvent<HTMLInputElement>) =>
+    updateSettings({ maxVisibleNodes: Number(e.target.value) });
 
   return (
     <div data-testid="control-bar" className="nav-control-bar">
-      {/* Direction — Top-Down is fixed; Left-Right is reserved for a future PR. */}
-      <div className="nav-control-row">
-        <span className="nav-control-label">방향</span>
-        <select disabled value={settings.panelDirection} className="nav-control" aria-label="패널 방향">
-          <option value="top-down">Top-Down</option>
-          <option value="left-right">Left-Right (coming soon)</option>
-        </select>
-      </div>
-
       {/* Position */}
       <div className="nav-control-row">
         <span className="nav-control-label">위치</span>
-        <select value={settings.panelPosition} onChange={handlePosition} className="nav-control" aria-label="패널 위치">
+        <select
+          value={settings.panelPosition}
+          onChange={handlePosition}
+          className="nav-control"
+          aria-label="패널 위치"
+        >
           <option value="top-left">좌상단</option>
           <option value="top-right">우상단</option>
           <option value="bottom-left">좌하단</option>
@@ -93,11 +91,32 @@ export function ControlBar() {
       {/* Theme (issue 06) */}
       <div className="nav-control-row">
         <span className="nav-control-label">테마</span>
-        <select value={settings.themeMode} onChange={handleTheme} className="nav-control" aria-label="테마">
+        <select
+          value={settings.themeMode}
+          onChange={handleTheme}
+          className="nav-control"
+          aria-label="테마"
+        >
           <option value="auto">자동 (Claude 따름)</option>
           <option value="light">라이트</option>
           <option value="dark">다크</option>
         </select>
+      </div>
+
+      {/* Max visible nodes */}
+      <div className="nav-control-row">
+        <span className="nav-control-label">노드 표시 수</span>
+        <input
+          type="range"
+          min={2}
+          max={MAX_VISIBLE_NODES * 2}
+          step={1}
+          value={settings.maxVisibleNodes}
+          onChange={handleMaxVisibleNodes}
+          aria-label="Max visible nodes"
+          className="nav-range"
+        />
+        <span className="nav-control-readout">{settings.maxVisibleNodes}</span>
       </div>
     </div>
   );
