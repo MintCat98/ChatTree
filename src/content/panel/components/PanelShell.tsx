@@ -99,6 +99,16 @@ export function PanelShell({ children }: PanelShellProps) {
     };
   }, []);
 
+  // Recompute position on window resize to keep the panel in view.
+  useEffect(() => {
+    function handleWindowResize() {
+      const w = usePanelStore.getState().settings.panelWidth;
+      setPosition(getInitialPosition(settings.panelPosition, w));
+    }
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  }, [settings.panelPosition]);
+
   // Triggered by children that opt-in via data-drag-handle="true" (the Header).
   function startDrag(e: React.MouseEvent) {
     dragOffsetRef.current = { x: e.clientX - position.x, y: e.clientY - position.y };

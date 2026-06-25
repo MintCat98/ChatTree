@@ -5,6 +5,8 @@ import { sendToBackground } from './message-bridge';
 import { SELECTORS, TIMING } from '@shared/constants';
 import { MessageType } from '@shared/message-types';
 import type { ChatboxNode, TreeData } from '@shared/types';
+import { startTracking, stopTracking, observeNode } from './active-node-tracker';
+import { usePanelStore } from './panel/store/panel-store';
 
 export const TREE_READY_EVENT = 'chattree:ready';
 
@@ -30,6 +32,9 @@ function handleDOMChange(): void {
     currentNodes = assignChatboxIds();
     // console.log('[ChatTree DBG] DOM change → tree built, nodeCount=', currentNodes.length);
     dispatchTree(buildTree(currentNodes));
+    document
+      .querySelectorAll(`[${SELECTORS.NAV_ID_ATTR}]`)
+      .forEach((el) => observeNode(el));
   }, TIMING.OBSERVER_DEBOUNCE);
 }
 
@@ -75,6 +80,11 @@ export function startObserving(): void {
   // observing starts; later childList mutations cover anything still loading.
   handleDOMChange();
 
+  // active-node-tracker starts
+  startTracking((navId) => {
+    usePanelStore.getState().setActiveNode(navId);
+  });
+
   // Separate observer for branch switching (‹/›) — full rescan ensures
   // branchCurrent and node text are always read fresh from the settled DOM
   branchCleanup = watchBranchChanges(container as HTMLElement, () => {
@@ -94,4 +104,5 @@ export function stopObserving(): void {
   observer = null;
   branchCleanup?.();
   branchCleanup = null;
+  stopTracking();
 }
