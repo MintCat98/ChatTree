@@ -9,7 +9,7 @@ import { useCallback, useRef, type KeyboardEvent, type MouseEvent } from 'react'
 import type { ChatboxNode } from '@shared/types';
 import { scrollToNode } from '../../scroll-navigator';
 import { usePanelStore } from '../store/panel-store';
-import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, truncate } from './constants';
+import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, LABEL_TRAILING_MARGIN } from './constants';
 import { NodeBadge } from './NodeBadge';
 
 interface TreeNodeProps {
@@ -17,7 +17,6 @@ interface TreeNodeProps {
   cx: number;
   cy: number;
   labelX: number;
-  labelMaxChars: number;
   rowX: number;
   rowWidth: number;
 }
@@ -27,7 +26,6 @@ export function TreeNode({
   cx,
   cy,
   labelX,
-  labelMaxChars,
   rowX,
   rowWidth,
 }: TreeNodeProps) {
@@ -41,6 +39,9 @@ export function TreeNode({
   const isBranch = node.hasBranch;
 
   const r = isActive ? NODE_RADIUS_ACTIVE : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
+
+  const labelWidth = rowWidth - labelX + rowX - LABEL_TRAILING_MARGIN;
+  const rowH = NODE_STEP - ROW_V_GAP;
 
   const handleClick = useCallback(
     (e: MouseEvent<SVGGElement>) => {
@@ -86,7 +87,7 @@ export function TreeNode({
     setHoverPos(null);
   }, [setHoveredNode, setHoverPos]);
 
-  const rowH = NODE_STEP - ROW_V_GAP;
+  //const rowH = NODE_STEP - ROW_V_GAP;
 
   const nodeClass = [
     'nav-node',
@@ -144,17 +145,29 @@ export function TreeNode({
       </text>
 
       {/* Question label */}
-      <text
+      <foreignObject
         x={labelX}
-        y={cy}
-        textAnchor="start"
-        dominantBaseline="central"
-        fontFamily="var(--nav-font-family)"
-        pointerEvents="none"
-        className="nav-node-label"
+        y={cy - rowH / 2}
+        width={labelWidth}
+        height={rowH}
       >
-        {truncate(node.text, labelMaxChars)}
-      </text>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            height: '100%',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'elliopsis',
+            fontSize: '12px',
+            fontFamily: 'var(--nav-font-family)',
+            color: 'var(--nav-color-text-secondary)',
+            pointerEvents: 'none',
+          }}
+        >
+          {node.text} 
+        </div>
+      </foreignObject>
 
       {isBranch && node.branchTotal > 1 ? ( // Check if there are two or more branches
         <NodeBadge
