@@ -4,6 +4,7 @@
 // user-adjustable panel width (issue 02).
 
 import { usePanelStore } from '../store/panel-store';
+import { useMessages } from '../i18n';
 import {
   NODE_RADIUS,
   NODE_STEP,
@@ -20,6 +21,7 @@ import { EmptyState } from './EmptyState';
 import { TagEditorPopover } from './TagEditorPopover';
 
 export function TreeMapCanvas() {
+  const t = useMessages();
   const tree = usePanelStore((s) => s.tree);
   const width = usePanelStore((s) => s.settings.panelWidth);
   const bookmarksOnlyFilter = usePanelStore((s) => s.bookmarksOnlyFilter);
@@ -69,7 +71,7 @@ export function TreeMapCanvas() {
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         role="tree"
-        aria-label="Chat node tree"
+        aria-label={t.treeAria}
       >
         {/* 1) Connectors first so nodes render on top of them. */}
         {sortedNodes.slice(0, -1).map((node, i) => (

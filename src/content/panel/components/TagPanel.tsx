@@ -1,6 +1,8 @@
 import { usePanelStore } from '../store/panel-store';
+import { useMessages } from '../i18n';
 
 export function TagPanel() {
+  const t = useMessages();
   const sessionMetadata  = usePanelStore((s) => s.sessionMetadata);
   const activeTagFilters = usePanelStore((s) => s.activeTagFilters);
   const toggleTagFilter  = usePanelStore((s) => s.toggleTagFilter);
@@ -13,7 +15,7 @@ export function TagPanel() {
   if (allTags.length === 0) {
     return (
       <div className="nav-tag-panel">
-        <p className="nav-tag-panel-empty">아직 태그가 없습니다.</p>
+        <p className="nav-tag-panel-empty">{t.tagPanelEmpty}</p>
       </div>
     );
   }
@@ -40,11 +42,11 @@ export function TagPanel() {
       {activeTagFilters.length > 0 && (
         <button
           type="button"
-          aria-label="태그 필터 초기화"
+          aria-label={t.clearTagFilterAria}
           onClick={clearTagFilters}
           className="nav-tag-panel-clear"
         >
-          필터 초기화
+          {t.clearTagFilter}
         </button>
       )}
     </div>
