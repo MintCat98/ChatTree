@@ -357,13 +357,13 @@
 }
 
 /* Sponsor button — heart always filled pink */
-.nav-icon-btn[aria-label="후원하기"] {
+.nav-icon-btn[data-icon="funding"] {
   color: #f472b6;
 }
-.nav-icon-btn[aria-label="후원하기"] svg {
+.nav-icon-btn[data-icon="funding"] svg {
   fill: currentColor;
 }
-.nav-icon-btn[aria-label="후원하기"]:hover {
+.nav-icon-btn[data-icon="funding"]:hover {
   background: rgba(244, 114, 182, 0.12);
   color: #ec4899;
 }

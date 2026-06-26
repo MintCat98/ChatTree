@@ -1,9 +1,11 @@
 import { useRef, useEffect, useCallback, type KeyboardEvent } from 'react';
 import { usePanelStore } from '../store/panel-store';
+import { useMessages } from '../i18n';
 import { scrollToNode } from '../../scroll-navigator';
 import { truncate } from './constants';
 
 export function SearchPanel() {
+  const t = useMessages();
   const tree = usePanelStore((s) => s.tree);
   const searchQuery = usePanelStore((s) => s.searchQuery);
   const setSearchQuery = usePanelStore((s) => s.setSearchQuery);
@@ -35,17 +37,17 @@ export function SearchPanel() {
           ref={inputRef}
           type="text"
           className="nav-search-input"
-          placeholder="메시지 검색..."
+          placeholder={t.searchPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          aria-label="메시지 검색"
+          aria-label={t.searchAria}
         />
         {searchQuery && (
           <button
             type="button"
             className="nav-search-clear"
-            aria-label="검색 초기화"
+            aria-label={t.searchClear}
             onClick={handleClear}
           >
             ✕
@@ -56,7 +58,7 @@ export function SearchPanel() {
       {q && (
         <div className="nav-search-results">
           <div className="nav-search-count">
-            {matches.length > 0 ? `${matches.length}개 결과` : '일치하는 메시지가 없습니다.'}
+            {matches.length > 0 ? t.searchResultCount(matches.length) : t.searchNoResults}
           </div>
           {matches.map((node) => (
             <button

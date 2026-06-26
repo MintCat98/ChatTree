@@ -1,5 +1,6 @@
 import { useCallback, type KeyboardEvent, type MouseEvent } from 'react';
 import { Bookmark } from 'lucide-react';
+import { useMessages } from '../i18n';
 
 interface BookmarkButtonProps {
   x: number;
@@ -11,6 +12,7 @@ interface BookmarkButtonProps {
 const SIZE = 16;
 
 export function BookmarkButton({ x, cy, isBookmarked, onToggle }: BookmarkButtonProps) {
+  const t = useMessages();
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLButtonElement>) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -32,7 +34,7 @@ export function BookmarkButton({ x, cy, isBookmarked, onToggle }: BookmarkButton
       <button
         type="button"
         aria-pressed={isBookmarked}
-        aria-label={isBookmarked ? '북마크 해제' : '북마크 추가'}
+        aria-label={isBookmarked ? t.removeBookmark : t.addBookmark}
         onClick={onToggle}
         onKeyDown={handleKeyDown}
         className="nav-bookmark-btn"

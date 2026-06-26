@@ -3,6 +3,7 @@
 // so a click on the badge does not also fire SCROLL_TO_NODE.
 
 import type { MouseEvent } from 'react';
+import { useMessages } from '../i18n';
 
 interface NodeBadgeProps {
   cx: number;       // Anchor x (node's right edge).
@@ -15,6 +16,7 @@ const BADGE_WIDTH = 32;
 const BADGE_HEIGHT = 18;
 
 export function NodeBadge({ cx, cy, current, total }: NodeBadgeProps) {
+  const t = useMessages();
   const handleClick = (e: MouseEvent<SVGGElement>) => {
     e.stopPropagation();
     // TODO: open the branch mini-menu in a follow-up component PR.
@@ -23,7 +25,7 @@ export function NodeBadge({ cx, cy, current, total }: NodeBadgeProps) {
   return (
     <g
       role="status"
-      aria-label={`Branch ${current} of ${total}`}
+      aria-label={t.branchBadge(current, total)}
       onClick={handleClick}
       className="nav-node-badge"
     >

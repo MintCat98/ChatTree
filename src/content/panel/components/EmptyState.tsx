@@ -1,6 +1,9 @@
 // Fallback shown when store.tree is null or contains no nodes.
 
+import { useMessages } from '../i18n';
+
 export function EmptyState() {
+  const t = useMessages();
   return (
     <div data-testid="empty-state" className="nav-empty-state">
       <div className="nav-empty-icon">
@@ -13,9 +16,9 @@ export function EmptyState() {
           />
         </svg>
       </div>
-      대화를 시작하면
+      {t.emptyLine1}
       <br />
-      여기에 트리가 나타납니다.
+      {t.emptyLine2}
     </div>
   );
 }

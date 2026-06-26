@@ -1,5 +1,6 @@
 import { useCallback, type KeyboardEvent, type MouseEvent } from 'react';
 import { Tag } from 'lucide-react';
+import { useMessages } from '../i18n';
 
 interface TagButtonProps {
   x: number;
@@ -12,6 +13,7 @@ interface TagButtonProps {
 const SIZE = 16;
 
 export function TagButton({ x, cy, hasTags, isOpen, onClick }: TagButtonProps) {
+  const t = useMessages();
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLButtonElement>) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -40,7 +42,7 @@ export function TagButton({ x, cy, hasTags, isOpen, onClick }: TagButtonProps) {
     >
       <button
         type="button"
-        aria-label={hasTags ? '태그 편집' : '태그 추가'}
+        aria-label={hasTags ? t.editTags : t.addTag}
         aria-pressed={isOpen}
         onClick={onClick}
         onKeyDown={handleKeyDown}
