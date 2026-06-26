@@ -38,6 +38,10 @@ export interface TreeData {
   lastUpdated: number; // Date.now()
 }
 
+// UI language. 'en' is the default (issue #100). All user-facing strings are
+// resolved from src/shared/i18n.ts based on this value.
+export type Language = 'en' | 'ko';
+
 export interface UserSettings {
   panelPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   backgroundOpacity: number; // 0.0 – 1.0
@@ -47,6 +51,7 @@ export interface UserSettings {
   panelWidth: number; // px — panel width (resizable). See issue 02.
   themeMode: 'auto' | 'light' | 'dark'; // 'auto' follows the claude.ai theme. See issue 06.
   maxVisibleNodes: number; // maximum number of chat nodes visible on UI
+  language: Language; // UI language. Default 'en'. See issue #100.
 }
 
 // Panel width bounds and default (used by the resize handle and width controls).
@@ -66,4 +71,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   panelWidth: PANEL_WIDTH_DEFAULT,
   themeMode: 'auto',
   maxVisibleNodes: MAX_VISIBLE_NODES,
+  language: 'en',
 };

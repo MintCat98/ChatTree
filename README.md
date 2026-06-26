@@ -45,6 +45,7 @@ AI chatbot sessions grow long and complex — especially when you edit previous 
 - 🔄 Layout: Top-down view / Left-right view
 - 🌫️ Background opacity adjustment
 - 🔃 Sort order: ascending / descending by latest node
+- 🌐 Language: English / 한국어 (default: English)
 
 ## 3. Supported Platforms
 

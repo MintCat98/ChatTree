@@ -7,6 +7,9 @@
 // STORAGE_KEYS.USER_SETTINGS. The content panel hydrates + live-subscribes to
 // chrome.storage.onChanged, so writing here reflects in the panel instantly
 // (issue 05). Pure logic (URL match, settings merge) lives in ./popup-logic.
+//
+// UI strings are resolved from the shared i18n catalog by settings.language
+// (default 'en'), loaded fresh each time the popup opens (issue #100).
 
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -15,6 +18,7 @@ import type { UserSettings } from '@shared/types';
 import { DEFAULT_SETTINGS } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
 import { MessageType } from '@shared/message-types';
+import { getMessages, type Messages } from '@shared/i18n';
 import { isSupportedPage, mergeSettings, applyPatch } from './popup-logic';
 import './popup.css';
 
@@ -26,6 +30,7 @@ type PageStatus = 'loading' | 'supported' | 'unsupported';
 export function Popup() {
   const [status, setStatus] = useState<PageStatus>('loading');
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const t = getMessages(settings.language);
 
   // 1) Detect whether the active tab is a supported page.
   useEffect(() => {
@@ -90,29 +95,29 @@ export function Popup() {
       </header>
 
       {status === 'loading' ? (
-        <Loading />
+        <Loading t={t} />
       ) : status === 'unsupported' ? (
-        <UnsupportedPage />
+        <UnsupportedPage t={t} />
       ) : (
-        <SettingsForm settings={settings} onChange={apply} />
+        <SettingsForm settings={settings} onChange={apply} t={t} />
       )}
     </div>
   );
 }
 
-function Loading() {
-  return <div className="cn-loading">Loading…</div>;
+function Loading({ t }: { t: Messages }) {
+  return <div className="cn-loading">{t.loading}</div>;
 }
 
-function UnsupportedPage() {
+function UnsupportedPage({ t }: { t: Messages }) {
   return (
     <div className="cn-unsupported">
       <div className="cn-unsupported__icon">⚠️</div>
-      <strong className="cn-unsupported__title">이 페이지는 지원되지 않습니다</strong>
+      <strong className="cn-unsupported__title">{t.unsupportedTitle}</strong>
       <p>
-        <code>claude.ai</code> 채팅 페이지에서
-        <br />
-        익스텐션을 사용하세요.
+        {t.unsupportedBodyPrefix}
+        <code>claude.ai</code>
+        {t.unsupportedBodySuffix}
       </p>
     </div>
   );
@@ -121,15 +126,16 @@ function UnsupportedPage() {
 interface SettingsFormProps {
   settings: UserSettings;
   onChange: (patch: Partial<UserSettings>) => void;
+  t: Messages;
 }
 
-function SettingsForm({ settings, onChange }: SettingsFormProps) {
+function SettingsForm({ settings, onChange, t }: SettingsFormProps) {
   return (
     <div className="cn-form">
       {/* Panel visibility toggle */}
-      <Row label="패널 표시">
+      <Row label={t.panelVisible}>
         <ToggleSwitch
-          label="패널 표시"
+          label={t.panelVisible}
           checked={settings.panelVisible}
           onChange={(v) => onChange({ panelVisible: v })}
         />

@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePanelStore } from '../store/panel-store';
+import { useMessages } from '../i18n';
 import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX } from '@shared/types';
 
 const PANEL_INITIAL_HEIGHT = 600; // Estimated panel height for bottom-anchor initial placement.
@@ -38,6 +39,7 @@ function getInitialPosition(panelPosition: string, width: number): Position {
 }
 
 export function PanelShell({ children }: PanelShellProps) {
+  const t = useMessages();
   const settings = usePanelStore((s) => s.settings);
   const width = settings.panelWidth;
 
@@ -146,7 +148,7 @@ export function PanelShell({ children }: PanelShellProps) {
         onMouseDown={startResize}
         role="separator"
         aria-orientation="vertical"
-        aria-label="패널 너비 조절"
+        aria-label={t.resizeAria}
       />
     </div>
   );

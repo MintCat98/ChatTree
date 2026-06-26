@@ -1,14 +1,16 @@
 // Control bar (settings) shown under the header when the Settings button is on.
-// Controls: direction (fixed), position, width, opacity, sort, theme. Every change
-// is committed via store.updateSettings → persisted to localStorage + mirrored to
-// chrome.storage.local (so the popup stays in sync).
+// Controls: position, width, opacity, sort, theme, visible nodes, language, reset.
+// Every change is committed via store.updateSettings → persisted to localStorage +
+// mirrored to chrome.storage.local (so the popup stays in sync).
 
 import { type ChangeEvent } from 'react';
 import { usePanelStore } from '../store/panel-store';
+import { useMessages } from '../i18n';
 import type { UserSettings } from '@shared/types';
 import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, MAX_VISIBLE_NODES, DEFAULT_SETTINGS } from '@shared/types';
 
 export function ControlBar() {
+  const t = useMessages();
   const settings = usePanelStore((s) => s.settings);
   const updateSettings = usePanelStore((s) => s.updateSettings);
 
@@ -24,29 +26,31 @@ export function ControlBar() {
     updateSettings({ themeMode: e.target.value as UserSettings['themeMode'] });
   const handleMaxVisibleNodes = (e: ChangeEvent<HTMLInputElement>) =>
     updateSettings({ maxVisibleNodes: Number(e.target.value) });
+  const handleLanguage = (e: ChangeEvent<HTMLSelectElement>) =>
+    updateSettings({ language: e.target.value as UserSettings['language'] });
   const handleReset = () => updateSettings(DEFAULT_SETTINGS);
 
   return (
     <div data-testid="control-bar" className="nav-control-bar">
       {/* Position */}
       <div className="nav-control-row">
-        <span className="nav-control-label">위치</span>
+        <span className="nav-control-label">{t.position}</span>
         <select
           value={settings.panelPosition}
           onChange={handlePosition}
           className="nav-control"
-          aria-label="패널 위치"
+          aria-label={t.positionAria}
         >
-          <option value="top-left">좌상단</option>
-          <option value="top-right">우상단</option>
-          <option value="bottom-left">좌하단</option>
-          <option value="bottom-right">우하단</option>
+          <option value="top-left">{t.posTopLeft}</option>
+          <option value="top-right">{t.posTopRight}</option>
+          <option value="bottom-left">{t.posBottomLeft}</option>
+          <option value="bottom-right">{t.posBottomRight}</option>
         </select>
       </div>
 
       {/* Panel width (issue 02) */}
       <div className="nav-control-row">
-        <span className="nav-control-label">너비</span>
+        <span className="nav-control-label">{t.width}</span>
         <input
           type="range"
           min={PANEL_WIDTH_MIN}
@@ -54,7 +58,7 @@ export function ControlBar() {
           step={10}
           value={settings.panelWidth}
           onChange={handleWidth}
-          aria-label="Panel width"
+          aria-label={t.widthAria}
           className="nav-range"
         />
         <span className="nav-control-readout">{settings.panelWidth}px</span>
@@ -62,7 +66,7 @@ export function ControlBar() {
 
       {/* Background opacity */}
       <div className="nav-control-row">
-        <span className="nav-control-label">투명도</span>
+        <span className="nav-control-label">{t.opacity}</span>
         <input
           type="range"
           min={0.3}
@@ -70,7 +74,7 @@ export function ControlBar() {
           step={0.05}
           value={settings.backgroundOpacity}
           onChange={handleOpacity}
-          aria-label="Background opacity"
+          aria-label={t.opacityAria}
           className="nav-range"
         />
         <span className="nav-control-readout">{Math.round(settings.backgroundOpacity * 100)}%</span>
@@ -78,35 +82,35 @@ export function ControlBar() {
 
       {/* Sort order */}
       <div className="nav-control-row">
-        <span className="nav-control-label">정렬</span>
+        <span className="nav-control-label">{t.sort}</span>
         <button
           type="button"
           onClick={handleSortToggle}
-          aria-label={`Current sort: ${settings.sortOrder === 'asc' ? 'ascending' : 'descending'}`}
+          aria-label={t.sortAria(settings.sortOrder)}
           className="nav-control nav-control-sort"
         >
-          {settings.sortOrder === 'asc' ? '↑ 오래된 순' : '↓ 최신 순'}
+          {settings.sortOrder === 'asc' ? t.sortAscLabel : t.sortDescLabel}
         </button>
       </div>
 
       {/* Theme (issue 06) */}
       <div className="nav-control-row">
-        <span className="nav-control-label">테마</span>
+        <span className="nav-control-label">{t.theme}</span>
         <select
           value={settings.themeMode}
           onChange={handleTheme}
           className="nav-control"
-          aria-label="테마"
+          aria-label={t.themeAria}
         >
-          <option value="auto">자동 (Claude 따름)</option>
-          <option value="light">라이트</option>
-          <option value="dark">다크</option>
+          <option value="auto">{t.themeAuto}</option>
+          <option value="light">{t.themeLight}</option>
+          <option value="dark">{t.themeDark}</option>
         </select>
       </div>
 
       {/* Max visible nodes */}
       <div className="nav-control-row">
-        <span className="nav-control-label">노드 표시 수</span>
+        <span className="nav-control-label">{t.maxNodes}</span>
         <input
           type="range"
           min={2}
@@ -114,10 +118,24 @@ export function ControlBar() {
           step={1}
           value={settings.maxVisibleNodes}
           onChange={handleMaxVisibleNodes}
-          aria-label="Max visible nodes"
+          aria-label={t.maxNodesAria}
           className="nav-range"
         />
         <span className="nav-control-readout">{settings.maxVisibleNodes}</span>
+      </div>
+
+      {/* Language (issue #100) */}
+      <div className="nav-control-row">
+        <span className="nav-control-label">{t.language}</span>
+        <select
+          value={settings.language}
+          onChange={handleLanguage}
+          className="nav-control"
+          aria-label={t.languageAria}
+        >
+          <option value="en">{t.langEnglish}</option>
+          <option value="ko">{t.langKorean}</option>
+        </select>
       </div>
 
       {/* Reset to Default*/}
@@ -126,9 +144,9 @@ export function ControlBar() {
           type="button"
           onClick={handleReset}
           className="nav-control"
-          aria-label="Reset to default settings"
+          aria-label={t.resetAria}
         >
-          기본값으로 설정
+          {t.resetDefaults}
         </button>
       </div>
     </div>

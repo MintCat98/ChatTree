@@ -5,12 +5,14 @@
 import { useCallback, type KeyboardEvent, type ReactNode } from 'react';
 import { Bookmark, Tag, Search, Settings, Flag, CircleHelp, Heart } from 'lucide-react';
 import { usePanelStore } from '../store/panel-store';
+import { useMessages } from '../i18n';
 import { GITHUB_URLS } from '../../../shared/constants';
 
 const FEEDBACK_URL =
   'https://github.com/MintCat98/ChatTree/issues?q=sort%3Aupdated-desc+is%3Aissue+state%3Aopen+';
 
 export function Header() {
+  const t = useMessages();
   const updateSettings = usePanelStore((s) => s.updateSettings);
   const collapsed = usePanelStore((s) => s.collapsed);
   const settingsOpen = usePanelStore((s) => s.settingsOpen);
@@ -57,16 +59,16 @@ export function Header() {
           </span>
         </div>
         <div className="nav-header-controls">
-          <IconButton label={collapsed ? '패널 펼치기' : '패널 접기'} expanded={!collapsed} onClick={toggleCollapsed}>
+          <IconButton label={collapsed ? t.expandPanel : t.collapsePanel} expanded={!collapsed} onClick={toggleCollapsed}>
             {collapsed ? '▸' : '▾'}
           </IconButton>
-          <IconButton label="피드백 보내기" tooltip onClick={() => window.open(FEEDBACK_URL, '_blank')}>
+          <IconButton label={t.sendFeedback} tooltip onClick={() => window.open(FEEDBACK_URL, '_blank')}>
             <Flag size={13} />
           </IconButton>
-          <IconButton label="설정" pressed={settingsOpen} onClick={toggleSettingsOpen}>
+          <IconButton label={t.settings} pressed={settingsOpen} onClick={toggleSettingsOpen}>
             <Settings size={13} />
           </IconButton>
-          <IconButton label="패널 닫기" onClick={handleClose}>
+          <IconButton label={t.closePanel} onClick={handleClose}>
             ✕
           </IconButton>
         </div>
@@ -76,22 +78,22 @@ export function Header() {
       {!collapsed && (
         <div className="nav-header-row">
           <div data-drag-handle="true" className="nav-header-subtitle">
-            <IconButton label="후원하기" tooltip onClick={openFunding}>
+            <IconButton label={t.support} icon="funding" tooltip onClick={openFunding}>
               <Heart size={12} />
             </IconButton>
-            <span data-drag-handle="true">메시지 {count}개</span>
+            <span data-drag-handle="true">{t.messageCount(count)}</span>
           </div>
           <div className="nav-header-tools">
-            <IconButton label="북마크만 보기" pressed={bookmarksOnlyFilter} onClick={toggleBookmarksOnlyFilter}>
+            <IconButton label={t.bookmarksOnly} pressed={bookmarksOnlyFilter} onClick={toggleBookmarksOnlyFilter}>
               <Bookmark size={13} />
             </IconButton>
-            <IconButton label="태그 패널" pressed={tagPanelOpen} onClick={toggleTagPanel}>
+            <IconButton label={t.tags} pressed={tagPanelOpen} onClick={toggleTagPanel}>
               <Tag size={13} />
             </IconButton>
-            <IconButton label="검색" pressed={searchPanelOpen} onClick={toggleSearchPanel}>
+            <IconButton label={t.search} pressed={searchPanelOpen} onClick={toggleSearchPanel}>
               <Search size={13} />
             </IconButton>
-            <IconButton label="사용자 가이드" tooltip onClick={openUserGuide}>
+            <IconButton label={t.userGuide} tooltip onClick={openUserGuide}>
               <CircleHelp size={13} />
             </IconButton>
           </div>
@@ -120,15 +122,19 @@ interface IconButtonProps {
   expanded?: boolean;
   pressed?: boolean;
   tooltip?: boolean;
+  // Stable identifier for CSS targeting, independent of the (translatable) label.
+  // e.g. the sponsor button is styled via [data-icon="funding"] (issue #100).
+  icon?: string;
 }
 
-function IconButton({ label, onClick, children, expanded, pressed, tooltip }: IconButtonProps) {
+function IconButton({ label, onClick, children, expanded, pressed, tooltip, icon }: IconButtonProps) {
   const onKey = useKeyActivate(onClick);
   return (
     <button
       type="button"
       aria-label={label}
       data-label={tooltip ? label : undefined}
+      data-icon={icon}
       aria-expanded={expanded}
       aria-pressed={pressed}
       onClick={onClick}

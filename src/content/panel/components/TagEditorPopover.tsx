@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 're
 import { X } from 'lucide-react';
 import { setNodeMetadata } from '@shared/metadata-storage';
 import { usePanelStore } from '../store/panel-store';
+import { useMessages } from '../i18n';
 import { NODE_STEP, ROW_V_GAP, nodeCenterY } from './constants';
 
 interface TagEditorPopoverProps {
@@ -17,6 +18,7 @@ export function TagEditorPopover({
   sessionId,
   currentTags,
 }: TagEditorPopoverProps) {
+  const t = useMessages();
   const patchNodeMetadata = usePanelStore((s) => s.patchNodeMetadata);
   const setTagEditNodeId  = usePanelStore((s) => s.setTagEditNodeId);
   const [inputValue, setInputValue] = useState('');
@@ -76,17 +78,17 @@ export function TagEditorPopover({
   return (
     <div
       role="dialog"
-      aria-label="태그 편집"
+      aria-label={t.editTags}
       className="nav-tag-popover"
       style={{ top: topPx }}
       onMouseDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
     >
       <div className="nav-tag-popover-header">
-        <span className="nav-tag-popover-title">태그 편집</span>
+        <span className="nav-tag-popover-title">{t.editTags}</span>
         <button
           type="button"
-          aria-label="닫기"
+          aria-label={t.close}
           onClick={() => setTagEditNodeId(null)}
           className="nav-tag-popover-close"
         >
@@ -101,7 +103,7 @@ export function TagEditorPopover({
               {tag}
               <button
                 type="button"
-                aria-label={`태그 제거: ${tag}`}
+                aria-label={t.removeTag(tag)}
                 onClick={() => removeTag(tag)}
                 className="nav-tag-chip-remove"
               >
@@ -115,7 +117,7 @@ export function TagEditorPopover({
       <input
         ref={inputRef}
         type="text"
-        placeholder="태그 입력 후 Enter"
+        placeholder={t.tagInputPlaceholder}
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleInputKeyDown}
