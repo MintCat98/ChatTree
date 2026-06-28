@@ -48,10 +48,17 @@ export function TreeMapCanvas() {
 
     // scroll only if node is out of current view
     if (nodeY < container.scrollTop || nodeY > container.scrollTop + containerHeight){
-      container.scrollTo({
-        top: nodeY - PANEL_PADDING,
-        behavior: 'smooth',
-      });
+      if(nodeY < container.scrollTop) { // scrolls above visible range
+        container.scrollTo({
+          top: nodeY - PANEL_PADDING,
+          behavior: 'smooth',
+        });
+      } else if  (nodeY > container.scrollTop + containerHeight) { // scrolls below viisble range
+        container.scrollTo({
+          top: nodeY - containerHeight + PANEL_PADDING,
+          behavior: 'smooth',
+        });
+      }
     }
   }, [activeNodeId, tree]);
 
