@@ -19,6 +19,7 @@ import { TreeNode } from './TreeNode';
 import { NodeConnector } from './NodeConnector';
 import { EmptyState } from './EmptyState';
 import { TagEditorPopover } from './TagEditorPopover';
+import { useEffect, useRef } from 'react';
 
 export function TreeMapCanvas() {
   const t = useMessages();
@@ -32,6 +33,35 @@ export function TreeMapCanvas() {
   const sessionId       = usePanelStore((s) => s.tree?.sessionId ?? '');
   const sortOrder = usePanelStore((s) => s.settings.sortOrder);
   const maxVisibleNodes = usePanelStore((s) => s.settings.maxVisibleNodes);
+  const activeNodeId = usePanelStore((s) => s.activeNodeId);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if(!activeNodeId || !scrollRef.current || !tree) return;
+
+    const activeIndex = tree.nodes.findIndex((n) => n.id === activeNodeId);
+    if (activeIndex === -1) return;
+
+    const nodeY = nodeCenterY(activeIndex);
+    const container = scrollRef.current;
+    const containerHeight = container.clientHeight;
+
+    // scroll only if node is out of current view
+    if (nodeY < container.scrollTop || nodeY > container.scrollTop + containerHeight){
+      if(nodeY < container.scrollTop) { // scrolls above visible range
+        container.scrollTo({
+          top: nodeY - PANEL_PADDING,
+          behavior: 'smooth',
+        });
+      } else if  (nodeY > container.scrollTop + containerHeight) { // scrolls below viisble range
+        container.scrollTo({
+          top: nodeY - containerHeight + PANEL_PADDING,
+          behavior: 'smooth',
+        });
+      }
+    }
+  }, [activeNodeId, tree]);
+
 
   if (!tree || tree.nodes.length === 0) {
     return <EmptyState />;
@@ -59,6 +89,7 @@ export function TreeMapCanvas() {
 
   return (
     <div
+    ref={scrollRef}
       data-testid="treemap-canvas"
       className={treemapClass}
       style={{
