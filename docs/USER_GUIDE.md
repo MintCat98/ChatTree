@@ -35,10 +35,11 @@ ChatTree is a Chromium browser extension that floats an interactive tree-map pan
 ### Developer Mode (Manual Install)
 
 1. **Clone the repository and build**
+**Prerequisite:** Node.js 18 or higher must be installed.
 
    ```bash
-   git clone https://github.com/MintCat98/enhanced-navigation-for-ai-chatbots.git
-   cd enhanced-navigation-for-ai-chatbots
+   git clone https://github.com/MintCat98/ChatTree.git
+   cd ChatTree
    npm install
    npm run build
    ```
