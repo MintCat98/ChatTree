@@ -144,7 +144,7 @@ As the active node changes, the tree map panel **automatically scrolls** to keep
 
 <div align="center">
 
-*[이미지: 활성 노드가 트리맵 패널 내에서 자동으로 중앙에 유지되는 모습]*
+*[이미지: 활성 노드가 트리맵 패널 내에서 자동으로 위/아래에 유지되는 모습]*
 
 </div>
 
@@ -208,7 +208,7 @@ Choose whether conversation nodes are displayed in **ascending** (oldest first) 
 
 ### Panel Height
 
-Adjust the number of nodes visible at once without scrolling. You can configure the panel to display **up to 4 nodes** simultaneously, with the panel height scaling accordingly.
+Adjust the number of nodes visible at once without scrolling. You can configure the panel to display **up to 8 nodes** simultaneously, with the panel height scaling accordingly.
 
 ### Reset to Default
 
