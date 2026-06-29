@@ -1,6 +1,6 @@
 {
   "name": "chat-tree",
-  "version": "0.2.2",
+  "version": "1.0.0-beta",
   "description": "Tree-map navigation for Claude.ai chat sessions",
   "private": true,
   "scripts": {
