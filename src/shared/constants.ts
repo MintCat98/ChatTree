@@ -4,7 +4,7 @@ export const SELECTORS = {
   CHAT_CONTAINER:         '#main-content',
   USER_MESSAGE_BUBBLE:    '[data-user-message-bubble="true"]',
   USER_MESSAGE:           '[data-testid="user-message"]',
-  BRANCH_ACTIONS_WRAPPER: '[aria-label="Message actions"]',
+  BRANCH_ACTIONS_WRAPPER: '[aria-label="메시지 작업"]',
   BRANCH_PREV_BTN:        'button[aria-label="이전 버전"]',
   BRANCH_NEXT_BTN:        'button[aria-label="다음 버전"]',
   BRANCH_INDICATOR:       'span.self-center.shrink-0.select-none.font-small.text-muted',
