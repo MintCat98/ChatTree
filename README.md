@@ -3,7 +3,13 @@
 > **Navigate your AI conversations like a map, not a scroll.**  
 > A Chromium extension that visualizes your chat session as an interactive tree — so you never lose track of where you were.
 
-> _Please check [KOI README](./docs/README_KOI.md) (for KOI organizers)._
+<div align="center">
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE) [![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)]() [![Platform](https://img.shields.io/badge/Platform-Chromium-yellow.svg)]() [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+
+📖 [User Guide](./docs/USER_GUIDE.md) · 🤝 [Contributing](.github/CONTRIBUTING.md) · 👥 [Contributors](.github/CONTRIBUTORS.md)
+
+</div>
 
 <br/>
 
@@ -21,8 +27,6 @@
 
 <br/>
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE) [![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)]() [![Platform](https://img.shields.io/badge/Platform-Chromium-yellow.svg)]() [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
-
 ## 1. Problem
 
 AI chatbot sessions grow long and complex — especially when you edit previous prompts and create branching conversations. Finding a specific exchange requires endless scrolling, and there's no visual overview of where you are in the conversation.
@@ -31,21 +35,14 @@ AI chatbot sessions grow long and complex — especially when you edit previous 
 
 ## 2. Features
 
-### 2-1. Core
-
 - 🗺️ **Tree-map navigator** — visualizes every chatbox as a node, floated over the chat UI
 - 💬 **Hover to preview** — mouse over any node to see the original full prompt in a popup
-- 🖱️ **Click to jump** — click any node to instantly scroll to that chatbox
-- 🌿 **Branch tracking** — branch nodes are visually distinct, showing branch count per node
-<!-- - 🔍 **AI-powered summaries** — each node shows a short AI-generated summary of the prompt -->
-
-### 2-2. Customization (Options)
-
-- 📐 Position: top-left / top-right / bottom-left / bottom-right
-- 🔄 Layout: Top-down view / Left-right view
-- 🌫️ Background opacity adjustment
-- 🔃 Sort order: ascending / descending by latest node
-- 🌐 Language: English / 한국어 (default: English)
+- 🖱️ **Click to jump** — click any node to instantly scroll that chatbox to the top of the page
+- 🌿 **Branch tracking** — branch nodes show count (e.g., `1/3`) with a dotted-line indicator; only displayed when other branches actually exist
+- ✨ **Dynamic highlight** — the active chat highlight moves dynamically as you navigate
+- 🔍 **Chat search** — search for specific messages within the current session
+- 🔖 **Bookmarks** — bookmark specific chats within a session for quick access
+- 🏷️ **Tag management** — add and manage tags on chats within a session
 
 ## 3. Supported Platforms
 
@@ -66,8 +63,8 @@ AI chatbot sessions grow long and complex — especially when you edit previous 
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/MintCat98/enhanced-navigation-for-ai-chatbots.git
-cd enhanced-navigation-for-ai-chatbots
+git clone https://github.com/MintCat98/ChatTree.git
+cd ChatTree
 
 # 2. Install dependencies
 npm install
