@@ -63,8 +63,8 @@ AI chatbot sessions grow long and complex — especially when you edit previous 
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/MintCat98/enhanced-navigation-for-ai-chatbots.git
-cd enhanced-navigation-for-ai-chatbots
+git clone https://github.com/MintCat98/ChatTree.git
+cd ChatTree
 
 # 2. Install dependencies
 npm install
