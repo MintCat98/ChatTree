@@ -54,7 +54,7 @@ ChatTree is a Chromium browser extension that floats an interactive tree-map pan
 
 <div align="center">
 
-*[이미지: Chrome 확장 프로그램 로드 화면]*
+    <img src="./demo-imgs/1_installation.png" width="600"/>
 
 </div>
 
@@ -68,7 +68,7 @@ To **show or hide** the panel, use the enable/disable toggle in the panel header
 
 <div align="center">
 
-*[이미지: ChatTree 패널 전체 화면 (각 UI 요소 레이블 포함)]*
+    <img src="./demo-imgs/2_interface_overview.png" width="300"/>
 
 </div>
 
@@ -82,7 +82,7 @@ Every message in your conversation is represented as a **node** in the tree. Nod
 
 <div align="center">
 
-*[이미지: 트리맵 네비게이터 — 여러 노드가 연결된 대화 트리]*
+    <img src="./demo-imgs/3_1_Tree_Map Navigator.png" width="500"/>
 
 </div>
 
@@ -94,7 +94,7 @@ Click any node in the tree to instantly scroll that message to the **top of the 
 
 <div align="center">
 
-*[이미지: 노드 클릭 → 해당 메시지로 스크롤 이동 데모]*
+    <img src="./demo-imgs/3_2_click_to_jump.gif" width="800"/>
 
 </div>
 
@@ -106,7 +106,7 @@ Hover over any node to see a **popup showing the original full prompt** for that
 
 <div align="center">
 
-*[이미지: 노드 마우스오버 시 팝업으로 원본 프롬프트 표시]*
+    <img src="./demo-imgs/3_3_Hover.png" width="600"/>
 
 </div>
 
@@ -120,7 +120,7 @@ The badge and dotted line are only shown **when other branches actually exist** 
 
 <div align="center">
 
-*[이미지: 브랜치 배지 (1/3) 및 점선 연결선이 있는 트리 노드]*
+    <img src="./demo-imgs/3_4_Branch_Tracking.png" width="600"/>
 
 </div>
 
@@ -132,7 +132,7 @@ The **active message highlight** in the tree panel moves dynamically as you scro
 
 <div align="center">
 
-*[이미지: 스크롤에 따라 활성 노드 하이라이트가 이동하는 모습]*
+    <img src="./demo-imgs/3_5,6_Dynamic_highlight_autoscroll.gif" width="800"/>
 
 </div>
 
@@ -144,7 +144,7 @@ As the active node changes, the tree map panel **automatically scrolls** to keep
 
 <div align="center">
 
-*[이미지: 활성 노드가 트리맵 패널 내에서 자동으로 위/아래에 유지되는 모습]*
+    <img src="./demo-imgs/3_5,6_Dynamic_highlight_autoscroll.gif" width="800"/>
 
 </div>
 
@@ -158,7 +158,7 @@ Use the **search bar** at the top of the panel to find specific messages within 
 
 <div align="center">
 
-*[이미지: 검색창에 키워드 입력 후 해당 노드가 강조된 트리]*
+    <img src="./demo-imgs/4_1_search.png" width="400"/>
 
 </div>
 
@@ -170,7 +170,7 @@ Use the **search bar** at the top of the panel to find specific messages within 
 
 <div align="center">
 
-*[이미지: 북마크된 노드가 표시된 트리맵 패널]*
+    <img src="./demo-imgs/4_2_bookamrk.png" width="400"/>
 
 </div>
 
@@ -182,7 +182,7 @@ Use the **search bar** at the top of the panel to find specific messages within 
 
 <div align="center">
 
-*[이미지: 태그가 붙은 노드 및 태그 관리 UI]*
+    <img src="./demo-imgs/4_3_tag.png" width="400"/>
 
 </div>
 
@@ -194,7 +194,7 @@ Open the **Settings panel** from the panel header to customize ChatTree's behavi
 
 <div align="center">
 
-*[이미지: 설정 패널 전체 화면]*
+    <img src="./demo-imgs/5_settings.png" width="600"/>
 
 </div>
 
