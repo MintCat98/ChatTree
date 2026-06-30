@@ -5,27 +5,19 @@
 
 <div align="center">
 
+![demo-v1.0.0-beta](./docs/demo-vids/demo-v1.0.0-beta.gif)
+
+</div>
+
+</br>
+
+<div align="center">
+
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE) [![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)]() [![Platform](https://img.shields.io/badge/Platform-Chromium-yellow.svg)]() [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
 📖 [User Guide](./docs/USER_GUIDE.md) · 🤝 [Contributing](.github/CONTRIBUTING.md) · 👥 [Contributors](.github/CONTRIBUTORS.md)
 
 </div>
-
-<br/>
-
-![demo1-v0.2.0](./docs/demo-vids/demo1-v0.2.0.gif)
-
-> Tree-map navigation
-
-![demo2-v0.2.0](./docs/demo-vids/demo2-v0.2.0.gif)
-
-> Hover to preview & Click to jump
-
-![demo3-v0.2.0](./docs/demo-vids/demo3-v0.2.0.gif)
-
-> Branch tracking
-
-<br/>
 
 ## 1. Problem
 
