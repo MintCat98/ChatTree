@@ -173,9 +173,10 @@ Open the **Settings panel** from the panel header to customize ChatTree's behavi
 
 | Setting | Description |
 | ------- | ----------- |
+| **Sort** | Display nodes in **ascending** (oldest first) or **descending** (newest first) order. |
+| **Theme** | Choose between **Light** and **Dark** mode, or leave it on **Auto** to follow Claude's current theme. |
+| **Visible Nodes** | Adjust the number of nodes visible at once without scrolling. Supports up to **8 nodes**. |
 | **Language** | Switch the panel UI language between **Korean** and **English**. Applies immediately. |
-| **Sort Order** | Display nodes in **ascending** (oldest first) or **descending** (newest first) order. |
-| **Panel Height** | Adjust the number of nodes visible at once without scrolling. Supports up to **8 nodes**. |
 | **Reset to Default** | Restore all settings to their original values in one click. |
 
 ---
