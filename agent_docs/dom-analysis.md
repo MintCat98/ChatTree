@@ -73,40 +73,43 @@
 
 ## 3. Chatbox ID Assignment Strategy
 
-Claude.ai does not assign explicit `id` attributes to each `human-turn`.  
-Therefore, **index-based virtual IDs** are assigned directly by the Content Script.
+> Implementation: `src/content/chatbox-tracker.ts` (`getAbsolutePosition`, `scanMounted`, `mergeMountedNodes`)
 
-```typescript
-// content-script/chatbox-tracker.ts
+Claude.ai does not assign explicit `id` attributes to each turn, **and it
+virtualizes long conversations**: turns scrolled far out of view are unmounted
+from the DOM and remount later as fresh elements. This rules out two naive
+strategies:
 
-function assignChatboxIds(): ChatboxNode[] {
-  const turns = document.querySelectorAll('[data-testid="human-turn"]');
-  const nodes: ChatboxNode[] = [];
+- **Reusing a pre-existing `data-nav-id`** — a remounted bubble has no
+  attribute and gets an id based on the *currently mounted* set, which collides
+  with ids still held by other bubbles (issue #149: mangled panel rows, clicks
+  scrolling to the wrong message).
+- **Enumerating mounted bubbles per scan** — a scan only sees the mounted
+  window, so the tree would shrink/grow while scrolling.
 
-  turns.forEach((el, index) => {
-    // Inject data-attribute only if not already marked
-    if (!el.getAttribute('data-nav-id')) {
-      el.setAttribute('data-nav-id', `chatbox-${index}`);
-    }
+Instead, identity comes from the turn's **absolute position in the
+conversation**, read from the virtualized-list ancestors:
 
-    const branchNav = el.querySelector('[data-testid="branch-navigation"]');
-    const branchIndicator = branchNav?.querySelector('span.branch-indicator');
-    const [current, total] = branchIndicator?.textContent?.split('/').map(Number) ?? [1, 1];
+| Priority | Source | Notes |
+|----------|--------|-------|
+| 1 | `closest('[data-index]')` → `data-index` | 0-based absolute turn index (user + AI turns combined). Wrapper also carries the turn's absolute scroll offset in `style.top` |
+| 2 | `closest('[role="article"]')` → `aria-posinset − 1` | Accessibility standard, more stable; no scroll offset |
+| 3 | DOM enumeration order | Last-resort fallback if claude.ai's DOM changes |
 
-    nodes.push({
-      id: el.getAttribute('data-nav-id')!,
-      index,
-      text: el.querySelector('[data-testid="user-message"] p')?.textContent ?? '',
-      hasBranch: !!branchNav,
-      branchCurrent: current,
-      branchTotal: total,
-      element: el as HTMLElement,
-    });
-  });
+Rules:
 
-  return nodes;
-}
-```
+- `data-nav-id="chatbox-<absIndex>"` is **unconditionally reassigned on every
+  scan** — never trust an attribute left over from before a remount.
+- Because absolute indices count both user and AI turns, user-message ids are
+  not contiguous (`chatbox-0`, `chatbox-2`, ...). The `index` field on
+  `ChatboxNode` (used for the panel's displayed numbering) is reassigned
+  sequentially after each merge.
+- Scanned turns accumulate in a per-session cache (`mergeMountedNodes`), so
+  turns virtualized out of the DOM stay in the tree. The cache resets on
+  conversation change and invalidates past a divergence point (see
+  [`branch-detection.md`](./branch-detection.md) §5).
+- The turn's absolute `top` offset is cached alongside each node for
+  scroll-navigation to unmounted turns (§5).
 
 ---
 
@@ -157,22 +160,22 @@ if (container) {
 
 ## 5. Scroll Navigation Implementation
 
+> Implementation: `src/content/scroll-navigator.ts`
+
 Scrolls to the corresponding chatbox when a node is clicked in the Tree.
 
-```typescript
-// content-script/scroll-navigator.ts
+Two paths, because the target turn may have been virtualized out of the DOM:
 
-export function scrollToChatbox(navId: string): void {
-  const target = document.querySelector(`[data-nav-id="${navId}"]`);
-  if (!target) return;
-
-  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-  // Visual highlight (1.5 seconds)
-  target.classList.add('nav-highlight');
-  setTimeout(() => target.classList.remove('nav-highlight'), 1500);
-}
-```
+1. **Mounted** — `querySelector('[data-nav-id="..."]')` hit: scroll its
+   `div.overflow-y-auto` container by the element's offset (fallback
+   `scrollIntoView`) and apply the `nav-highlight` class for 1.5 s.
+2. **Unmounted** — no element with that `data-nav-id`: scroll the conversation
+   container (`[data-autoscroll-container="true"]`, fallback
+   `div.overflow-y-auto`) to the turn's **cached absolute offset**
+   (`getCachedTop`, captured from the `[data-index]` wrapper's `style.top`
+   during scanning). Claude.ai remounts the turn as it enters the viewport, so
+   the highlight is applied by re-querying after a short settle delay
+   (`TIMING.VIRTUAL_SCROLL_SETTLE`).
 
 CSS (content_styles.css):
 ```css
@@ -222,6 +225,7 @@ window.addEventListener('locationchange', () => {
 | Item | Description |
 |------|-------------|
 | **CSS class instability** | Tailwind-based hashed class names may change → prefer `data-testid` |
+| **Long conversations are virtualized** | Off-screen turns are removed from the DOM and remount as fresh elements — never persist references or reuse injected attributes across scans; derive identity from absolute position (§3) |
 | **No direct branch access** | DOM for other branches is not rendered outside the active branch |
 | **DOM changes during streaming** | MutationObserver events fire excessively during AI response streaming → debouncing required |
 | **No Shadow DOM** | Claude.ai does not use Shadow DOM; standard selectors work |
@@ -238,4 +242,6 @@ Check the following **monthly** or **when a malfunction report is received**.
 - [ ] `[data-testid="human-turn"]` chatbox detection works correctly
 - [ ] `[data-testid="branch-navigation"]` branch detection works correctly
 - [ ] `span.branch-indicator` text parsing format (`"N / M"`)
+- [ ] `[data-index]` wrapper exists on turns with absolute `style.top` offset (virtualization identity, §3)
+- [ ] `[role="article"]` carries `aria-posinset` / `aria-setsize`
 - [ ] `scrollIntoView` works correctly
