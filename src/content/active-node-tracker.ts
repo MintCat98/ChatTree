@@ -1,7 +1,6 @@
 // Tracks which chatbox is currently visible in the viewport via IntersectionObserver.
 
 import { SELECTORS, TIMING } from '@shared/constants';
-import { MessageType } from '@shared/message-types';
 import { TOOLTIP_DELAY_MS } from './panel/components/constants';
 
 let intersectionObserver: IntersectionObserver | null = null;
@@ -48,7 +47,6 @@ export function startTracking(_onActiveChange: (navId: string) => void): void {
         }
 
         if (bestId) {
-          console.log(MessageType.ACTIVE_NODE_CHANGED, bestId);
           _onActiveChange(bestId);
         }
       }, 50);
