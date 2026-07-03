@@ -162,48 +162,27 @@ function debouncedBranchChange(navId: string, cb: (id: string) => void) {
 
 ## 5. Branch Reload Strategy
 
-After a branch switch replaces the DOM, **only nodes after the switch point** are re-scanned.
+> Implementation: `src/content/chatbox-tracker.ts` (`mergeMountedNodes`)
 
-```typescript
-// content/chatbox-tracker.ts (partial reload)
+After a branch switch replaces the DOM, the tree is rebuilt through the same
+**session node cache** used for virtualization (see
+[`dom-analysis.md`](./dom-analysis.md) §3) — there is no separate partial-reload
+path:
 
-export function reloadFromNode(
-  branchNodeId: string,
-  allNodes: ChatboxNode[]
-): ChatboxNode[] {
-  const branchIndex = allNodes.findIndex(n => n.id === branchNodeId);
-  if (branchIndex === -1) return allNodes;
+1. The branch watcher (`branch-change-watcher.ts`) fires after the DOM settles.
+2. `mergeMountedNodes()` scans the mounted turns and compares each against its
+   cached state at the same absolute index.
+3. On the first **divergence** — text, `branchCurrent`, or `branchTotal`
+   differs from the cache — every cached turn *after* that absolute index is
+   dropped as stale (it belonged to the previous branch's timeline), and the
+   mounted turns are upserted.
 
-  // Preserve up to and including the branch node; re-scan everything after
-  const preserved = allNodes.slice(0, branchIndex + 1);
+Turns *before* the switch point match their cached state, so they are
+effectively preserved; only the rewritten tail is replaced. The same
+divergence rule also covers message edits detected outside the branch watcher.
 
-  // Re-scan DOM from branchIndex+1 onward
-  const turns = document.querySelectorAll('[data-testid="human-turn"]');
-  const newNodes: ChatboxNode[] = [];
-
-  turns.forEach((el, index) => {
-    if (index <= branchIndex) return; // already preserved
-
-    const navId = `chatbox-${index}`;
-    el.setAttribute('data-nav-id', navId);
-
-    const { hasBranch, current, total } = detectBranch(el as HTMLElement);
-
-    newNodes.push({
-      id: navId,
-      index,
-      text: el.querySelector('[data-testid="user-message"] p')?.textContent ?? '',
-      summary: '',           // summary needs to be regenerated
-      hasBranch,
-      branchCurrent: current,
-      branchTotal: total,
-      parentId: preserved[preserved.length - 1]?.id ?? null,
-    });
-  });
-
-  return [...preserved, ...newNodes];
-}
-```
+> ⚠️ `reloadFromNode()` still exists in `chatbox-tracker.ts` but is legacy —
+> no production caller remains (only tests and `_test-tracker.ts`).
 
 ---
 
