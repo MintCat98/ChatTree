@@ -8,6 +8,12 @@ export const SELECTORS = {
   BRANCH_PREV_BTN:        'button[aria-label="이전 버전"], button[aria-label="Previous version"]',
   BRANCH_NEXT_BTN:        'button[aria-label="다음 버전"], button[aria-label="Next version"]',
   BRANCH_INDICATOR:       'span.self-center.shrink-0.select-none.font-small.text-muted',
+  // Virtualized-list ancestors of each turn (issue: chat count changes on scroll).
+  // TURN_INDEX_WRAPPER carries data-index (absolute turn position) and an
+  // absolute `top` offset; TURN_ARTICLE carries aria-posinset as a fallback.
+  TURN_INDEX_WRAPPER:     '[data-index]',
+  TURN_ARTICLE:           '[role="article"]',
+  SCROLL_CONTAINER:       '[data-autoscroll-container="true"]',
   STREAMING_ATTR:         'data-is-streaming',
   STREAMING_INDICATOR:    '[data-testid="streaming-indicator"]',
   AI_TURN:                '[data-testid="assistant-turn"]',
@@ -30,6 +36,8 @@ export const TIMING = {
   // Debounce branch-indicator text changes — rapid ‹/› clicks produce many characterData events
   BRANCH_CHANGE_DEBOUNCE: 150,
   HIGHLIGHT_DURATION: 1500,
+  // Wait for a virtualized bubble to remount after scrolling to its offset
+  VIRTUAL_SCROLL_SETTLE: 700,
 } as const;
 
 export const CHAT_URL_PATTERN = /\/chat\/([0-9a-f-]{36})/;

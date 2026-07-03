@@ -1,5 +1,5 @@
 // Watches the DOM for new chatbox elements via MutationObserver.
-import { assignChatboxIds, buildTree } from './chatbox-tracker';
+import { mergeMountedNodes, resetNodeCache, buildTree } from './chatbox-tracker';
 import { watchBranchChanges } from './branch-change-watcher';
 import { sendToBackground } from './message-bridge';
 import { SELECTORS, TIMING } from '@shared/constants';
@@ -29,7 +29,10 @@ function handleDOMChange(): void {
   if (debounceTimer) clearTimeout(debounceTimer);
 
   debounceTimer = setTimeout(() => {
-    currentNodes = assignChatboxIds();
+    // Merge instead of rebuild — virtualization unmounts off-screen bubbles,
+    // so a raw DOM scan would drop them from the tree (chat count would
+    // change while scrolling). The cache keeps every turn seen this session.
+    currentNodes = mergeMountedNodes();
     // console.log('[ChatTree DBG] DOM change → tree built, nodeCount=', currentNodes.length);
     dispatchTree(buildTree(currentNodes));
     document
@@ -44,6 +47,7 @@ export function startObserving(): void {
   if (!container) return;
 
   currentNodes = [];
+  resetNodeCache(); // fresh conversation — accumulated turns belong to the old one
 
   observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
@@ -85,10 +89,11 @@ export function startObserving(): void {
     usePanelStore.getState().setActiveNode(navId);
   });
 
-  // Separate observer for branch switching (‹/›) — full rescan ensures
-  // branchCurrent and node text are always read fresh from the settled DOM
+  // Separate observer for branch switching (‹/›). mergeMountedNodes reads the
+  // settled DOM and drops cached turns past the divergence point, so stale
+  // nodes from the previous branch don't linger in the tree.
   branchCleanup = watchBranchChanges(container as HTMLElement, () => {
-    currentNodes = assignChatboxIds();
+    currentNodes = mergeMountedNodes();
     dispatchTree(buildTree(currentNodes));
   });
 }
