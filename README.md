@@ -70,7 +70,10 @@ npm run build
 
 ### 4-3. Installation (Stable Release)
 
-> _Chrome Web Store listing coming soon._
+You can install ChatTree directly from the official extension stores:
+
+- ** Chrome Web Store**: [ChatTree on Chrome Web Store](https://chromewebstore.google.com/detail/chattree/flamopjfedkffcfofoibkgbhoajnopnc)
+- ** Microsoft Edge Add-ons**: [ChatTree on Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/chattree/lcgceaigpbkibamcpfjbgedmijmilcmi)
 
 ## 5. Architecture
 
