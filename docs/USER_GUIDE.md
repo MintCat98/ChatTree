@@ -31,9 +31,11 @@ ChatTree is a Chromium browser extension that floats an interactive tree-map pan
 
 ## 1. Installation
 
-### From the Chrome Web Store *(coming soon)*
+### From the Chrome Web Store
 
-> The Chrome Web Store listing is currently in progress. Once published, you will be able to install ChatTree in one click.
+- **Chrome Web Store**: [ChatTree on Chrome Web Store](https://chromewebstore.google.com/detail/chattree/flamopjfedkffcfofoibkgbhoajnopnc)
+- **Microsoft Edge Add-ons**: [ChatTree on Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/chattree/lcgceaigpbkibamcpfjbgedmijmilcmi)
+
 
 ### Developer Mode (Manual Install)
 
