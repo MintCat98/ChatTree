@@ -84,13 +84,13 @@
 DOM change detected
      │
      ▼
-Content Script: chatbox-tracker.assignChatboxIds()
-     │  ChatboxNode[] created
+Content Script: chatbox-tracker.mergeMountedNodes()
+     │  ChatboxNode[] created (accumulated across scans — see dom-analysis.md §3)
      ▼
-Content Script → Background: { type: 'TREE_UPDATE', nodes: ChatboxNode[] }
+Content Script → Background: { type: 'TREE_UPDATE', nodes: ChatboxNode[], sessionId }
      │
      ▼
-Background: session-store.updateTree(tabId, nodes)
+Background: session-store.updateTree(sessionId, nodes)
      │  If unsummarized node found
      ├──▶ summary-service.summarize(text)
      │         │ Claude API call
@@ -103,6 +103,29 @@ Background → Content Script: { type: 'TREE_READY', tree: TreeData }
      ▼
 UI Panel: TreeMap re-renders
 ```
+
+### Hydration on conversation entry (issue #152)
+
+```
+observer.startObserving()
+     │
+     ▼
+Content Script → Background: { type: 'GET_STORED_TREE', sessionId }   ← request/response
+     │
+     ▼
+Background: session-store.getTree(sessionId)  →  responds { tree: TreeData | null }
+     │
+     ▼
+Content Script: chatbox-tracker.seedNodeCache(tree.nodes)
+     │  DOM-scanned entries always win; stale seeded turns are dropped
+     │  by mergeMountedNodes' divergence rule as scanning proceeds
+     ▼
+Tree dispatched with the full accumulated node list
+```
+
+The stored tree survives new windows and tab reloads within a browser session,
+so a long conversation no longer starts truncated. `CHAT_PAGE_ENTERED` must
+**not** clear the stored tree — it is the hydration source.
 
 ---
 
@@ -160,7 +183,7 @@ interface UserSettings {
 | Styling | **Tailwind CSS** | Prevents class collisions (prefix: `nav-`) |
 | Shadow DOM | Web Components Shadow DOM | Isolates from host page CSS |
 | Communication | `chrome.runtime.sendMessage` | MV3 standard |
-| Storage | `chrome.storage.session` | Per-tab session isolation |
+| Storage | `chrome.storage.session` | Keyed per conversation (`tree_<sessionId>`) so new tabs/windows hydrate the accumulated tree (issue #152); cleared on browser close |
 | Language | **TypeScript** | Type safety |
 | Testing | **Vitest** + Playwright | Unit + E2E |
 

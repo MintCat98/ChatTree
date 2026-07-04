@@ -4,7 +4,9 @@ import {
   assignChatboxIds,
   mergeMountedNodes,
   resetNodeCache,
+  seedNodeCache,
   getCachedTop,
+  absIndexFromNavId,
   reloadFromNode,
 } from '@content/chatbox-tracker';
 import type { ChatboxNode } from '@shared/types';
@@ -141,6 +143,77 @@ describe('mergeMountedNodes', () => {
     const nodes = mergeMountedNodes();
 
     expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-1']);
+  });
+});
+
+describe('seedNodeCache (issue #152 hydration)', () => {
+  beforeEach(() => resetNodeCache());
+
+  function storedNode(id: string, text: string): ChatboxNode {
+    return { id, index: 0, text, hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null };
+  }
+
+  it('restores stored nodes into the merged tree', () => {
+    seedNodeCache([storedNode('chatbox-0', 'q1'), storedNode('chatbox-2', 'q2')]);
+
+    // Only turn 4 is mounted (fresh window shows the conversation tail)
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'q3', 4, 900),
+    ]);
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2', 'chatbox-4']);
+    expect(nodes.map((n) => n.index)).toEqual([0, 1, 2]);
+  });
+
+  it('never overwrites DOM-scanned entries', () => {
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'fresh-from-dom', 0, 100),
+    ]);
+    mergeMountedNodes();
+
+    seedNodeCache([storedNode('chatbox-0', 'stale-from-storage')]);
+    const nodes = mergeMountedNodes();
+
+    expect(nodes[0].text).toBe('fresh-from-dom');
+  });
+
+  it('seeded nodes have no cached top (scroll falls back to estimate)', () => {
+    seedNodeCache([storedNode('chatbox-2', 'q')]);
+    expect(getCachedTop('chatbox-2')).toBeNull();
+  });
+
+  it('ignores nodes with malformed ids', () => {
+    seedNodeCache([storedNode('bogus-id', 'q')]);
+    (global as Record<string, unknown>).document = makeDocument([]);
+    expect(mergeMountedNodes()).toEqual([]);
+  });
+
+  it('stale seeded turns are dropped once the DOM diverges at the same index', () => {
+    seedNodeCache([
+      storedNode('chatbox-0', 'q1'),
+      storedNode('chatbox-2', 'old-branch'),
+      storedNode('chatbox-4', 'old-tail'),
+    ]);
+
+    // DOM shows a different text at turn 2 → cached turns after 2 are stale
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'new-branch', 2),
+    ]);
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(nodes[1].text).toBe('new-branch');
+  });
+});
+
+describe('absIndexFromNavId', () => {
+  it('parses the absolute index', () => {
+    expect(absIndexFromNavId('chatbox-12')).toBe(12);
+  });
+
+  it('returns null for malformed ids', () => {
+    expect(absIndexFromNavId('nope')).toBeNull();
   });
 });
 

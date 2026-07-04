@@ -85,7 +85,7 @@ describe('TREE_UPDATE', () => {
     dispatch({ type: MessageType.TREE_UPDATE, payload: { nodes, sessionId: 'sess-1' } }, TAB_ID);
     await flush();
 
-    expect(mockUpdateTree).toHaveBeenCalledWith(TAB_ID, nodes, 'sess-1');
+    expect(mockUpdateTree).toHaveBeenCalledWith('sess-1', nodes);
     expect(mockTabsSendMessage).toHaveBeenCalledWith(
       TAB_ID,
       expect.objectContaining({ type: MessageType.TREE_READY, payload: { tree } }),
@@ -94,6 +94,13 @@ describe('TREE_UPDATE', () => {
 
   it('does nothing when tabId is undefined', async () => {
     dispatch({ type: MessageType.TREE_UPDATE, payload: { nodes: [], sessionId: 'x' } });
+    await flush();
+
+    expect(mockUpdateTree).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when sessionId is missing', async () => {
+    dispatch({ type: MessageType.TREE_UPDATE, payload: { nodes: [], sessionId: '' } }, TAB_ID);
     await flush();
 
     expect(mockUpdateTree).not.toHaveBeenCalled();
@@ -125,11 +132,11 @@ describe('BRANCH_CHANGED', () => {
     mockGetTree.mockResolvedValue(existing);
     mockUpdateTree.mockResolvedValue(updated);
 
-    dispatch({ type: MessageType.BRANCH_CHANGED, payload: { navId: 'chatbox-0' } }, TAB_ID);
+    dispatch({ type: MessageType.BRANCH_CHANGED, payload: { navId: 'chatbox-0', sessionId: 'sess-1' } }, TAB_ID);
     await flush();
 
-    expect(mockGetTree).toHaveBeenCalledWith(TAB_ID);
-    expect(mockUpdateTree).toHaveBeenCalledWith(TAB_ID, existing.nodes, existing.sessionId, ['chatbox-0']);
+    expect(mockGetTree).toHaveBeenCalledWith('sess-1');
+    expect(mockUpdateTree).toHaveBeenCalledWith('sess-1', existing.nodes, ['chatbox-0']);
     expect(mockTabsSendMessage).toHaveBeenCalledWith(
       TAB_ID,
       expect.objectContaining({ type: MessageType.TREE_READY }),
@@ -139,11 +146,18 @@ describe('BRANCH_CHANGED', () => {
   it('does nothing when getTree returns null', async () => {
     mockGetTree.mockResolvedValue(null);
 
-    dispatch({ type: MessageType.BRANCH_CHANGED, payload: { navId: 'chatbox-0' } }, TAB_ID);
+    dispatch({ type: MessageType.BRANCH_CHANGED, payload: { navId: 'chatbox-0', sessionId: 'sess-1' } }, TAB_ID);
     await flush();
 
     expect(mockUpdateTree).not.toHaveBeenCalled();
     expect(mockTabsSendMessage).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when sessionId is missing from the payload', async () => {
+    dispatch({ type: MessageType.BRANCH_CHANGED, payload: { navId: 'chatbox-0' } }, TAB_ID);
+    await flush();
+
+    expect(mockGetTree).not.toHaveBeenCalled();
   });
 
   it('does nothing when tabId is undefined', async () => {
@@ -159,11 +173,11 @@ describe('BRANCH_CHANGED', () => {
 // ---------------------------------------------------------------------------
 
 describe('CHAT_PAGE_ENTERED', () => {
-  it('calls clearTree then broadcasts empty TREE_READY to reset the panel', async () => {
+  it('broadcasts empty TREE_READY without clearing the stored tree (hydration source, #152)', async () => {
     dispatch({ type: MessageType.CHAT_PAGE_ENTERED, payload: { url: 'https://claude.ai/chat/abc' } }, TAB_ID);
     await flush();
 
-    expect(mockClearTree).toHaveBeenCalledWith(TAB_ID);
+    expect(mockClearTree).not.toHaveBeenCalled();
     expect(mockTabsSendMessage).toHaveBeenCalledWith(
       TAB_ID,
       expect.objectContaining({
@@ -177,7 +191,6 @@ describe('CHAT_PAGE_ENTERED', () => {
     dispatch({ type: MessageType.CHAT_PAGE_ENTERED });
     await flush();
 
-    expect(mockClearTree).not.toHaveBeenCalled();
     expect(mockTabsSendMessage).not.toHaveBeenCalled();
   });
 });
@@ -308,17 +321,86 @@ describe('onMessage return value', () => {
 
   it('logs a warning when handleAsync rejects unexpectedly', async () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    // Cause an unexpected rejection by making clearTree throw
-    mockClearTree.mockRejectedValueOnce(new Error('storage quota exceeded'));
+    // Cause an unexpected rejection by making updateTree throw
+    mockUpdateTree.mockRejectedValueOnce(new Error('storage quota exceeded'));
 
-    onMessage({ type: MessageType.CHAT_PAGE_ENTERED }, sender(TAB_ID), () => {});
+    onMessage(
+      { type: MessageType.TREE_UPDATE, payload: { nodes: [], sessionId: 'sess-1' } },
+      sender(TAB_ID),
+      () => {},
+    );
     await flush();
 
     expect(warnSpy).toHaveBeenCalledWith(
       '[ChatTree] handler failed:',
-      MessageType.CHAT_PAGE_ENTERED,
+      MessageType.TREE_UPDATE,
       expect.any(Error),
     );
     warnSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET_STORED_TREE (issue #152 — hydration request/response)
+// ---------------------------------------------------------------------------
+
+describe('GET_STORED_TREE', () => {
+  it('returns true and responds with the stored tree', async () => {
+    const tree = makeTree([makeNode('chatbox-0')]);
+    mockGetTree.mockResolvedValue(tree);
+    const sendResponse = jest.fn();
+
+    const result = onMessage(
+      { type: MessageType.GET_STORED_TREE, payload: { sessionId: 'sess-1' } },
+      sender(TAB_ID),
+      sendResponse,
+    );
+    await flush();
+
+    expect(result).toBe(true); // keeps sendResponse alive across the async read
+    expect(mockGetTree).toHaveBeenCalledWith('sess-1');
+    expect(sendResponse).toHaveBeenCalledWith({ tree });
+  });
+
+  it('responds { tree: null } when nothing is stored', async () => {
+    mockGetTree.mockResolvedValue(null);
+    const sendResponse = jest.fn();
+
+    onMessage(
+      { type: MessageType.GET_STORED_TREE, payload: { sessionId: 'sess-1' } },
+      sender(TAB_ID),
+      sendResponse,
+    );
+    await flush();
+
+    expect(sendResponse).toHaveBeenCalledWith({ tree: null });
+  });
+
+  it('responds { tree: null } immediately when sessionId is missing', async () => {
+    const sendResponse = jest.fn();
+
+    const result = onMessage(
+      { type: MessageType.GET_STORED_TREE, payload: {} },
+      sender(TAB_ID),
+      sendResponse,
+    );
+
+    expect(result).toBeUndefined();
+    expect(sendResponse).toHaveBeenCalledWith({ tree: null });
+    expect(mockGetTree).not.toHaveBeenCalled();
+  });
+
+  it('responds { tree: null } when the storage read rejects', async () => {
+    mockGetTree.mockRejectedValue(new Error('storage gone'));
+    const sendResponse = jest.fn();
+
+    onMessage(
+      { type: MessageType.GET_STORED_TREE, payload: { sessionId: 'sess-1' } },
+      sender(TAB_ID),
+      sendResponse,
+    );
+    await flush();
+
+    expect(sendResponse).toHaveBeenCalledWith({ tree: null });
   });
 });

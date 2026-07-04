@@ -103,12 +103,35 @@ export function resetNodeCache(): void {
   nodeCache.clear();
 }
 
+// navId format: "chatbox-<absIndex>" — recover the absolute turn index.
+export function absIndexFromNavId(navId: string): number | null {
+  const n = parseInt(navId.replace('chatbox-', ''), 10);
+  return isNaN(n) ? null : n;
+}
+
 // Cached absolute scroll offset for a node no longer in the DOM
-// (scroll-navigator fallback). navId format: "chatbox-<absIndex>".
+// (scroll-navigator fallback).
 export function getCachedTop(navId: string): number | null {
-  const absIndex = parseInt(navId.replace('chatbox-', ''), 10);
-  if (isNaN(absIndex)) return null;
+  const absIndex = absIndexFromNavId(navId);
+  if (absIndex === null) return null;
   return nodeCache.get(absIndex)?.top ?? null;
+}
+
+/**
+ * Seeds the cache from a tree persisted in chrome.storage.session (issue #152)
+ * so the full accumulated tree survives new windows / tab reloads. Optimistic:
+ * DOM-scanned entries always win (existing absIndices are never overwritten),
+ * and stale seeded turns are dropped by mergeMountedNodes' divergence rule as
+ * the live DOM is scanned.
+ */
+export function seedNodeCache(nodes: ChatboxNode[]): void {
+  for (const node of nodes) {
+    const absIndex = absIndexFromNavId(node.id);
+    if (absIndex === null || nodeCache.has(absIndex)) continue;
+    // top: null — offsets come from the live DOM only; scroll-navigator
+    // falls back to a proportional estimate for seeded nodes.
+    nodeCache.set(absIndex, { top: null, node: { ...node, parentId: null } });
+  }
 }
 
 /**

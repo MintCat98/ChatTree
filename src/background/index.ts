@@ -1,15 +1,12 @@
 // Service Worker entry point — registers the message relay listener.
 
 import { onMessage } from './message-handler';
-import { clearTree } from './session-store';
 
 chrome.runtime.onMessage.addListener(onMessage);
 
-// Auto-cleanup tree data when a tab is closed.
-// chrome.tabs.onRemoved does not require the `tabs` permission.
-chrome.tabs.onRemoved.addListener((tabId) => {
-  void clearTree(tabId);
-});
+// No per-tab cleanup: trees are keyed by sessionId (issue #152) and must
+// outlive individual tabs so new windows can hydrate. chrome.storage.session
+// clears itself when the browser closes, which bounds accumulation.
 
 // Keepalive: wake the SW every minute to prevent the 30-second inactivity termination
 // from dropping in-flight message handlers between user actions.

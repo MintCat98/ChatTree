@@ -1,11 +1,13 @@
-// Manages per-tab tree state in chrome.storage.session.
+// Manages per-conversation tree state in chrome.storage.session.
+// Keyed by sessionId (conversation UUID) — not tabId — so any tab or window
+// opened on the same conversation can hydrate the accumulated tree (issue #152).
 // chrome.storage.session persists across SW restarts within a browser session
 // and is automatically cleared when the browser closes.
 
 import type { ChatboxNode, TreeData } from '@shared/types';
 
-function treeKey(tabId: number): string {
-  return `tree_${tabId}`;
+function treeKey(sessionId: string): string {
+  return `tree_${sessionId}`;
 }
 
 // Strips any DOM element references before storage (e.g., element?: HTMLElement
@@ -17,22 +19,21 @@ function serializeNodes(nodes: ChatboxNode[]): ChatboxNode[] {
   });
 }
 
-export async function getTree(tabId: number): Promise<TreeData | null> {
-  const key = treeKey(tabId);
+export async function getTree(sessionId: string): Promise<TreeData | null> {
+  const key = treeKey(sessionId);
   const result = await chrome.storage.session.get(key);
   return (result[key] as TreeData | undefined) ?? null;
 }
 
 export async function updateTree(
-  tabId: number,
-  nodes: ChatboxNode[],
   sessionId: string,
+  nodes: ChatboxNode[],
   activeBranchPath?: string[],
 ): Promise<TreeData> {
   // Preserve existing activeBranchPath when the caller does not provide one
   let resolvedPath = activeBranchPath;
   if (resolvedPath === undefined) {
-    const existing = await getTree(tabId);
+    const existing = await getTree(sessionId);
     resolvedPath = existing?.activeBranchPath ?? [];
   }
 
@@ -43,10 +44,10 @@ export async function updateTree(
     lastUpdated: Date.now(),
   };
 
-  await chrome.storage.session.set({ [treeKey(tabId)]: tree });
+  await chrome.storage.session.set({ [treeKey(sessionId)]: tree });
   return tree;
 }
 
-export async function clearTree(tabId: number): Promise<void> {
-  await chrome.storage.session.remove(treeKey(tabId));
+export async function clearTree(sessionId: string): Promise<void> {
+  await chrome.storage.session.remove(treeKey(sessionId));
 }

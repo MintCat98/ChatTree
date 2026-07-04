@@ -1,8 +1,8 @@
 // Watches the DOM for new chatbox elements via MutationObserver.
-import { mergeMountedNodes, resetNodeCache, buildTree } from './chatbox-tracker';
+import { mergeMountedNodes, resetNodeCache, seedNodeCache, buildTree } from './chatbox-tracker';
 import { watchBranchChanges } from './branch-change-watcher';
-import { sendToBackground } from './message-bridge';
-import { SELECTORS, TIMING } from '@shared/constants';
+import { sendToBackground, requestFromBackground } from './message-bridge';
+import { SELECTORS, TIMING, CHAT_URL_PATTERN } from '@shared/constants';
 import { MessageType } from '@shared/message-types';
 import type { ChatboxNode, TreeData } from '@shared/types';
 import { startTracking, stopTracking, observeNode } from './active-node-tracker';
@@ -39,6 +39,31 @@ function handleDOMChange(): void {
       .querySelectorAll(`[${SELECTORS.NAV_ID_ATTR}]`)
       .forEach((el) => observeNode(el));
   }, TIMING.OBSERVER_DEBOUNCE);
+}
+
+// Seeds the node cache from the tree persisted for this conversation
+// (issue #152), then re-dispatches so the panel shows the full tree without
+// the user having to scroll through the whole conversation again.
+function hydrateFromStoredTree(): void {
+  const sessionId = location.href.match(CHAT_URL_PATTERN)?.[1];
+  if (!sessionId) return;
+
+  requestFromBackground<{ tree: TreeData | null }>({
+    type: MessageType.GET_STORED_TREE,
+    payload: { sessionId },
+  })
+    .then((response) => {
+      const tree = response?.tree;
+      // Observer torn down while the request was in flight (SPA nav) — the
+      // stored tree belongs to a conversation we already left.
+      if (!observer) return;
+      if (!tree || tree.sessionId !== sessionId || tree.nodes.length === 0) return;
+
+      seedNodeCache(tree.nodes);
+      currentNodes = mergeMountedNodes();
+      dispatchTree(buildTree(currentNodes));
+    })
+    .catch(() => {}); // no stored tree / SW unreachable — scanning fills the tree as usual
 }
 
 export function startObserving(): void {
@@ -83,6 +108,10 @@ export function startObserving(): void {
   // Initial scan — the conversation may already be (partially) rendered when
   // observing starts; later childList mutations cover anything still loading.
   handleDOMChange();
+
+  // Restore previously accumulated turns from storage (async; merge order
+  // doesn't matter — seeding never overwrites DOM-scanned entries).
+  hydrateFromStoredTree();
 
   // active-node-tracker starts
   startTracking((navId) => {
