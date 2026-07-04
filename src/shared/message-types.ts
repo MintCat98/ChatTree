@@ -9,6 +9,7 @@ export const MessageType = {
   CHAT_PAGE_ENTERED:    'CHAT_PAGE_ENTERED',
   ACTIVE_NODE_CHANGED:  'ACTIVE_NODE_CHANGED',
   TREE_UPDATE:          'TREE_UPDATE',          // payload: { nodes: ChatboxNode[], sessionId: string }
+  GET_STORED_TREE:      'GET_STORED_TREE',      // payload: { sessionId } — request/response; responds { tree: TreeData | null } (issue #152)
 
   // Background → Content / Panel
   TREE_READY:           'TREE_READY',

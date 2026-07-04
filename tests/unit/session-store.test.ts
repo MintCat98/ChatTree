@@ -1,4 +1,5 @@
-// Unit tests for session-store — per-tab tree state management.
+// Unit tests for session-store — per-conversation tree state management
+// (keyed by sessionId so any tab/window can hydrate the same tree, issue #152).
 
 import { getTree, updateTree, clearTree } from '@background/session-store';
 import type { ChatboxNode, TreeData } from '@shared/types';
@@ -36,7 +37,7 @@ beforeEach(() => {
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const TAB_ID = 42;
+const SESSION_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
 function makeNode(id: string, index: number): ChatboxNode {
   return {
@@ -55,21 +56,21 @@ function makeNode(id: string, index: number): ChatboxNode {
 // ---------------------------------------------------------------------------
 
 describe('getTree', () => {
-  it('returns null for an unknown tabId', async () => {
-    const result = await getTree(TAB_ID);
+  it('returns null for an unknown sessionId', async () => {
+    const result = await getTree(SESSION_ID);
     expect(result).toBeNull();
   });
 
-  it('returns the stored TreeData for a known tabId', async () => {
+  it('returns the stored TreeData for a known sessionId', async () => {
     const tree: TreeData = {
-      sessionId: 'sess-1',
+      sessionId: SESSION_ID,
       nodes: [makeNode('chatbox-0', 0)],
       activeBranchPath: ['chatbox-0'],
       lastUpdated: 1000,
     };
-    mockStorage.set(`tree_${TAB_ID}`, tree);
+    mockStorage.set(`tree_${SESSION_ID}`, tree);
 
-    const result = await getTree(TAB_ID);
+    const result = await getTree(SESSION_ID);
     expect(result).toEqual(tree);
   });
 });
@@ -79,18 +80,18 @@ describe('getTree', () => {
 // ---------------------------------------------------------------------------
 
 describe('updateTree', () => {
-  it('stores TreeData under the key tree_<tabId>', async () => {
+  it('stores TreeData under the key tree_<sessionId>', async () => {
     const nodes = [makeNode('chatbox-0', 0)];
-    await updateTree(TAB_ID, nodes, 'sess-1');
+    await updateTree(SESSION_ID, nodes);
 
     expect(mockSessionStorage.set).toHaveBeenCalledWith(
-      expect.objectContaining({ [`tree_${TAB_ID}`]: expect.any(Object) }),
+      expect.objectContaining({ [`tree_${SESSION_ID}`]: expect.any(Object) }),
     );
   });
 
   it('uses the provided activeBranchPath', async () => {
     const nodes = [makeNode('chatbox-0', 0)];
-    const tree = await updateTree(TAB_ID, nodes, 'sess-1', ['chatbox-0']);
+    const tree = await updateTree(SESSION_ID, nodes, ['chatbox-0']);
 
     expect(tree.activeBranchPath).toEqual(['chatbox-0']);
   });
@@ -98,29 +99,29 @@ describe('updateTree', () => {
   it('preserves the existing activeBranchPath when arg is undefined', async () => {
     // Store an initial tree with a known activeBranchPath
     const initial: TreeData = {
-      sessionId: 'sess-1',
+      sessionId: SESSION_ID,
       nodes: [],
       activeBranchPath: ['chatbox-1'],
       lastUpdated: 0,
     };
-    mockStorage.set(`tree_${TAB_ID}`, initial);
+    mockStorage.set(`tree_${SESSION_ID}`, initial);
 
     const nodes = [makeNode('chatbox-0', 0)];
-    const tree = await updateTree(TAB_ID, nodes, 'sess-1');
+    const tree = await updateTree(SESSION_ID, nodes);
 
     expect(tree.activeBranchPath).toEqual(['chatbox-1']);
   });
 
   it('defaults activeBranchPath to [] when no prior tree and arg is undefined', async () => {
     const nodes = [makeNode('chatbox-0', 0)];
-    const tree = await updateTree(TAB_ID, nodes, 'sess-1');
+    const tree = await updateTree(SESSION_ID, nodes);
 
     expect(tree.activeBranchPath).toEqual([]);
   });
 
   it('sets lastUpdated close to Date.now()', async () => {
     const before = Date.now();
-    const tree = await updateTree(TAB_ID, [], 'sess-1');
+    const tree = await updateTree(SESSION_ID, []);
     const after = Date.now();
 
     expect(tree.lastUpdated).toBeGreaterThanOrEqual(before);
@@ -129,10 +130,10 @@ describe('updateTree', () => {
 
   it('returns the stored TreeData', async () => {
     const nodes = [makeNode('chatbox-0', 0)];
-    const tree = await updateTree(TAB_ID, nodes, 'sess-1', ['chatbox-0']);
+    const tree = await updateTree(SESSION_ID, nodes, ['chatbox-0']);
 
     expect(tree).toMatchObject({
-      sessionId: 'sess-1',
+      sessionId: SESSION_ID,
       nodes: expect.arrayContaining([expect.objectContaining({ id: 'chatbox-0' })]),
       activeBranchPath: ['chatbox-0'],
     });
@@ -145,31 +146,23 @@ describe('updateTree', () => {
       element: { tagName: 'DIV' }, // plain object standing in for HTMLElement
     } as ChatboxNode & { element: object };
 
-    const tree = await updateTree(TAB_ID, [nodeWithElement], 'sess-1');
+    const tree = await updateTree(SESSION_ID, [nodeWithElement]);
 
     expect(tree.nodes[0]).not.toHaveProperty('element');
     expect(tree.nodes[0]).toMatchObject(makeNode('chatbox-0', 0));
   });
 
-  it('works correctly with tabId = 0', async () => {
-    const tree = await updateTree(0, [], 'sess-zero');
-    expect(tree.sessionId).toBe('sess-zero');
-    expect(mockSessionStorage.set).toHaveBeenCalledWith(
-      expect.objectContaining({ 'tree_0': expect.any(Object) }),
-    );
-  });
+  it('isolates state between conversations', async () => {
+    await updateTree('sess-A', [makeNode('a', 0)]);
+    await updateTree('sess-B', [makeNode('b', 0)]);
 
-  it('isolates state between tabs', async () => {
-    await updateTree(1, [makeNode('a', 0)], 'sess-A');
-    await updateTree(2, [makeNode('b', 0)], 'sess-B');
+    expect((await getTree('sess-A'))?.sessionId).toBe('sess-A');
+    expect((await getTree('sess-B'))?.sessionId).toBe('sess-B');
 
-    expect((await getTree(1))?.sessionId).toBe('sess-A');
-    expect((await getTree(2))?.sessionId).toBe('sess-B');
+    await clearTree('sess-A');
 
-    await clearTree(1);
-
-    expect(await getTree(1)).toBeNull();
-    expect((await getTree(2))?.sessionId).toBe('sess-B');
+    expect(await getTree('sess-A')).toBeNull();
+    expect((await getTree('sess-B'))?.sessionId).toBe('sess-B');
   });
 });
 
@@ -179,15 +172,15 @@ describe('updateTree', () => {
 
 describe('clearTree', () => {
   it('removes the entry from storage', async () => {
-    mockStorage.set(`tree_${TAB_ID}`, { sessionId: 'x', nodes: [], activeBranchPath: [], lastUpdated: 0 });
+    mockStorage.set(`tree_${SESSION_ID}`, { sessionId: 'x', nodes: [], activeBranchPath: [], lastUpdated: 0 });
 
-    await clearTree(TAB_ID);
+    await clearTree(SESSION_ID);
 
-    expect(mockSessionStorage.remove).toHaveBeenCalledWith(`tree_${TAB_ID}`);
-    expect(mockStorage.has(`tree_${TAB_ID}`)).toBe(false);
+    expect(mockSessionStorage.remove).toHaveBeenCalledWith(`tree_${SESSION_ID}`);
+    expect(mockStorage.has(`tree_${SESSION_ID}`)).toBe(false);
   });
 
   it('does not throw when the key does not exist', async () => {
-    await expect(clearTree(TAB_ID)).resolves.toBeUndefined();
+    await expect(clearTree(SESSION_ID)).resolves.toBeUndefined();
   });
 });

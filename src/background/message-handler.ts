@@ -5,14 +5,28 @@ import type { BridgeMessage } from '@shared/message-types';
 import type { ChatboxNode, UserSettings } from '@shared/types';
 import { DEFAULT_SETTINGS } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
-import { getTree, updateTree, clearTree } from '@background/session-store';
+import { getTree, updateTree } from '@background/session-store';
 
 export function onMessage(
   message: BridgeMessage,
   sender: chrome.runtime.MessageSender,
-  _sendResponse: (response?: unknown) => void,
+  sendResponse: (response?: unknown) => void,
 ): boolean | void {
-  // We never call sendResponse, so return void (not true).
+  // Request/response path — must return true to keep sendResponse alive
+  // across the async storage read (MV3 contract).
+  if (message.type === MessageType.GET_STORED_TREE) {
+    const { sessionId } = (message.payload ?? {}) as { sessionId?: string };
+    if (!sessionId) {
+      sendResponse({ tree: null });
+      return;
+    }
+    getTree(sessionId)
+      .then((tree) => sendResponse({ tree }))
+      .catch(() => sendResponse({ tree: null }));
+    return true;
+  }
+
+  // All other messages are fire-and-forget: no sendResponse, return void.
   handleAsync(message, sender.tab?.id).catch((err) =>
     console.warn('[ChatTree] handler failed:', message.type, err),
   );
@@ -26,7 +40,8 @@ async function handleAsync(
     case MessageType.TREE_UPDATE: {
       if (tabId === undefined) return;
       const { nodes, sessionId } = message.payload as { nodes: ChatboxNode[]; sessionId: string };
-      const tree = await updateTree(tabId, nodes, sessionId);
+      if (!sessionId) return;
+      const tree = await updateTree(sessionId, nodes);
       await broadcastToTab(tabId, { type: MessageType.TREE_READY, payload: { tree } });
       break;
     }
@@ -40,20 +55,22 @@ async function handleAsync(
 
     case MessageType.BRANCH_CHANGED: {
       if (tabId === undefined) return;
-      const existing = await getTree(tabId);
+      // Store is keyed by sessionId (issue #152), so the payload must carry it.
+      const { navId, sessionId } = message.payload as { navId: string; sessionId?: string };
+      if (!sessionId) return;
+      const existing = await getTree(sessionId);
       if (!existing) return;
-      const { navId } = message.payload as { navId: string };
       // activeBranchPath computation belongs to the content script (branch-detector.ts);
       // store navId as a placeholder until full branch path is provided
-      const tree = await updateTree(tabId, existing.nodes, existing.sessionId, [navId]);
+      const tree = await updateTree(sessionId, existing.nodes, [navId]);
       await broadcastToTab(tabId, { type: MessageType.TREE_READY, payload: { tree } });
       break;
     }
 
     case MessageType.CHAT_PAGE_ENTERED: {
       if (tabId === undefined) return;
-      await clearTree(tabId);
-      // Notify panel to reset — send empty tree so stale nodes are cleared immediately
+      // Do NOT clear the stored tree here — it is the hydration source for the
+      // conversation being entered (issue #152). Only reset the panel.
       await broadcastToTab(tabId, {
         type: MessageType.TREE_READY,
         payload: { tree: { sessionId: '', nodes: [], activeBranchPath: [], lastUpdated: Date.now() } },
