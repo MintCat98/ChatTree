@@ -13,43 +13,167 @@ export interface BranchInfo {
   total: number;
 }
 
+// One user bubble as found in the current DOM, keyed by its absolute position
+// in the conversation (not its position among currently mounted bubbles).
+interface MountedBubble {
+  absIndex: number;
+  top: number | null; // absolute scroll offset of the turn wrapper, if exposed
+  text: string;
+  branch: BranchInfo;
+}
+
 // ---------------------------------------------------------------------------
-// public API — stub
+// virtualization-aware scanning
+//
+// Claude.ai virtualizes long conversations: turns scrolled far out of view are
+// unmounted from the DOM and remount as fresh elements. Two consequences:
+//   1. IDs must come from the turn's *absolute* position (data-index /
+//      aria-posinset on ancestors), never from DOM enumeration order —
+//      otherwise remounted bubbles collide with still-mounted ones.
+//   2. A single scan only sees the mounted window, so scans are merged into
+//      a per-session cache (mergeMountedNodes) to keep the full tree.
 // ---------------------------------------------------------------------------
-export function assignChatboxIds(): ChatboxNode[] {
-  //void SELECTORS;
+
+// Absolute turn position + scroll offset from the virtualized-list ancestors.
+// Falls back to null when claude.ai's DOM changes (caller uses DOM order then).
+function getAbsolutePosition(el: HTMLElement): { absIndex: number | null; top: number | null } {
+  const wrapper = el.closest(SELECTORS.TURN_INDEX_WRAPPER) as HTMLElement | null;
+  if (wrapper) {
+    const n = parseInt(wrapper.getAttribute('data-index') ?? '', 10);
+    if (!isNaN(n)) {
+      const top = parseFloat(wrapper.style?.top ?? '');
+      return { absIndex: n, top: isNaN(top) ? null : top };
+    }
+  }
+
+  const article = el.closest(SELECTORS.TURN_ARTICLE) as HTMLElement | null;
+  const pos = parseInt(article?.getAttribute('aria-posinset') ?? '', 10);
+  if (!isNaN(pos)) return { absIndex: pos - 1, top: null };
+
+  return { absIndex: null, top: null };
+}
+
+// Scans currently mounted bubbles and (re)writes their data-nav-id attributes.
+function scanMounted(): MountedBubble[] {
   const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
-  if(!container) return [];
+  if (!container) return [];
 
   const bubbles = container.querySelectorAll(SELECTORS.USER_MESSAGE_BUBBLE);
-  const nodes:  ChatboxNode[] = [];
+  const mounted: MountedBubble[] = [];
 
-  bubbles.forEach((el, index) => {
-    // reuse data-nav-id or provide new id
-    let id = el.getAttribute(SELECTORS.NAV_ID_ATTR);
-    if (!id) {
-      id = `chatbox-${index}`;
-      el.setAttribute(SELECTORS.NAV_ID_ATTR, id);
-    }
+  bubbles.forEach((el, domIndex) => {
+    const { absIndex, top } = getAbsolutePosition(el as HTMLElement);
+    const idx = absIndex ?? domIndex;
 
-    // extract text
-    const text = el.querySelector(SELECTORS.USER_MESSAGE)?.textContent ?? '';
+    // Always reassign — a pre-existing data-nav-id may be stale after remount.
+    el.setAttribute(SELECTORS.NAV_ID_ATTR, `chatbox-${idx}`);
 
-    // branch info
-    const { hasBranch, current, total } = detectBranch(el as HTMLElement);
-
-    nodes.push({
-      id,
-      index,
-      text,
-      hasBranch,
-      branchCurrent: current,
-      branchTotal: total,
-      parentId: null,
+    mounted.push({
+      absIndex: idx,
+      top,
+      text: el.querySelector(SELECTORS.USER_MESSAGE)?.textContent ?? '',
+      branch: detectBranch(el as HTMLElement),
     });
   });
 
-  return nodes;
+  return mounted;
+}
+
+// ---------------------------------------------------------------------------
+// public API
+// ---------------------------------------------------------------------------
+
+export function assignChatboxIds(): ChatboxNode[] {
+  return scanMounted().map((m, domIndex) => ({
+    id: `chatbox-${m.absIndex}`,
+    index: domIndex,
+    text: m.text,
+    hasBranch: m.branch.hasBranch,
+    branchCurrent: m.branch.current,
+    branchTotal: m.branch.total,
+    parentId: null,
+  }));
+}
+
+// Per-session accumulator: absIndex → last known state of that turn.
+// Survives virtualization unmounts; reset on conversation change.
+const nodeCache = new Map<number, { node: ChatboxNode; top: number | null }>();
+
+export function resetNodeCache(): void {
+  nodeCache.clear();
+}
+
+// navId format: "chatbox-<absIndex>" — recover the absolute turn index.
+export function absIndexFromNavId(navId: string): number | null {
+  const n = parseInt(navId.replace('chatbox-', ''), 10);
+  return isNaN(n) ? null : n;
+}
+
+// Cached absolute scroll offset for a node no longer in the DOM
+// (scroll-navigator fallback).
+export function getCachedTop(navId: string): number | null {
+  const absIndex = absIndexFromNavId(navId);
+  if (absIndex === null) return null;
+  return nodeCache.get(absIndex)?.top ?? null;
+}
+
+/**
+ * Seeds the cache from a tree persisted in chrome.storage.session (issue #152)
+ * so the full accumulated tree survives new windows / tab reloads. Optimistic:
+ * DOM-scanned entries always win (existing absIndices are never overwritten),
+ * and stale seeded turns are dropped by mergeMountedNodes' divergence rule as
+ * the live DOM is scanned.
+ */
+export function seedNodeCache(nodes: ChatboxNode[]): void {
+  for (const node of nodes) {
+    const absIndex = absIndexFromNavId(node.id);
+    if (absIndex === null || nodeCache.has(absIndex)) continue;
+    // top: null — offsets come from the live DOM only; scroll-navigator
+    // falls back to a proportional estimate for seeded nodes.
+    nodeCache.set(absIndex, { top: null, node: { ...node, parentId: null } });
+  }
+}
+
+/**
+ * Merges the currently mounted bubbles into the session cache and returns the
+ * full accumulated node list (sequential `index` for display, id from absolute
+ * position). If a mounted turn diverges from its cached state (text or branch
+ * info changed — i.e. an edit/branch switch rewrote the timeline), all cached
+ * turns after it are dropped as stale.
+ */
+export function mergeMountedNodes(): ChatboxNode[] {
+  const mounted = scanMounted().sort((a, b) => a.absIndex - b.absIndex);
+
+  for (const m of mounted) {
+    const cached = nodeCache.get(m.absIndex);
+    if (
+      cached &&
+      (cached.node.text !== m.text ||
+        cached.node.branchCurrent !== m.branch.current ||
+        cached.node.branchTotal !== m.branch.total)
+    ) {
+      for (const key of [...nodeCache.keys()]) {
+        if (key > m.absIndex) nodeCache.delete(key);
+      }
+    }
+
+    nodeCache.set(m.absIndex, {
+      top: m.top,
+      node: {
+        id: `chatbox-${m.absIndex}`,
+        index: 0, // reassigned below
+        text: m.text,
+        hasBranch: m.branch.hasBranch,
+        branchCurrent: m.branch.current,
+        branchTotal: m.branch.total,
+        parentId: null,
+      },
+    });
+  }
+
+  return [...nodeCache.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, cached], i) => ({ ...cached.node, index: i }));
 }
 
 // Search branches using Element input
@@ -127,11 +251,9 @@ export function reloadFromNode(branchNodeId: string, allNodes: ChatboxNode[]): C
   bubbles.forEach((el, domIndex) => {
     if (domIndex <= branchIndex) return;
 
-    let id = el.getAttribute(SELECTORS.NAV_ID_ATTR);
-    if (!id) {
-      id = `chatbox-${domIndex}`;
-      el.setAttribute(SELECTORS.NAV_ID_ATTR, id);
-    }
+    // Same rule as assignChatboxIds — never trust a pre-existing id.
+    const id = `chatbox-${domIndex}`;
+    el.setAttribute(SELECTORS.NAV_ID_ATTR, id);
 
     const text = el.querySelector(SELECTORS.USER_MESSAGE)?.textContent ?? '';
     const { hasBranch, current, total } = detectBranch(el as HTMLElement);

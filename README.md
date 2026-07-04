@@ -1,4 +1,4 @@
-# ChatTree (v1.0.0-beta)
+# ChatTree (v1.0.1-beta)
 
 > **Navigate your AI conversations like a map, not a scroll.**  
 > A Chromium extension that visualizes your chat session as an interactive tree — so you never lose track of where you were.
@@ -15,7 +15,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE) [![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)]() [![Platform](https://img.shields.io/badge/Platform-Chromium-yellow.svg)]() [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
-📖 [User Guide](./docs/USER_GUIDE.md) · 🤝 [Contributing](.github/CONTRIBUTING.md) · 👥 [Contributors](.github/CONTRIBUTORS.md)
+🌐 [Chrome Web Store](https://chromewebstore.google.com/detail/chattree/flamopjfedkffcfofoibkgbhoajnopnc) · 🌐 [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/chattree/lcgceaigpbkibamcpfjbgedmijmilcmi) · 📖 [User Guide](./docs/USER_GUIDE.md) · 🤝 [Contributing](.github/CONTRIBUTING.md) · 👥 [Contributors](.github/CONTRIBUTORS.md)
 
 </div>
 
@@ -70,7 +70,10 @@ npm run build
 
 ### 4-3. Installation (Stable Release)
 
-> _Chrome Web Store listing coming soon._
+You can install ChatTree directly from the official extension stores:
+
+- **Chrome Web Store**: [ChatTree on Chrome Web Store](https://chromewebstore.google.com/detail/chattree/flamopjfedkffcfofoibkgbhoajnopnc)
+- **Microsoft Edge Add-ons**: [ChatTree on Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/chattree/lcgceaigpbkibamcpfjbgedmijmilcmi)
 
 ## 5. Architecture
 

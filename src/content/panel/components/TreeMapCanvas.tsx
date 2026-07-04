@@ -17,8 +17,10 @@ import {
 } from './constants';
 import { TreeNode } from './TreeNode';
 import { NodeConnector } from './NodeConnector';
+import { GhostNode } from './GhostNode';
 import { EmptyState } from './EmptyState';
 import { TagEditorPopover } from './TagEditorPopover';
+import { absIndexFromNavId } from '../../chatbox-tracker';
 import { useEffect, useRef } from 'react';
 
 export function TreeMapCanvas() {
@@ -36,13 +38,25 @@ export function TreeMapCanvas() {
   const activeNodeId = usePanelStore((s) => s.activeNodeId);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Ghost row when the conversation has turns before the first scanned one
+  // (issue #152): ids encode absolute turn position, so a minimum above 0
+  // means earlier messages were never mounted/scanned into the tree.
+  const minAbsIndex =
+    tree?.nodes.reduce((min, n) => {
+      const abs = absIndexFromNavId(n.id);
+      return abs !== null && abs < min ? abs : min;
+    }, Infinity) ?? Infinity;
+  const hasEarlierMessages = Number.isFinite(minAbsIndex) && minAbsIndex > 0;
+  // Ascending order puts the ghost at row 0, shifting every node down one row.
+  const ghostOffset = hasEarlierMessages && sortOrder === 'asc' ? 1 : 0;
+
   useEffect(() => {
     if(!activeNodeId || !scrollRef.current || !tree) return;
 
     const activeIndex = tree.nodes.findIndex((n) => n.id === activeNodeId);
     if (activeIndex === -1) return;
 
-    const nodeY = nodeCenterY(activeIndex);
+    const nodeY = nodeCenterY(activeIndex + ghostOffset);
     const container = scrollRef.current;
     const containerHeight = container.clientHeight;
 
@@ -60,7 +74,7 @@ export function TreeMapCanvas() {
         });
       }
     }
-  }, [activeNodeId, tree]);
+  }, [activeNodeId, tree, ghostOffset]);
 
 
   if (!tree || tree.nodes.length === 0) {
@@ -68,7 +82,10 @@ export function TreeMapCanvas() {
   }
 
   const sortedNodes = sortOrder === 'asc' ? [...tree.nodes] : [...tree.nodes].reverse();
-  const height = calcSvgHeight(sortedNodes.length);
+  const totalRows = sortedNodes.length + (hasEarlierMessages ? 1 : 0);
+  const height = calcSvgHeight(totalRows);
+  // Ghost row sits adjacent to the oldest node: top in asc, bottom in desc.
+  const ghostRow = sortOrder === 'asc' ? 0 : sortedNodes.length;
 
   const labelX = COLUMN_X + NODE_RADIUS + LABEL_GAP;
   const rowWidth = width - ROW_INSET * 2;
@@ -109,10 +126,24 @@ export function TreeMapCanvas() {
           <NodeConnector
             key={`conn-${node.id}`}
             x={COLUMN_X}
-            yFrom={nodeCenterY(i)}
-            yTo={nodeCenterY(i + 1)}
+            yFrom={nodeCenterY(i + ghostOffset)}
+            yTo={nodeCenterY(i + 1 + ghostOffset)}
           />
         ))}
+
+        {/* Dashed connector between the ghost row and the oldest node. */}
+        {hasEarlierMessages && sortedNodes.length > 0 && (
+          <line
+            x1={COLUMN_X}
+            y1={nodeCenterY(ghostRow === 0 ? 0 : sortedNodes.length - 1) + NODE_RADIUS}
+            x2={COLUMN_X}
+            y2={nodeCenterY(ghostRow === 0 ? 1 : ghostRow) - NODE_RADIUS}
+            stroke="var(--nav-color-edge)"
+            strokeWidth={2}
+            strokeDasharray="3 4"
+            strokeLinecap="round"
+          />
+        )}
 
         {/* 2) Nodes (circle + number + label) on top. */}
         {sortedNodes.map((node, i) => (
@@ -120,17 +151,27 @@ export function TreeMapCanvas() {
             key={node.id}
             node={node}
             cx={COLUMN_X}
-            cy={nodeCenterY(i)}
+            cy={nodeCenterY(i + ghostOffset)}
             labelX={labelX}
             rowX={ROW_INSET}
             rowWidth={rowWidth}
           />
         ))}
+
+        {hasEarlierMessages && (
+          <GhostNode
+            cx={COLUMN_X}
+            cy={nodeCenterY(ghostRow)}
+            labelX={labelX}
+            rowX={ROW_INSET}
+            rowWidth={rowWidth}
+          />
+        )}
       </svg>
 
       {tagEditNode && (
         <TagEditorPopover
-          nodeIndex={sortedNodes.indexOf(tagEditNode)}
+          nodeIndex={sortedNodes.indexOf(tagEditNode) + ghostOffset}
           nodeId={tagEditNode.id}
           sessionId={sessionId}
           currentTags={sessionMetadata[tagEditNode.id]?.tags ?? []}

@@ -92,6 +92,8 @@ export interface Messages {
 
   // TreeMapCanvas
   treeAria: string;
+  earlierMessagesHint: string;
+  earlierMessagesAria: string;
 
   // PanelShell
   resizeAria: string;
@@ -181,6 +183,8 @@ const en: Messages = {
 
   // TreeMapCanvas
   treeAria: 'Chat node tree',
+  earlierMessagesHint: 'Scroll up for earlier messages',
+  earlierMessagesAria: 'Jump to the top of the conversation',
 
   // PanelShell
   resizeAria: 'Resize panel width',
@@ -270,6 +274,8 @@ const ko: Messages = {
 
   // TreeMapCanvas
   treeAria: '채팅 노드 트리',
+  earlierMessagesHint: '위로 스크롤해 이전 메시지 보기',
+  earlierMessagesAria: '대화 맨 위로 이동',
 
   // PanelShell
   resizeAria: '패널 너비 조절',

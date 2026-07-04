@@ -58,15 +58,25 @@ For multi-step tasks, state a brief plan first:
 
 ---
 
-## PART 2. Project Context
+## PART 2. Keeping This Doc Current
+
+**Before ending a task that changed behavior, contracts, or scope, check whether this file needs an update.**
+
+- New/changed message types, core types, commands, constraints, or conventions → update the relevant section here.
+- Roadmap/phase status changed (a phase completed, started, or was reprioritized) → update the Roadmap table.
+- If you're unsure whether a change is significant enough to warrant an update, propose the specific edit to the user instead of silently skipping it or silently applying it.
+
+---
+
+## PART 3. Project Context
 
 ### Overview
 
 Chrome Extension (Manifest V3) that injects a floating tree-map navigation panel
-into **Claude.ai only (MVP)**, allowing users to track and jump between chat messages.
+into **Claude.ai only (beta)**, allowing users to track and jump between chat messages.
 
 - Branch detection: MutationObserver + DOM snapshot diff
-- AI summarization: **Future Work (not in MVP)**
+- AI summarization: **Future Work (not yet implemented)**
 
 ### Tech Stack
 
@@ -100,37 +110,37 @@ src/
 │   ├── index.ts
 │   └── message-handler.ts
 ├── content/
-│   ├── index.ts             # 진입점
+│   ├── index.ts             # Entry point
 │   ├── observer.ts          # MutationObserver
 │   ├── tracker.ts           # ChatBox data model + ID assignment
-│   ├── branch-detector.ts   # 브랜치 감지 로직
-│   ├── scroll-navigator.ts  # 노드 클릭 시 스크롤 이동
-│   ├── active-node-tracker.ts # IntersectionObserver 기반 활성 노드 추적
-│   ├── page-watcher.ts      # SPA URL 변경 감지
-│   ├── ui-injector.ts       # Shadow DOM 마운트
-│   ├── message-bridge.ts    # Content ↔ Background 통신
+│   ├── branch-detector.ts   # Branch detection logic
+│   ├── scroll-navigator.ts  # Scroll to node on click
+│   ├── active-node-tracker.ts # IntersectionObserver-based active node tracking
+│   ├── page-watcher.ts      # SPA URL change detection
+│   ├── ui-injector.ts       # Shadow DOM mount
+│   ├── message-bridge.ts    # Content ↔ Background communication
 │   └── panel/               # React Tree Map (Shadow DOM)
 │       ├── App.tsx
 │       ├── components/
 │       │   ├── PanelShell.tsx
 │       │   ├── Header.tsx
-│       │   ├── TreeMapCanvas.tsx  # D3 렌더링
+│       │   ├── TreeMapCanvas.tsx  # D3 rendering
 │       │   ├── TreeNode.tsx
-│       │   ├── NodeBadge.tsx      # 브랜치 배지 (조건부)
+│       │   ├── NodeBadge.tsx      # Branch badge (conditional)
 │       │   ├── TreeEdge.tsx
-│       │   ├── Tooltip.tsx        # 마우스오버 원본 프롬프트
-│       │   ├── ControlBar.tsx     # 방향·위치·투명도·정렬
+│       │   ├── Tooltip.tsx        # Mouseover original prompt
+│       │   ├── ControlBar.tsx     # Direction/position/opacity/sort
 │       │   └── EmptyState.tsx
 │       ├── store/
-│       │   └── panel-store.ts     # Zustand 스토어
+│       │   └── panel-store.ts     # Zustand store
 │       └── styles/
-│           └── panel.css          # Shadow DOM 내부 스타일 (--nav-* 변수)
+│           └── panel.css          # Shadow DOM internal styles (--nav-* vars)
 ├── popup/
 │   └── App.tsx
 └── shared/              # Types, constants, chrome.storage utils
     ├── types.ts          # ChatboxNode, TreeData, UserSettings
     ├── constants.ts
-    └── message-types.ts  # 메시지 타입 enum
+    └── message-types.ts  # Message type enum
 public/manifest.json
 agent_docs/              # ← task-specific docs, read before working on each area
 tests/
@@ -156,7 +166,7 @@ Read only the files relevant to your current task:
 interface ChatboxNode {
   id: string;            // "chatbox-0", "chatbox-1", ...
   index: number;
-  text: string;          // 원본 프롬프트 전체
+  text: string;          // Full original prompt text
   hasBranch: boolean;
   branchCurrent: number;
   branchTotal: number;
@@ -164,7 +174,7 @@ interface ChatboxNode {
 }
 
 interface TreeData {
-  sessionId: string;       // URL에서 추출한 대화 UUID
+  sessionId: string;       // Conversation UUID extracted from the URL
   nodes: ChatboxNode[];
   activeBranchPath: string[];
   lastUpdated: number;
@@ -178,33 +188,34 @@ interface UserSettings {
 }
 ```
 
-> `summary` 필드는 **MVP에 포함되지 않습니다** (Future Work). 타입에 추가하지 마십시오.
+> The `summary` field is **not yet implemented** (Future Work). Do not add it to the type.
 
 ### Message Types (Quick Reference)
 
 > Full definitions: `src/shared/message-types.ts`  
-> 문자열 리터럴 직접 사용 금지 — enum 사용
+> Do not use raw string literals — use the enum
 
-| `type` | 방향 | payload | 설명 |
+| `type` | Direction | payload | Description |
 |--------|------|---------|------|
-| `CHATBOX_ADDED` | Content → BG | — | 새 챗박스 DOM 감지 |
-| `BRANCH_CHANGED` | Content → BG | `{ navId }` | 브랜치 전환 감지 |
-| `CHAT_PAGE_ENTERED` | Content → BG | `{ url }` | 새 대화 URL 진입 |
-| `ACTIVE_NODE_CHANGED` | Content → BG | `{ navId }` | 뷰포트 내 활성 노드 변경 |
-| `TREE_UPDATE` | Content → BG | `{ nodes }` | 전체 트리 재계산 요청 |
-| `TREE_READY` | BG → Content/Panel | `{ tree }` | 트리 데이터 완성 후 푸시 |
-| `SCROLL_TO` | Panel → Content | `{ navId }` | 노드 클릭 시 스크롤 요청 |
-| `SETTINGS_UPDATED` | Popup → BG | `{ settings }` | 설정 변경 |
+| `CHATBOX_ADDED` | Content → BG | — | New chatbox DOM detected |
+| `BRANCH_CHANGED` | Content → BG | `{ navId, sessionId }` | Branch switch detected |
+| `CHAT_PAGE_ENTERED` | Content → BG | `{ url }` | Entered a new conversation URL |
+| `ACTIVE_NODE_CHANGED` | Content → BG | `{ navId }` | Active node in viewport changed |
+| `TREE_UPDATE` | Content → BG | `{ nodes, sessionId }` | Request full tree recalculation |
+| `GET_STORED_TREE` | Content → BG | `{ sessionId }` | Look up stored tree — request/response, for hydration (#152) |
+| `TREE_READY` | BG → Content/Panel | `{ tree }` | Push after tree data is ready |
+| `SCROLL_TO` | Panel → Content | `{ navId }` | Scroll request on node click |
+| `SETTINGS_UPDATED` | Popup → BG | `{ settings }` | Settings changed |
 
 ### Coding Conventions
 
-| 항목 | 규칙 |
+| Item | Rule |
 |------|------|
-| 컴포넌트 | React 함수형 컴포넌트 + Hooks only |
-| CSS 변수 | `--nav-*` 네임스페이스 — `ui-panel.md` §8 참조 |
-| DOM 셀렉터 | `data-testid` 우선, 해시된 CSS 클래스명 직접 참조 금지 |
-| 메시지 | `message-types.ts` enum 사용 |
-| 커밋 | Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, ...) |
+| Components | React function components + Hooks only |
+| CSS variables | `--nav-*` namespace — see `ui-panel.md` §8 |
+| DOM selectors | Prefer `data-testid`; never reference hashed CSS class names directly |
+| Messages | Use the `message-types.ts` enum |
+| Commits | Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, ...) |
 
 ### Core Constraints
 
@@ -222,14 +233,15 @@ interface UserSettings {
 - Naming: `feature/`, `fix/`, `docs/`
 - PR requires 1 reviewer before merge to `dev`
 
-### Roadmap (MVP Scope)
+### Roadmap (Beta Scope)
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| **Phase 1** | Content Script DOM 감지 + 기본 트리 렌더링 | 🚧 In progress |
-| **Phase 2** | 브랜치 감지 + 브랜치 노드 시각화 | ⏳ Pending |
-| **Phase 3** | 설정 UI (위치 / 방향 / 투명도 / 정렬) | ⏳ Pending |
-| **Future** | AI 요약, 마우스오버 툴팁, 타 플랫폼 지원 | 🔮 Out of scope |
+| **Phase 1** | Content script DOM detection + basic tree rendering | ✅ Done |
+| **Phase 2** | Branch detection + branch node visualization | ✅ Done |
+| **Phase 3** | Settings UI (position / direction / opacity / sort) | ✅ Done |
+| **Beta** | Public beta hardening (caching, tagging, search, bug fixes) | 🚧 In progress |
+| **Future** | AI summarization, other platform support | 🔮 Out of scope |
 
 ### Team
 

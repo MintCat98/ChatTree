@@ -34,6 +34,25 @@ export async function sendToBackground(message: BridgeMessage): Promise<void> {
   throw lastError;
 }
 
+/**
+ * Request/response variant — returns the background's sendResponse payload.
+ * Same retry policy as sendToBackground; rejects after 3 failed attempts.
+ */
+export async function requestFromBackground<T>(message: BridgeMessage): Promise<T> {
+  let lastError: unknown;
+
+  for (const delay of RETRY_DELAYS) {
+    if (delay > 0) await new Promise<void>((resolve) => setTimeout(resolve, delay));
+    try {
+      return (await chrome.runtime.sendMessage(message)) as T;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError;
+}
+
 export function onMessageFromBackground(
   handler: (message: BridgeMessage) => void,
 ): () => void {
