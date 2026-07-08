@@ -52,6 +52,7 @@ export interface UserSettings {
   themeMode: 'auto' | 'light' | 'dark'; // 'auto' follows the claude.ai theme. See issue 06.
   maxVisibleNodes: number; // maximum number of chat nodes visible on UI
   language: Language; // UI language. Default 'en'. See issue #100.
+  panelMode: 'popup' | 'sidebar'; // panel display option: docked sidebar provides more "embedded" interface. Default 'popup'
 }
 
 // Panel width bounds and default (used by the resize handle and width controls).
@@ -72,4 +73,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   themeMode: 'auto',
   maxVisibleNodes: MAX_VISIBLE_NODES,
   language: 'en',
+  panelMode: 'sidebar',
 };
