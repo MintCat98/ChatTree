@@ -28,25 +28,43 @@ export function ControlBar() {
     updateSettings({ maxVisibleNodes: Number(e.target.value) });
   const handleLanguage = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ language: e.target.value as UserSettings['language'] });
+  const handlePanelMode = (e: ChangeEvent<HTMLSelectElement>) =>
+    updateSettings({ panelMode: e.target.value as UserSettings['panelMode'] });
   const handleReset = () => updateSettings(DEFAULT_SETTINGS);
 
   return (
     <div data-testid="control-bar" className="nav-control-bar">
-      {/* Position */}
+      {/* Panel mode */}
       <div className="nav-control-row">
-        <span className="nav-control-label">{t.position}</span>
+        <span className="nav-control-label">{t.panelMode}</span>
         <select
-          value={settings.panelPosition}
-          onChange={handlePosition}
+          value={settings.panelMode}
+          onChange={handlePanelMode}
           className="nav-control"
-          aria-label={t.positionAria}
+          aria-label={t.panelModeAria}
         >
-          <option value="top-left">{t.posTopLeft}</option>
-          <option value="top-right">{t.posTopRight}</option>
-          <option value="bottom-left">{t.posBottomLeft}</option>
-          <option value="bottom-right">{t.posBottomRight}</option>
+          <option value="popup">{t.panelModePopup}</option>
+          <option value="sidebar">{t.panelModeSidebar}</option>
         </select>
       </div>
+      {/* Position */}
+      {settings.panelMode === 'popup' && (
+        <div className="nav-control-row">
+          <span className="nav-control-label">{t.position}</span>
+          <select
+            value={settings.panelPosition}
+            onChange={handlePosition}
+            className="nav-control"
+            aria-label={t.positionAria}
+          >
+            <option value="top-left">{t.posTopLeft}</option>
+            <option value="top-right">{t.posTopRight}</option>
+            <option value="bottom-left">{t.posBottomLeft}</option>
+            <option value="bottom-right">{t.posBottomRight}</option>
+          </select>
+        </div>
+      )}
+      
 
       {/* Panel width (issue 02) */}
       <div className="nav-control-row">
