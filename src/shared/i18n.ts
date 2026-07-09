@@ -61,6 +61,10 @@ export interface Messages {
   langKorean: string;
   resetDefaults: string;
   resetAria: string;
+  panelMode: string;
+  panelModeAria: string;
+  panelModePopup: string;
+  panelModeSidebar: string;
 
   // SearchPanel
   searchPlaceholder: string;
@@ -152,6 +156,10 @@ const en: Messages = {
   langKorean: '한국어',
   resetDefaults: 'Reset to default',
   resetAria: 'Reset to default settings',
+  panelMode: 'Panel mode',
+  panelModeAria: 'Panel mode',
+  panelModePopup: 'Popup',
+  panelModeSidebar: 'Sidebar',
 
   // SearchPanel
   searchPlaceholder: 'Search messages...',
@@ -243,6 +251,10 @@ const ko: Messages = {
   langKorean: '한국어',
   resetDefaults: '기본값으로 설정',
   resetAria: '기본값으로 재설정',
+  panelMode: '패널 모드',
+  panelModeAria: '패널 모드',
+  panelModePopup: '팝업',
+  panelModeSidebar: '사이드바',
 
   // SearchPanel
   searchPlaceholder: '메시지 검색...',
