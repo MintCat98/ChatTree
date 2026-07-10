@@ -5,12 +5,12 @@ import { getTree, updateTree, clearTree } from '@background/session-store';
 import type { ChatboxNode, TreeData } from '@shared/types';
 
 // ---------------------------------------------------------------------------
-// chrome.storage.session mock
+// chrome.storage.local mock
 // ---------------------------------------------------------------------------
 
 const mockStorage = new Map<string, unknown>();
 
-const mockSessionStorage = {
+const mockLocalStorage = {
   get: jest.fn(async (key: string) => {
     return mockStorage.has(key) ? { [key]: mockStorage.get(key) } : {};
   }),
@@ -28,7 +28,7 @@ beforeEach(() => {
 
   (global as unknown as { chrome: typeof chrome }).chrome = {
     storage: {
-      session: mockSessionStorage,
+      local: mockLocalStorage,
     },
   } as unknown as typeof chrome;
 });
@@ -84,7 +84,7 @@ describe('updateTree', () => {
     const nodes = [makeNode('chatbox-0', 0)];
     await updateTree(SESSION_ID, nodes);
 
-    expect(mockSessionStorage.set).toHaveBeenCalledWith(
+    expect(mockLocalStorage.set).toHaveBeenCalledWith(
       expect.objectContaining({ [`tree_${SESSION_ID}`]: expect.any(Object) }),
     );
   });
@@ -176,7 +176,7 @@ describe('clearTree', () => {
 
     await clearTree(SESSION_ID);
 
-    expect(mockSessionStorage.remove).toHaveBeenCalledWith(`tree_${SESSION_ID}`);
+    expect(mockLocalStorage.remove).toHaveBeenCalledWith(`tree_${SESSION_ID}`);
     expect(mockStorage.has(`tree_${SESSION_ID}`)).toBe(false);
   });
 

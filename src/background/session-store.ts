@@ -1,8 +1,8 @@
-// Manages per-conversation tree state in chrome.storage.session.
+// Manages per-conversation tree state in chrome.storage.local.
 // Keyed by sessionId (conversation UUID) — not tabId — so any tab or window
 // opened on the same conversation can hydrate the accumulated tree (issue #152).
-// chrome.storage.session persists across SW restarts within a browser session
-// and is automatically cleared when the browser closes.
+// chrome.storage.local survives browser restarts (issue #153); accumulation is
+// bounded by the retention policy (periodic purge of stale trees).
 
 import type { ChatboxNode, TreeData } from '@shared/types';
 
@@ -21,7 +21,7 @@ function serializeNodes(nodes: ChatboxNode[]): ChatboxNode[] {
 
 export async function getTree(sessionId: string): Promise<TreeData | null> {
   const key = treeKey(sessionId);
-  const result = await chrome.storage.session.get(key);
+  const result = await chrome.storage.local.get(key);
   return (result[key] as TreeData | undefined) ?? null;
 }
 
@@ -44,10 +44,10 @@ export async function updateTree(
     lastUpdated: Date.now(),
   };
 
-  await chrome.storage.session.set({ [treeKey(sessionId)]: tree });
+  await chrome.storage.local.set({ [treeKey(sessionId)]: tree });
   return tree;
 }
 
 export async function clearTree(sessionId: string): Promise<void> {
-  await chrome.storage.session.remove(treeKey(sessionId));
+  await chrome.storage.local.remove(treeKey(sessionId));
 }

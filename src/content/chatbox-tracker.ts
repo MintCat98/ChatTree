@@ -118,8 +118,8 @@ export function getCachedTop(navId: string): number | null {
 }
 
 /**
- * Seeds the cache from a tree persisted in chrome.storage.session (issue #152)
- * so the full accumulated tree survives new windows / tab reloads. Optimistic:
+ * Seeds the cache from a tree persisted in chrome.storage.local (issues #152, #153)
+ * so the full accumulated tree survives new windows / tab reloads / browser restarts. Optimistic:
  * DOM-scanned entries always win (existing absIndices are never overwritten),
  * and stale seeded turns are dropped by mergeMountedNodes' divergence rule as
  * the live DOM is scanned.

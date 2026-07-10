@@ -222,7 +222,7 @@ interface UserSettings {
 - **Minimum permissions** — `storage` + `activeTab` only. Ask before adding any new permission.
 - **Shadow DOM required** — all UI injected into claude.ai must use `mode: 'closed'`.
 - **No external calls from Content Script** — route through Background SW via `chrome.runtime.sendMessage`.
-- **Storage** — `chrome.storage.session` for tree state, `chrome.storage.local` for user prefs only.
+- **Storage** — `chrome.storage.local` for the tree cache + user prefs; a retention policy is required for the cache (issue #153).
 - **MV3 Service Worker** — avoid long-lived `setTimeout`. Use `chrome.alarms` if needed.
 - **DOM stability** — Claude.ai Tailwind class names are unstable. Always use `data-testid`. See `dom-analysis.md`.
 - **Inactive branches are not in DOM** — only the active branch path is rendered. See `branch-detection.md` §2.

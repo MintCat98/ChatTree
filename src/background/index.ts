@@ -5,8 +5,9 @@ import { onMessage } from './message-handler';
 chrome.runtime.onMessage.addListener(onMessage);
 
 // No per-tab cleanup: trees are keyed by sessionId (issue #152) and must
-// outlive individual tabs so new windows can hydrate. chrome.storage.session
-// clears itself when the browser closes, which bounds accumulation.
+// outlive individual tabs so new windows can hydrate. Trees live in
+// chrome.storage.local (issue #153); accumulation is bounded by the
+// retention-policy purge.
 
 // Keepalive: wake the SW every minute to prevent the 30-second inactivity termination
 // from dropping in-flight message handlers between user actions.

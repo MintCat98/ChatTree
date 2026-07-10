@@ -55,7 +55,7 @@
 
 | Module | File | Responsibility |
 |--------|------|----------------|
-| Session Store | `session-store.ts` | Manages per-conversation tree state (`chrome.storage.session`) |
+| Session Store | `session-store.ts` | Manages per-conversation tree state (`chrome.storage.local`) |
 | Summary Service | `summary-service.ts` | Calls Claude API to generate chatbox summaries |
 | Message Handler | `message-handler.ts` | Handles messages from Content and Popup |
 
@@ -183,7 +183,7 @@ interface UserSettings {
 | Styling | **Tailwind CSS** | Prevents class collisions (prefix: `nav-`) |
 | Shadow DOM | Web Components Shadow DOM | Isolates from host page CSS |
 | Communication | `chrome.runtime.sendMessage` | MV3 standard |
-| Storage | `chrome.storage.session` | Keyed per conversation (`tree_<sessionId>`) so new tabs/windows hydrate the accumulated tree (issue #152); cleared on browser close |
+| Storage | `chrome.storage.local` | Keyed per conversation (`tree_<sessionId>`) so new tabs/windows hydrate the accumulated tree (issue #152); survives browser restarts, bounded by a retention-policy purge (issue #153) |
 | Language | **TypeScript** | Type safety |
 | Testing | **Vitest** + Playwright | Unit + E2E |
 
