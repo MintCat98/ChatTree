@@ -1,6 +1,10 @@
 // Service Worker entry point — registers the message relay listener.
 
 import { onMessage } from './message-handler';
+import { runSummaryEval } from '@shared/summary.eval';
+
+//dev-only: expose the manual eval in the SW console (issue #158). Remove before PR.
+Object.assign(globalThis, { runSummaryEval });
 
 chrome.runtime.onMessage.addListener(onMessage);
 
