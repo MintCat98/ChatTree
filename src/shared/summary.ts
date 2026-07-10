@@ -2,7 +2,7 @@ const MAX_ATTEMPTS = 2; // initial + one retry
 
 // Built-in AI response format format
 export interface NodeSummary {
-	keyword: string; // Nodel Label
+	keyword: string; // Node Label
 	question: string; // 1 sentence for user question
 	answer: string; // 1-2 sentence for Claude response
 }
@@ -42,10 +42,10 @@ Example (Korean)
 
 // Built-in AI user conversation input format
 export function buildConversationInput(question: string, answer: string): string {
-	const language = /[가-힣]/.test(`${question} ${answer}`) ? 'Korean' : 'Engligh';
-	return `Target language: ${language}. Write "keyworkd", "question", and "answer" only in ${language}.
-	[User] ${question}
-	[Assistant] ${answer}`;
+	const language = /[가-힣]/.test(`${question} ${answer}`) ? 'Korean' : 'English';
+	return `Target language: ${language}. Write "keyword", "question", and "answer" only in ${language}.
+[User] ${question}
+[Assistant] ${answer}`;
 }
 
 function extractJson(raw: string): unknown {
