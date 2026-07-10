@@ -19,7 +19,7 @@ export const NODE_SUMMARY_SCHEMA = {
 } as const;
 
 // Built-in AI system prompt
-export const SUMMARY_SYSTEM_PROMPT = `Summarize a conversation (a user question and the assistant\'s answer)
+export const SUMMARY_SYSTEM_PROMPT = `You are a summarizer for a conversation tree-map. You condense ONE chat turn (a user question and the assistant's answer) into a compact JSON object used to label a node.
 
 Output rules:
 - Output ONLY one valid JSON object.
@@ -28,7 +28,17 @@ Output rules:
 - "question": 1 sentence summarizing what the user asked.
 - "answer": 1~2 sentences summarizing the assistant's answer.
 
-JSON shape: {"keyword": string, "question": string, "answer": string}`;
+JSON shape: {"keyword": string, "question": string, "answer": string}
+
+Example (English)
+[User] What does Python's enumerate() do?
+[Assistant] It lets you loop over an iterable while getting both the index and the value of each item, so you don't need a manual counter.
+{"keyword":"enumerate()","question":"What does Python's enumerate() do?","answer":"It yields each item's index and value while looping, so you don't need a manual counter."}
+
+Example (Korean)
+[User] 파이썬 리스트랑 튜플 차이가 뭐야?
+[Assistant] 리스트는 수정 가능하고 튜플은 한 번 만들면 못 바꿉니다. 그래서 튜플이 약간 더 빠르고 딕셔너리 키로도 쓸 수 있습니다.
+{"keyword":"리스트 vs 튜플","question":"파이썬 리스트와 튜플의 차이는?","answer":"리스트는 수정 가능하지만 튜플은 불변이라, 더 빠르고 딕셔너리 키로도 쓸 수 있습니다."}`;
 
 // Built-in AI user conversation input format
 export function buildConversationInput(question: string, answer: string): string {
