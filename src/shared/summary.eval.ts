@@ -6,7 +6,7 @@
 // Usage (temporary, during the spike):
 //   in src/background/index.ts:
 //     import { runSummaryEval } from '@shared/summary.eval';
-//     (globalThis as any).runSummaryEval = runSummaryEval;   // remove before PR
+//     Object.assign(globalThis, { runSummaryEval });   // remove before PR
 //   then in the SW DevTools console:  await runSummaryEval();
 
 import { SUMMARY_SYSTEM_PROMPT, KEYWORD_MAX_LENGTH, summarizeConversation } from './summary';
