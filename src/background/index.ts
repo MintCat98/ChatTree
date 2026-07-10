@@ -2,6 +2,7 @@
 
 import { onMessage } from './message-handler';
 import { purgeExpiredTrees } from './session-store';
+import { purgeOrphanedMetadata } from '@shared/metadata-storage';
 
 chrome.runtime.onMessage.addListener(onMessage);
 
@@ -18,15 +19,19 @@ chrome.alarms.create('keepalive', { periodInMinutes: 1 });
 // setTimeout — MV3 forbids long-lived timers in the SW.
 chrome.alarms.create('tree-cache-purge', { periodInMinutes: 1440 });
 
+// Trees first, then metadata — the orphaned-metadata GC checks for the absence
+// of a cached tree, so it must see the post-purge tree set.
+function runRetentionPurge(): void {
+  purgeExpiredTrees()
+    .then(() => purgeOrphanedMetadata())
+    .catch((err) => console.warn('[ChatTree] retention purge failed:', err));
+}
+
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'keepalive') return;
-  if (alarm.name === 'tree-cache-purge') {
-    purgeExpiredTrees().catch((err) => console.warn('[ChatTree] tree purge failed:', err));
-  }
+  if (alarm.name === 'tree-cache-purge') runRetentionPurge();
 });
 
 // Purge once on browser startup so trees that expired while the browser was
 // closed don't hydrate one last time before the daily alarm removes them.
-chrome.runtime.onStartup.addListener(() => {
-  purgeExpiredTrees().catch((err) => console.warn('[ChatTree] tree purge failed:', err));
-});
+chrome.runtime.onStartup.addListener(runRetentionPurge);

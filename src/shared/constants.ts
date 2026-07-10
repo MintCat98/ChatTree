@@ -21,6 +21,10 @@ export const SELECTORS = {
   NAV_ID_ATTR:            'data-nav-id',
 } as const;
 
+// chrome.storage.local key prefix for per-conversation cached trees (issue #153).
+// Shared by session-store (owner) and the orphaned-metadata GC.
+export const TREE_KEY_PREFIX = 'tree_';
+
 export const STORAGE_KEYS = {
   TREE_DATA: 'chatTreeData',
   USER_SETTINGS: 'userSettings',

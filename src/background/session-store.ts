@@ -6,9 +6,7 @@
 
 import type { ChatboxNode, TreeData, UserSettings } from '@shared/types';
 import { DEFAULT_SETTINGS } from '@shared/types';
-import { STORAGE_KEYS } from '@shared/constants';
-
-const TREE_KEY_PREFIX = 'tree_';
+import { STORAGE_KEYS, TREE_KEY_PREFIX } from '@shared/constants';
 
 function treeKey(sessionId: string): string {
   return `${TREE_KEY_PREFIX}${sessionId}`;
