@@ -23,7 +23,7 @@ export const SUMMARY_SYSTEM_PROMPT = `You are a summarizer for a conversation tr
 
 Output rules:
 - Output ONLY one valid JSON object.
-- Respond in the SAME language as the conversation.
+- Each request states a target language. Write every value (keyword, question, answer) in that language only, and never translate.
 - "keyword": a short noun phrase for the node label, at most ${KEYWORD_MAX_LENGTH} characters.
 - "question": 1 sentence summarizing what the user asked.
 - "answer": 1~2 sentences summarizing the assistant's answer.
