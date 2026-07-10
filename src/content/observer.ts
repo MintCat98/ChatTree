@@ -66,6 +66,17 @@ function hydrateFromStoredTree(): void {
     .catch(() => {}); // no stored tree / SW unreachable — scanning fills the tree as usual
 }
 
+// Rebuilds the tree from the live DOM only, dropping the accumulated cache.
+// Used after the user clears the cached trees (issue #153): the panel shows a
+// freshly scanned tree instead of going blank, and dispatchTree re-persists
+// the current conversation via TREE_UPDATE.
+export function rescanFromDom(): void {
+  if (!observer) return;
+  resetNodeCache();
+  currentNodes = mergeMountedNodes();
+  dispatchTree(buildTree(currentNodes));
+}
+
 export function startObserving(): void {
   const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
   // console.log('[ChatTree DBG] startObserving — container found?', !!container, 'selector=', SELECTORS.CHAT_CONTAINER);

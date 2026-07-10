@@ -17,6 +17,9 @@ export const MessageType = {
   // Panel → Content (via Background)
   SCROLL_TO_NODE:       'SCROLL_TO_NODE',
 
+  // Panel → Background
+  CLEAR_TREE_CACHE:     'CLEAR_TREE_CACHE',     // no payload — request/response; removes all cached trees, responds { ok: boolean } (issue #153)
+
   // Popup → Background
   SETTINGS_CHANGE:      'SETTINGS_CHANGE',
 

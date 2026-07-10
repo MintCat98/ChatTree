@@ -3,16 +3,33 @@
 // Every change is committed via store.updateSettings → persisted to localStorage +
 // mirrored to chrome.storage.local (so the popup stays in sync).
 
-import { type ChangeEvent } from 'react';
+import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import { usePanelStore } from '../store/panel-store';
 import { useMessages } from '../i18n';
 import type { UserSettings } from '@shared/types';
 import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, MAX_VISIBLE_NODES, DEFAULT_SETTINGS } from '@shared/types';
+import { MessageType } from '@shared/message-types';
+import { requestFromBackground } from '../../message-bridge';
+import { rescanFromDom } from '../../observer';
+
+// Cache retention choices in days (issue #153). Default: 30.
+const RETENTION_OPTIONS = [7, 30, 90] as const;
 
 export function ControlBar() {
   const t = useMessages();
   const settings = usePanelStore((s) => s.settings);
   const updateSettings = usePanelStore((s) => s.updateSettings);
+
+  // Two-step confirm for the destructive cache clear: first click arms the
+  // button, second click executes; arming times out after a few seconds.
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    },
+    [],
+  );
 
   const handlePosition = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ panelPosition: e.target.value as UserSettings['panelPosition'] });
@@ -28,6 +45,22 @@ export function ControlBar() {
     updateSettings({ maxVisibleNodes: Number(e.target.value) });
   const handleLanguage = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ language: e.target.value as UserSettings['language'] });
+  const handleRetention = (e: ChangeEvent<HTMLSelectElement>) =>
+    updateSettings({ cacheRetentionDays: Number(e.target.value) });
+  const handleClearCache = () => {
+    if (!confirmingClear) {
+      setConfirmingClear(true);
+      confirmTimer.current = setTimeout(() => setConfirmingClear(false), 3000);
+      return;
+    }
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    setConfirmingClear(false);
+    // Clear all cached trees, then rescan the live DOM so the panel keeps
+    // showing (and re-persists) the current conversation instead of going blank.
+    requestFromBackground({ type: MessageType.CLEAR_TREE_CACHE })
+      .catch(() => {})
+      .finally(() => rescanFromDom());
+  };
   const handleReset = () => updateSettings(DEFAULT_SETTINGS);
 
   return (
@@ -136,6 +169,35 @@ export function ControlBar() {
           <option value="en">{t.langEnglish}</option>
           <option value="ko">{t.langKorean}</option>
         </select>
+      </div>
+
+      {/* Cache retention (issue #153) */}
+      <div className="nav-control-row">
+        <span className="nav-control-label">{t.retention}</span>
+        <select
+          value={settings.cacheRetentionDays}
+          onChange={handleRetention}
+          className="nav-control"
+          aria-label={t.retentionAria}
+        >
+          {RETENTION_OPTIONS.map((days) => (
+            <option key={days} value={days}>
+              {t.retentionDays(days)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Clear cached trees (issue #153) */}
+      <div className="nav-control-row">
+        <button
+          type="button"
+          onClick={handleClearCache}
+          className="nav-control"
+          aria-label={t.clearCacheAria}
+        >
+          {confirmingClear ? t.clearCacheConfirm : t.clearCache}
+        </button>
       </div>
 
       {/* Reset to Default*/}

@@ -59,6 +59,12 @@ export interface Messages {
   languageAria: string;
   langEnglish: string;
   langKorean: string;
+  retention: string;
+  retentionAria: string;
+  retentionDays: (n: number) => string;
+  clearCache: string;
+  clearCacheConfirm: string;
+  clearCacheAria: string;
   resetDefaults: string;
   resetAria: string;
 
@@ -150,6 +156,12 @@ const en: Messages = {
   languageAria: 'Language',
   langEnglish: 'English',
   langKorean: '한국어',
+  retention: 'Keep cache',
+  retentionAria: 'Cache retention period',
+  retentionDays: (n) => `${n} days`,
+  clearCache: 'Clear cached trees',
+  clearCacheConfirm: 'Click again to confirm',
+  clearCacheAria: 'Clear all cached trees',
   resetDefaults: 'Reset to default',
   resetAria: 'Reset to default settings',
 
@@ -241,6 +253,12 @@ const ko: Messages = {
   languageAria: '언어',
   langEnglish: 'English',
   langKorean: '한국어',
+  retention: '캐시 보관',
+  retentionAria: '캐시 보관 기간',
+  retentionDays: (n) => `${n}일`,
+  clearCache: '캐시된 트리 삭제',
+  clearCacheConfirm: '한 번 더 클릭하면 삭제',
+  clearCacheAria: '캐시된 트리 전체 삭제',
   resetDefaults: '기본값으로 설정',
   resetAria: '기본값으로 재설정',
 

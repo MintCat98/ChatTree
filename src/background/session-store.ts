@@ -50,7 +50,7 @@ export async function updateTree(
 
   try {
     await chrome.storage.local.set({ [treeKey(sessionId)]: tree });
-  } catch (err) {
+  } catch {
     // Quota safety net (issue #153): storage.local is capped at 10 MB. Evict
     // the oldest cached trees and retry once; on repeated failure the panel
     // keeps working from the in-memory tree — only the cache entry is stale.
@@ -66,6 +66,14 @@ export async function updateTree(
 
 export async function clearTree(sessionId: string): Promise<void> {
   await chrome.storage.local.remove(treeKey(sessionId));
+}
+
+// Removes every cached tree (issue #153 cache-clear control). Node metadata
+// (bookmarks/tags) lives under its own key and is intentionally untouched.
+export async function clearAllTrees(): Promise<void> {
+  const all = await chrome.storage.local.get(null);
+  const treeKeys = Object.keys(all).filter((key) => key.startsWith(TREE_KEY_PREFIX));
+  if (treeKeys.length > 0) await chrome.storage.local.remove(treeKeys);
 }
 
 // Removes trees whose lastUpdated is older than the user's retention period
