@@ -184,7 +184,13 @@ interface UserSettings {
   panelPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   backgroundOpacity: number;  // 0.0 ~ 1.0
   sortOrder: 'asc' | 'desc';
+  summaryEnabled: boolean;    // reserved — summarization is Future Work
   panelVisible: boolean;
+  panelWidth: number;         // px, resizable (issue 02)
+  themeMode: 'auto' | 'light' | 'dark'; // 'auto' follows claude.ai (issue 06)
+  maxVisibleNodes: number;    // max chat nodes visible on UI
+  language: 'en' | 'ko';      // UI language, default 'en' (#100)
+  cacheRetentionDays: number; // tree-cache purge horizon, default 30 (#153)
 }
 ```
 
@@ -205,6 +211,7 @@ interface UserSettings {
 | `GET_STORED_TREE` | Content → BG | `{ sessionId }` | Look up stored tree — request/response, for hydration (#152) |
 | `TREE_READY` | BG → Content/Panel | `{ tree }` | Push after tree data is ready |
 | `SCROLL_TO` | Panel → Content | `{ navId }` | Scroll request on node click |
+| `CLEAR_TREE_CACHE` | Panel → BG | — | Remove all cached trees — request/response, responds `{ ok }` (#153) |
 | `SETTINGS_UPDATED` | Popup → BG | `{ settings }` | Settings changed |
 
 ### Coding Conventions

@@ -123,9 +123,32 @@ Content Script: chatbox-tracker.seedNodeCache(tree.nodes)
 Tree dispatched with the full accumulated node list
 ```
 
-The stored tree survives new windows and tab reloads within a browser session,
-so a long conversation no longer starts truncated. `CHAT_PAGE_ENTERED` must
-**not** clear the stored tree — it is the hydration source.
+The stored tree survives new windows, tab reloads, and browser restarts
+(`chrome.storage.local`, issue #153), so a long conversation no longer starts
+truncated. `CHAT_PAGE_ENTERED` must **not** clear the stored tree — it is the
+hydration source.
+
+### Retention & cache clear (issue #153)
+
+`storage.local` never self-cleans, so the Background SW bounds accumulation:
+
+- **Daily purge alarm** (`tree-cache-purge`, `chrome.alarms`, 24 h) + once on
+  `chrome.runtime.onStartup`: removes trees whose `lastUpdated` is older than
+  `UserSettings.cacheRetentionDays` (default 30). Every `updateTree` refreshes
+  `lastUpdated`, so the horizon means "days since last visit/update".
+- **Orphaned-metadata GC** runs right after the tree purge (order matters — the
+  orphan check must see the post-purge tree set): node metadata (bookmarks/tags,
+  issue #96) for sessions with **no cached tree** and untouched for
+  `METADATA_RETENTION_DAYS` (180) is dropped. Metadata is user data, not a
+  rebuildable cache — it re-attaches on revisit via deterministic position-based
+  node IDs — hence the far more conservative horizon than the tree cache.
+- **Quota safety net**: if a tree write hits the 10 MB `storage.local` quota,
+  `updateTree` evicts the oldest quarter of cached trees (never the one being
+  written) and retries once.
+- **Manual clear** (`CLEAR_TREE_CACHE`, Panel → BG request/response): removes
+  all `tree_*` keys, leaves node metadata untouched; the panel then calls
+  `observer.rescanFromDom()` so the current conversation re-renders from the
+  live DOM instead of going blank.
 
 ---
 
