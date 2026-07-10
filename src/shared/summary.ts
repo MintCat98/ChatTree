@@ -42,7 +42,10 @@ Example (Korean)
 
 // Built-in AI user conversation input format
 export function buildConversationInput(question: string, answer: string): string {
-	return `[User] ${question}\n[Assistant] ${answer}`;
+	const language = /[가-힣]/.test(`${question} ${answer}`) ? 'Korean' : 'Engligh';
+	return `Target language: ${language}. Write "keyworkd", "question", and "answer" only in ${language}.
+	[User] ${question}
+	[Assistant] ${answer}`;
 }
 
 function extractJson(raw: string): unknown {
