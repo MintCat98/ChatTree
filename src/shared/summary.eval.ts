@@ -20,7 +20,7 @@ interface EvalEpisode {
 
 const EVAL_SET: EvalEpisode[] = [
   {
-    id: 'EN-1',
+    id: 'EN-0',
     lang: 'en',
     question: 'What can you do for me?',
     answer: `Quite a lot — here's the practical shape of it, Taebin:
@@ -44,7 +44,7 @@ The catch worth knowing: I'm better when you give me real context and push back 
 What are you actually trying to get done right now?`,
   },
   {
-    id: 'KO-1',
+    id: 'KO-0',
     lang: 'ko',
     question: '근데 프로젝트 안에 있는 대화들은 서로 내용이 공유되는건가? 다음 대화에서 이미 했던거를 반복하기가 귀찮아서',
     answer: `좋은 질문이야. 정확히 구분해서 답할게.
