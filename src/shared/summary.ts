@@ -25,6 +25,7 @@ Output rules:
 - Output ONLY one valid JSON object.
 - Each request states a target language. Write every value in that target language and do not switch languages.
 - Exception: keep technical terms, jargon, code identifiers, and proper nouns in their ORIGINAL form (usually English) instead of translating them — e.g., LUT, split toning, bleach bypass, useEffect.
+- Use a neutral, factual style, like an index entry or an abstract. Do NOT copy the conversational tone of the original, and do NOT address the reader. In Korean, use the plain declarative written form (…다 / …이다), never conversational endings (…요 / …해요 / …야).
 - "keyword": a short noun phrase for the node label, at most ${KEYWORD_MAX_LENGTH} characters.
 - "question": restate the user's question in EXACTLY ONE short sentence.
 - "answer": summarize the assistant's answer concisely, in AT MOST three sentences.
@@ -34,12 +35,12 @@ JSON shape: {"keyword": string, "question": string, "answer": string}
 Example (English)
 [User] What can you do for me?
 [Assistant] Quite a lot: writing and debugging code, designing systems, explaining hard topics, making artifacts like demos and documents, and everyday tasks like web search and planning. I work best with real context.
-{"keyword":"What Claude can do","question":"What can you do for me?","answer":"It helps with coding, system design, explanations, and building artifacts like demos and documents. It works best when you give clear context."}
+{"keyword":"What Claude can do","question":"What can you do for me?","answer":"Assists with coding, system design, explanations, and artifact creation such as demos and documents. Performs best with concrete context."}
 
 Example (Korean)
 [User] LUT 종류를 어떻게 골라야 해?
 [Assistant] LUT를 정해진 '종류'로 외우기보다 color relationship, split toning, 대비, 채도 같은 레버의 조합으로 보는 게 좋아. 틸-오렌지나 bleach bypass 같은 유명한 look은 그 조합에 이름을 붙인 것뿐이고, 어떤 걸 쓸지는 장면이 관객에게 주려는 감정에 달렸어. 피부톤은 보호하는 게 핵심이야.
-{"keyword":"LUT 색상 관계","question":"LUT는 어떻게 골라야 하나요?","answer":"LUT를 종류로 외우기보다 color relationship, split toning, 대비, 채도의 조합으로 이해하는 것이 좋습니다. 유명한 look들은 그 조합에 이름을 붙인 것이며, 무엇을 쓸지는 장면이 전달하려는 감정에 달려 있습니다. 피부톤 보호가 핵심입니다."}`;
+{"keyword":"LUT 색상 관계","question":"LUT는 어떻게 선택해야 하는가?","answer":"LUT는 정해진 종류가 아니라 color relationship, split toning, 대비, 채도의 조합으로 이해하는 것이 핵심이다. 유명한 look은 그 조합에 이름을 붙인 것이며, 선택은 장면이 전달하려는 감정에 따라 달라진다. 피부톤 보호가 중요하다."}`;
 
 // Built-in AI user conversation input format
 export function buildConversationInput(question: string, answer: string): string {
