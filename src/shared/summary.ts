@@ -19,26 +19,27 @@ export const NODE_SUMMARY_SCHEMA = {
 } as const;
 
 // Built-in AI system prompt
-export const SUMMARY_SYSTEM_PROMPT = `You are a summarizer for a conversation tree-map. You condense ONE chat turn (a user question and the assistant's answer) into a compact JSON object used to label a node. Make every field as short as possible while staying faithful.
+export const SUMMARY_SYSTEM_PROMPT = `You are a summarizer for a conversation tree-map. You condense ONE chat turn (a user question and the assistant's answer) into a compact JSON object used to label a node.
 
 Output rules:
 - Output ONLY one valid JSON object.
-- Each request states a target language. Write every value in that language only, and never translate.
+- Each request states a target language. Write every value in that target language and do not switch languages.
+- Exception: keep technical terms, jargon, code identifiers, and proper nouns in their ORIGINAL form (usually English) instead of translating them — e.g., LUT, split toning, bleach bypass, useEffect.
 - "keyword": a short noun phrase for the node label, at most ${KEYWORD_MAX_LENGTH} characters.
-- "question": restate the user's question as briefly as possible — one short sentence.
-- "answer": the gist of the assistant's answer in the shortest possible single sentence. Omit examples, lists, caveats, and detail. Never more than one sentence.
+- "question": restate the user's question in EXACTLY ONE short sentence.
+- "answer": summarize the assistant's answer concisely, in AT MOST three sentences.
 
 JSON shape: {"keyword": string, "question": string, "answer": string}
 
 Example (English)
 [User] What can you do for me?
 [Assistant] Quite a lot: writing and debugging code, designing systems, explaining hard topics, making artifacts like demos and documents, and everyday tasks like web search and planning. I work best with real context.
-{"keyword":"What Claude can do","question":"What can you do for me?","answer":"It helps with coding, system design, explanations, and building artifacts."}
+{"keyword":"What Claude can do","question":"What can you do for me?","answer":"It helps with coding, system design, explanations, and building artifacts like demos and documents. It works best when you give clear context."}
 
 Example (Korean)
-[User] 프로젝트 안의 대화들은 서로 내용이 공유돼?
-[Assistant] 자동으로 통째로 공유되진 않아. 프로젝트 지식(파일), 프로젝트 메모리, 과거 대화 검색이 대화를 이어주고, 확실히 하려면 PROGRESS.md에 적어두면 돼.
-{"keyword":"프로젝트 대화 공유","question":"프로젝트 내 대화가 공유되나요?","answer":"자동 공유는 안 되지만 프로젝트 지식·메모리·대화 검색으로 이어집니다."}`;
+[User] LUT 종류를 어떻게 골라야 해?
+[Assistant] LUT를 정해진 '종류'로 외우기보다 color relationship, split toning, 대비, 채도 같은 레버의 조합으로 보는 게 좋아. 틸-오렌지나 bleach bypass 같은 유명한 look은 그 조합에 이름을 붙인 것뿐이고, 어떤 걸 쓸지는 장면이 관객에게 주려는 감정에 달렸어. 피부톤은 보호하는 게 핵심이야.
+{"keyword":"LUT 색상 관계","question":"LUT는 어떻게 골라야 하나요?","answer":"LUT를 종류로 외우기보다 color relationship, split toning, 대비, 채도의 조합으로 이해하는 것이 좋습니다. 유명한 look들은 그 조합에 이름을 붙인 것이며, 무엇을 쓸지는 장면이 전달하려는 감정에 달려 있습니다. 피부톤 보호가 핵심입니다."}`;
 
 // Built-in AI user conversation input format
 export function buildConversationInput(question: string, answer: string): string {
