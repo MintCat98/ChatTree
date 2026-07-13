@@ -67,6 +67,10 @@ export interface Messages {
   clearCacheAria: string;
   resetDefaults: string;
   resetAria: string;
+  panelMode: string;
+  panelModeAria: string;
+  panelModePopup: string;
+  panelModeSidebar: string;
 
   // SearchPanel
   searchPlaceholder: string;
@@ -164,6 +168,10 @@ const en: Messages = {
   clearCacheAria: 'Clear all cached trees',
   resetDefaults: 'Reset to default',
   resetAria: 'Reset to default settings',
+  panelMode: 'Panel mode',
+  panelModeAria: 'Panel mode',
+  panelModePopup: 'Popup',
+  panelModeSidebar: 'Sidebar',
 
   // SearchPanel
   searchPlaceholder: 'Search messages...',
@@ -261,6 +269,10 @@ const ko: Messages = {
   clearCacheAria: '캐시된 트리 전체 삭제',
   resetDefaults: '기본값으로 설정',
   resetAria: '기본값으로 재설정',
+  panelMode: '패널 모드',
+  panelModeAria: '패널 모드',
+  panelModePopup: '팝업',
+  panelModeSidebar: '사이드바',
 
   // SearchPanel
   searchPlaceholder: '메시지 검색...',

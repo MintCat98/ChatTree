@@ -42,6 +42,7 @@ export function PanelShell({ children }: PanelShellProps) {
   const t = useMessages();
   const settings = usePanelStore((s) => s.settings);
   const width = settings.panelWidth;
+  const isSidebar = settings.panelMode === 'sidebar';
 
   const [position, setPosition] = useState<Position>(() =>
     getInitialPosition(settings.panelPosition, width),
@@ -121,6 +122,40 @@ export function PanelShell({ children }: PanelShellProps) {
     e.stopPropagation();
     resizeRef.current = { startX: e.clientX, startWidth: width };
     document.body.style.userSelect = 'none';
+  }
+
+  // Sidebar mode
+  if (isSidebar) {
+    return (
+      <div
+        data-testid="panel-shell"
+        className="nav-panel nav-panel--sidebar"
+        style={{
+          '--panel-w': `${width}px`,
+          '--bg-alpha': settings.backgroundOpacity,
+        } as React.CSSProperties}
+      >
+        {/* Top: Tree-map components*/}
+        <div className="nav-sidebar-top">
+          {children}
+        </div>
+
+        {/* Bottom: Interactive Map (To be implemented..)*/}
+        <div className="nav-sidebar-bottom">
+          <span> Interactive Map </span>
+          <span style={{ fontSize: 'var(--nav-font-size-xs)' }}>Coming Soon</span>
+        </div>
+
+        {/* left resize handle */}
+        <div
+          className="nav-resize-handle nav-resize-handle--sidebar"
+          onMouseDown={startResize}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={t.resizeAria}
+        />
+      </div>
+    );
   }
 
   const clampedLeft = Math.max(0, Math.min(window.innerWidth - width, position.x));

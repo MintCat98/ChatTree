@@ -61,6 +61,7 @@ export interface UserSettings {
   maxVisibleNodes: number; // maximum number of chat nodes visible on UI
   language: Language; // UI language. Default 'en'. See issue #100.
   cacheRetentionDays: number; // days before a cached tree is purged from chrome.storage.local (issue #153)
+  panelMode: 'popup' | 'sidebar'; // panel display option: docked sidebar provides more "embedded" interface. Default 'popup'
 }
 
 // Panel width bounds and default (used by the resize handle and width controls).
@@ -82,4 +83,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   maxVisibleNodes: MAX_VISIBLE_NODES,
   language: 'en',
   cacheRetentionDays: 30,
+  panelMode: 'sidebar',
 };
