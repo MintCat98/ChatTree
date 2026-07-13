@@ -42,9 +42,16 @@ Example (Korean)
 [Assistant] LUT를 정해진 '종류'로 외우기보다 color relationship, split toning, 대비, 채도 같은 레버의 조합으로 보는 게 좋아. 틸-오렌지나 bleach bypass 같은 유명한 look은 그 조합에 이름을 붙인 것뿐이고, 어떤 걸 쓸지는 장면이 관객에게 주려는 감정에 달렸어. 피부톤은 보호하는 게 핵심이야.
 {"keyword":"LUT 색상 관계","question":"LUT는 어떻게 선택해야 하는가?","answer":"LUT는 정해진 종류가 아니라 color relationship, split toning, 대비, 채도의 조합으로 이해하는 것이 핵심이다. 유명한 look은 그 조합에 이름을 붙인 것이며, 선택은 장면이 전달하려는 감정에 따라 달라진다. 피부톤 보호가 중요하다."}`;
 
+function detectLanguage(text: string): 'Korean' | 'English' {
+  const hangul = (text.match(/[가-힣]/g) ?? []).length;
+  const latin  = (text.match(/[A-Za-z]/g) ?? []).length;
+  return hangul > latin ? 'Korean' : 'English';
+}
+
 // Built-in AI user conversation input format
 export function buildConversationInput(question: string, answer: string): string {
-  const language = /[가-힣]/.test(`${question} ${answer}`) ? 'Korean' : 'English';
+  const basis = /[가-힣A-Za-z]/.test(question) ? question : answer;
+  const language = detectLanguage(basis);
   return `Target language: ${language}. Write "keyword", "question", and "answer" only in ${language}.
 [User] ${question}
 [Assistant] ${answer}`;
