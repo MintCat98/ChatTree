@@ -52,6 +52,12 @@ print("Hello, world!")
 That's the whole thing — Python doesn't need a main function or boilerplate. Save it as hello.py and run python hello.py.`,
   },
   {
+    id: 'EN-2',
+    lang: 'en',
+    question: `Can you print hello world in Python?`,
+    answer: `Yes. It prints the text Hello, world to the console; save it as a .py file and run it.`,
+  },
+  {
     id: 'KO-0',
     lang: 'ko',
     question: '근데 프로젝트 안에 있는 대화들은 서로 내용이 공유되는건가? 다음 대화에서 이미 했던거를 반복하기가 귀찮아서',
