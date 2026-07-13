@@ -154,6 +154,7 @@ export async function runSummaryEval(): Promise<void> {
 
   const rows: EvalRow[] = [];
   for (const c of EVAL_SET) {
+    console.log(`[eval] episode ${c.id} (${c.lang})`);
     const t0 = performance.now();
     const r = await summarizeConversation(session, c.question, c.answer);
     const ms = Math.round(performance.now() - t0);
