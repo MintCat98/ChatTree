@@ -19,35 +19,26 @@ export const NODE_SUMMARY_SCHEMA = {
 } as const;
 
 // Built-in AI system prompt
-export const SUMMARY_SYSTEM_PROMPT = `You are a summarizer for a conversation tree-map. You condense ONE chat turn (a user question and the assistant's answer) into a compact JSON object used to label a node.
+export const SUMMARY_SYSTEM_PROMPT = `You are a summarizer for a conversation tree-map. You condense ONE chat turn (a user question and the assistant's answer) into a compact JSON object used to label a node. Make every field as short as possible while staying faithful.
 
 Output rules:
 - Output ONLY one valid JSON object.
-- Each request states a target language. Write every value (keyword, question, answer) in that language only, and never translate.
+- Each request states a target language. Write every value in that language only, and never translate.
 - "keyword": a short noun phrase for the node label, at most ${KEYWORD_MAX_LENGTH} characters.
-- "question": 1 sentence summarizing what the user asked.
-- "answer": 1~2 sentences summarizing the assistant's answer.
+- "question": restate the user's question as briefly as possible — one short sentence.
+- "answer": the gist of the assistant's answer in the shortest possible single sentence. Omit examples, lists, caveats, and detail. Never more than one sentence.
 
 JSON shape: {"keyword": string, "question": string, "answer": string}
 
 Example (English)
 [User] What can you do for me?
-[Assistant] Quite a lot. A few areas:
-- Code: writing, debugging, and reviewing across languages, including low-level engine work.
-- Systems: architecture, data structures, algorithms — I'll argue tradeoffs, not just agree.
-- Artifacts: interactive demos, documents, and running code in a sandbox.
-- Everyday: web search, editing in English/Korean, planning.
-I work best when you give real context and push back.
-{"keyword":"What Claude can do","question":"What can you do for me?","answer":"It helps with coding, system design, explanations, and artifacts like demos and documents, plus everyday tasks such as search and planning — and works best with concrete context."}
+[Assistant] Quite a lot: writing and debugging code, designing systems, explaining hard topics, making artifacts like demos and documents, and everyday tasks like web search and planning. I work best with real context.
+{"keyword":"What Claude can do","question":"What can you do for me?","answer":"It helps with coding, system design, explanations, and building artifacts."}
 
 Example (Korean)
 [User] 프로젝트 안의 대화들은 서로 내용이 공유돼?
-[Assistant] 자동으로 통째로 공유되진 않아. 다만 프로젝트 안에선 세 가지가 대화를 이어줘:
-- 프로젝트 지식(파일): 모든 대화가 공유해. PROGRESS.md에 적어두면 다음 대화가 그대로 읽어.
-- 프로젝트 메모리: 과거 대화 일부가 자동으로 넘어오지만 요약본이라 완전하진 않아.
-- 과거 대화 검색: 네가 언급하면 내가 직접 찾아와.
-확실히 반복을 막으려면 중요한 결정·상태를 PROGRESS.md에 적어두는 게 제일 확실해.
-{"keyword":"프로젝트 대화 공유","question":"프로젝트 내 대화가 서로 공유되나요?","answer":"자동으로 통째로 공유되진 않지만, 프로젝트 지식(파일)·메모리·과거 대화 검색으로 이어집니다. 반복을 확실히 막으려면 중요한 결정과 상태를 PROGRESS.md에 적어두는 것이 좋습니다."}`;
+[Assistant] 자동으로 통째로 공유되진 않아. 프로젝트 지식(파일), 프로젝트 메모리, 과거 대화 검색이 대화를 이어주고, 확실히 하려면 PROGRESS.md에 적어두면 돼.
+{"keyword":"프로젝트 대화 공유","question":"프로젝트 내 대화가 공유되나요?","answer":"자동 공유는 안 되지만 프로젝트 지식·메모리·대화 검색으로 이어집니다."}`;
 
 // Built-in AI user conversation input format
 export function buildConversationInput(question: string, answer: string): string {
