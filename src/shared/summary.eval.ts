@@ -148,22 +148,19 @@ export async function runSummaryEval(): Promise<void> {
     return;
   }
 
-  const session = await LanguageModel.create({
-    initialPrompts: [{ role: 'system', content: SUMMARY_SYSTEM_PROMPT }],
-    monitor(m) {
-      m.addEventListener('downloadprogress', (e) => {
-        const { loaded, total } = e as ProgressEvent;
-        console.log('[eval] model download', loaded, '/', total);
-      });
-    },
-  });
-
   const rows: EvalRow[] = [];
   for (const c of EVAL_SET) {
     console.log(`[eval] episode ${c.id} (${c.lang})`);
+    
+    const session = await LanguageModel.create({
+      initialPrompts: [{ role: 'system', content: SUMMARY_SYSTEM_PROMPT }],
+    });
+    
     const t0 = performance.now();
     const r = await summarizeConversation(session, c.question, c.answer);
     const ms = Math.round(performance.now() - t0);
+    session.destroy();
+    
     if (!r.summary) continue;
     const s = r.summary;
     rows.push({
@@ -187,6 +184,4 @@ export async function runSummaryEval(): Promise<void> {
   console.log(
     `[eval] ok ${pct('ok')}% · kwOk ${pct('kwOk')}% · langOk ${pct('langOk')}%  (n=${n})`
   );
-
-  session.destroy();
 }
