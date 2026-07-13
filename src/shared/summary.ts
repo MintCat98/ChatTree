@@ -118,8 +118,9 @@ export async function summarizeConversation(
 ): Promise<SummaryResult> {
   const input = buildConversationInput(question, answer);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    let raw: string | undefined;
     try {
-      const raw = await session.prompt(input, { responseConstraint: NODE_SUMMARY_SCHEMA });
+      raw = await session.prompt(input, { responseConstraint: NODE_SUMMARY_SCHEMA });
       const parsed = extractJson(raw);
       if (isNodeSummary(parsed)) {
         return {
@@ -134,7 +135,7 @@ export async function summarizeConversation(
     } catch (err) {
       // Malformed or non-JSON output - ignore, let the loop retry
       // fall through to the truncated fallback below
-      console.debug('[summary] prompt/parse failed, will retry of fall back:', err);
+      console.debug('[summary] prompt/parse failed, will retry of fall back:', err, '\nRAW>>>', raw, '<<<');
     }
   }
 
