@@ -32,40 +32,22 @@ JSON shape: {"keyword": string, "question": string, "answer": string}
 
 Example (English)
 [User] What can you do for me?
-[Assistant] Quite a lot — here's the practical shape of it, Taebin:
-Thinking and building things with you
-
-Writing, debugging, and reviewing code (C/C++, Python, Go, TS, whatever), including gnarly low-level stuff like your game engine work — collision, timing loops, rendering, build setup.
-Designing systems: architecture, data structures, game mechanics, algorithms. I'm happy to argue with you about tradeoffs rather than just agree.
-Explaining hard things from first principles — physics, biology, math, graphics — and being corrected when I'm sloppy.
-
-Making artifacts
-
-Interactive demos, visualizations, diagrams that render right here in chat.
-Documents, slides, spreadsheets, PDFs you can download.
-Running actual code in a sandbox to test, analyze data, or generate files.
-
-Everyday things
-
-Searching the web for current info, drafting and editing text in English or Korean, reading files you upload, planning.
-
-The catch worth knowing: I'm better when you give me real context and push back on me. Vague question in, vague answer out.
-What are you actually trying to get done right now?
-{"keyword":"My Jobs","question":"What can you do for me?","answer":"It helps you reason and build (coding, system design, explanations), create artifacts like demos, documents, and runnable code, and handle everyday tasks such as web search, editing, and planning — working best with concrete context."}
+[Assistant] Quite a lot. A few areas:
+- Code: writing, debugging, and reviewing across languages, including low-level engine work.
+- Systems: architecture, data structures, algorithms — I'll argue tradeoffs, not just agree.
+- Artifacts: interactive demos, documents, and running code in a sandbox.
+- Everyday: web search, editing in English/Korean, planning.
+I work best when you give real context and push back.
+{"keyword":"What Claude can do","question":"What can you do for me?","answer":"It helps with coding, system design, explanations, and artifacts like demos and documents, plus everyday tasks such as search and planning — and works best with concrete context."}
 
 Example (Korean)
-[User] 근데 프로젝트 안에 있는 대화들은 서로 내용이 공유되는건가? 다음 대화에서 이미 했던거를 반복하기가 귀찮아서
-[Assistant] 좋은 질문이야. 정확히 구분해서 답할게.
-대화끼리 내용이 자동으로 통째로 공유되진 않아. 새 대화를 열면 이전 대화의 메시지들이 그대로 컨텍스트에 실려 오는 건 아니야. 즉 "지난 대화 전문을 내가 다 기억한 채로 시작"하는 건 아니라는 뜻.
-하지만 프로젝트 안에서는 세 가지가 대화를 이어줘:
-
-프로젝트 지식(파일) — 이건 모든 대화가 공유해. 그래서 PROGRESS.md의 "다음에 할 일"·"세션 이력" 같은 게 딱 이 반복을 막으려고 있는 거야. 결정·진행 상황을 여기 적어두면 다음 대화의 내가 그대로 읽고 시작해. 가장 확실한 방법.
-프로젝트 메모리 — 프로젝트마다 별도 메모리 공간이 있어서, 과거 대화에서 뽑은 내용이 어느 정도 자동으로 넘어와. 단 이건 주기적으로 백그라운드에서 갱신돼서 방금 한 대화는 아직 반영이 안 됐을 수 있고, 전문이 아니라 요약된 형태야. 그래서 "믿고 맡기기"엔 부족해.
-과거 대화 검색 — 네가 "지난번에 정한 그거" 식으로 언급하면, 내가 이 프로젝트 안의 과거 대화를 직접 검색해서 찾아올 수 있어. 메모리에 없어도 이걸로 끌어와.
-
-정리하면: 확실하게 반복 안 하려면 → 중요한 결정·상태는 PROGRESS.md에 적어두는 게 정답이야 (메모리·검색은 보조). 네 프로젝트 구조가 이미 그렇게 설계돼 있어서 방향이 맞아.
-한 가지 주의: 지금은 프로젝트 지식이 비어 있는 상태라 1번 continuity가 끊겨 있어. 저장소 Sync부터 확실히 돌려서 PROGRESS.md가 다시 들어오게 해두면, 다음 대화부터 반복 없이 이어갈 수 있어.
-{"keyword":"프로젝트 내 대화 공유,"question":"Claude.ai 사이트에서 프로젝트 내 세션끼리 대화 내용을 공유할 수 있는가?","answer":"대화 내용이 자동으로 통째로 공유되진 않지만, 프로젝트 안에서는 프로젝트 지식(파일)·프로젝트 메모리·과거 대화 검색이 대화를 이어줍니다. 반복을 확실히 막으려면 중요한 결정과 상태를 PROGRESS.md에 적어두는 것이 가장 확실합니다."}`;
+[User] 프로젝트 안의 대화들은 서로 내용이 공유돼?
+[Assistant] 자동으로 통째로 공유되진 않아. 다만 프로젝트 안에선 세 가지가 대화를 이어줘:
+- 프로젝트 지식(파일): 모든 대화가 공유해. PROGRESS.md에 적어두면 다음 대화가 그대로 읽어.
+- 프로젝트 메모리: 과거 대화 일부가 자동으로 넘어오지만 요약본이라 완전하진 않아.
+- 과거 대화 검색: 네가 언급하면 내가 직접 찾아와.
+확실히 반복을 막으려면 중요한 결정·상태를 PROGRESS.md에 적어두는 게 제일 확실해.
+{"keyword":"프로젝트 대화 공유","question":"프로젝트 내 대화가 서로 공유되나요?","answer":"자동으로 통째로 공유되진 않지만, 프로젝트 지식(파일)·메모리·과거 대화 검색으로 이어집니다. 반복을 확실히 막으려면 중요한 결정과 상태를 PROGRESS.md에 적어두는 것이 좋습니다."}`;
 
 // Built-in AI user conversation input format
 export function buildConversationInput(question: string, answer: string): string {
@@ -132,10 +114,11 @@ export async function summarizeConversation(
           },
         };
       }
+      console.warn('[summary] parsed but invalid shape:', parsed, '\nRAW>>>', raw, '<<<');
     } catch (err) {
       // Malformed or non-JSON output - ignore, let the loop retry
       // fall through to the truncated fallback below
-      console.debug('[summary] prompt/parse failed, will retry of fall back:', err, '\nRAW>>>', raw, '<<<');
+      console.warn('[summary] prompt/parse failed, will retry of fall back:', err, '\nRAW>>>', raw, '<<<');
     }
   }
 
