@@ -54,8 +54,18 @@ That's the whole thing — Python doesn't need a main function or boilerplate. S
   {
     id: 'EN-2',
     lang: 'en',
-    question: `Can you print hello world in Python?`,
-    answer: `Yes. It prints the text Hello, world to the console; save it as a .py file and run it.`,
+    question: `Can you explain about a "떡볶이"?`,
+    answer: `떡볶이 (tteokbokki) is one of Korea's most beloved street foods — chewy rice cakes simmered in a sweet-and-spicy red sauce.
+The core components:
+
+Garae-tteok (가래떡) — cylindrical rice cakes, cut into finger-length pieces. They're dense and springy, with a satisfying chew.
+Gochujang sauce — fermented red chili paste plus gochugaru (chili flakes), sugar or corn syrup, soy sauce, and often anchovy broth as the base. The result is spicy, but with a distinct sweetness underneath.
+Common add-ins — fish cakes (어묵), boiled eggs, scallions, cabbage, ramen noodles (making it 라볶이), or cheese on top.
+
+A bit of history: the modern spicy version is surprisingly recent. The older form, 궁중떡볶이 (royal court tteokbokki), was a soy-sauce-based dish with beef and vegetables — not spicy at all. The gochujang version is generally credited to Ma Bok-rim in Sindang-dong, Seoul, around the 1950s, and it exploded in popularity as cheap, filling street food.
+How it's eaten: typically from a 분식집 (bunsikjip — a casual snack shop) or a street cart, often alongside fried snacks (튀김) and 순대. Leftover sauce gets mixed with rice or used to dip fried foods, which many people consider the best part.
+There's also 로제떡볶이 (rosé tteokbokki), a milder cream-and-gochujang version that became hugely popular in the last few years, and 국물떡볶이, a soupier style.
+If you'd like, I can give you a recipe — it's genuinely easy to make at home.`,
   },
   {
     id: 'KO-0',
@@ -160,7 +170,7 @@ export async function runSummaryEval(): Promise<void> {
     const r = await summarizeConversation(session, c.question, c.answer);
     const ms = Math.round(performance.now() - t0);
     session.destroy();
-    
+
     if (!r.summary) continue;
     const s = r.summary;
     rows.push({
