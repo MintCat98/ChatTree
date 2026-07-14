@@ -4,6 +4,16 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   devtool: 'cheap-source-map',
+  // Webpack's default 244 KiB budget is a network-load heuristic for web pages.
+  // MV3 extension bundles load from the user's disk (no network fetch), and a
+  // content script must ship as a single file — code splitting would require
+  // exposing chunks via web_accessible_resources and loading them into the
+  // isolated world, with no runtime benefit since the panel mounts immediately.
+  // 300 KiB still guards against runaway bundle growth. See issue #170.
+  performance: {
+    maxAssetSize: 300 * 1024,
+    maxEntrypointSize: 300 * 1024,
+  },
   entry: {
     background: './src/background/index.ts',
     content:    './src/content/index.ts',
