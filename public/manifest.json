@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ChatTree: Conversation Map for Claude.ai",
-  "version": "1.0.1",
-  "version_name": "1.0.1-beta",
+  "version": "1.0.2",
+  "version_name": "1.0.2-beta",
   "description": "Conversation Map for Claude — visualize every branch and jump to any message instantly.",
   "permissions": ["storage", "activeTab", "alarms"],
   "host_permissions": ["https://claude.ai/*"],

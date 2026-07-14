@@ -27,7 +27,7 @@
 
 | Role | Selector | Notes |
 |------|----------|-------|
-| Full conversation wrapper | `[data-testid="conversation-container"]` | MutationObserver root |
+| Chat container (code: `SELECTORS.CHAT_CONTAINER`) | `#main-content, main` | Bootstrap wait + MutationObserver root. Two claude.ai variants coexist (2026-07 nav rework): legacy pages have `#main-content`; new pages dropped it and wrap turns in `[data-testid="chat-stale-nav-frame"]` under `<main>` |
 | Scroll area | `div.overflow-y-auto` (first inside container) | `scrollIntoView` target |
 
 ### 2-2. User Chatbox (Human Turn)
