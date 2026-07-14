@@ -185,6 +185,8 @@ interface UserSettings {
   backgroundOpacity: number;  // 0.0 ~ 1.0
   sortOrder: 'asc' | 'desc';
   panelVisible: boolean;
+  notifyOnComplete: boolean;  // blink header message count on generation complete (#166)
+  // ...panelWidth, themeMode, maxVisibleNodes, language, panelMode — see types.ts
 }
 ```
 

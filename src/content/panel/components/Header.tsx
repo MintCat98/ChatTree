@@ -27,6 +27,8 @@ export function Header() {
   const count = usePanelStore((s) => s.tree?.nodes.length ?? 0);
   const generationComplete = usePanelStore((s) => s.generationComplete);
   const setGenerationComplete = usePanelStore((s) => s.setGenerationComplete);
+  const notifyOnComplete = usePanelStore((s) => s.settings.notifyOnComplete);
+  const notifying = generationComplete && notifyOnComplete;
 
   // Auto-stop the completion blink (issue #166).
   useEffect(() => {
@@ -95,7 +97,7 @@ export function Header() {
             </IconButton>
             <span
               data-drag-handle="true"
-              className={generationComplete ? 'nav-header-count is-notifying' : 'nav-header-count'}
+              className={notifying ? 'nav-header-count is-notifying' : 'nav-header-count'}
             >
               {t.messageCount(count)}
             </span>
