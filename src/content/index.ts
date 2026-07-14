@@ -8,8 +8,8 @@ import { MessageType } from '@shared/message-types';
 
 let containerWatch: MutationObserver | null = null;
 
-// claude.ai renders #main-content asynchronously, often after document_idle on
-// fast loads, so bootstrap must wait for it instead of assuming it exists.
+// claude.ai renders the chat container asynchronously, often after document_idle
+// on fast loads, so bootstrap must wait for it instead of assuming it exists.
 // Waiting also guarantees the React app has rendered before the panel mounts.
 function whenContainerReady(onReady: () => void): void {
   containerWatch?.disconnect();

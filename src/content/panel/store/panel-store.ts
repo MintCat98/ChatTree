@@ -41,6 +41,9 @@ interface PanelState {
   // Search state (issue #99) — transient, not persisted.
   searchPanelOpen:  boolean;
   searchQuery:      string;
+  // Response generation finished (issue #166) — transient, drives the header
+  // message-count blink. Set by the observer, cleared by the Header timer.
+  generationComplete: boolean;
 
   setTree:              (tree: TreeData | null) => void;
   updateSettings:       (patch: Partial<UserSettings>) => void;
@@ -59,6 +62,7 @@ interface PanelState {
   setTagEditNodeId:   (id: string | null) => void;
   toggleSearchPanel:  () => void;
   setSearchQuery:     (query: string) => void;
+  setGenerationComplete: (done: boolean) => void;
   // Replace the entire session metadata map (called when tree/session changes).
   setSessionMetadata:   (meta: Record<string, NodeMetadata>) => void;
   // Optimistic local update for a single node (caller writes to chrome.storage).
@@ -81,6 +85,7 @@ export const usePanelStore = create<PanelState>()(
     tagEditNodeId:       null,
     searchPanelOpen:     false,
     searchQuery:         '',
+    generationComplete:  false,
 
     setTree: (tree) => set({ tree, tagEditNodeId: null, activeTagFilters: [], searchQuery: '' }),
 
@@ -131,6 +136,8 @@ export const usePanelStore = create<PanelState>()(
           : { searchPanelOpen: false };
       }),
     setSearchQuery:    (query) => set({ searchQuery: query }),
+
+    setGenerationComplete: (done) => set({ generationComplete: done }),
 
     setSessionMetadata: (meta) => set({ sessionMetadata: meta }),
 

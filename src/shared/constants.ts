@@ -1,7 +1,9 @@
 // Shared constants: DOM selectors, storage keys, and timing values.
 
 export const SELECTORS = {
-  CHAT_CONTAINER:         '#main-content',
+  // Two claude.ai variants coexist (2026-07 nav rework, rolled out per browser):
+  // legacy pages use #main-content; new pages dropped it — anchor on <main>.
+  CHAT_CONTAINER:         '#main-content, main',
   USER_MESSAGE_BUBBLE:    '[data-user-message-bubble="true"]',
   USER_MESSAGE:           '[data-testid="user-message"]',
   BRANCH_ACTIONS_WRAPPER: '[aria-label="메시지 작업"], [aria-label="Message actions"]',
@@ -42,6 +44,8 @@ export const TIMING = {
   HIGHLIGHT_DURATION: 1500,
   // Wait for a virtualized bubble to remount after scrolling to its offset
   VIRTUAL_SCROLL_SETTLE: 700,
+  // How long the header message count blinks after generation completes (issue #166)
+  NOTIFY_BLINK_DURATION: 3000,
 } as const;
 
 export const CHAT_URL_PATTERN = /\/chat\/([0-9a-f-]{36})/;

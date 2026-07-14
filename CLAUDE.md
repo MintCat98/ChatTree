@@ -84,7 +84,7 @@ into **Claude.ai only (beta)**, allowing users to track and jump between chat me
 |------|------|
 | Language | TypeScript (strict) |
 | UI | React 18 via Shadow DOM |
-| Tree rendering | D3.js (hierarchy layout) |
+| Tree rendering | Hand-rolled SVG (React components — no D3) |
 | State management | Zustand (Panel), chrome.storage (Background) |
 | Bundler | Webpack 5 |
 | Test | Jest + ts-jest |
@@ -124,7 +124,7 @@ src/
 │       ├── components/
 │       │   ├── PanelShell.tsx
 │       │   ├── Header.tsx
-│       │   ├── TreeMapCanvas.tsx  # D3 rendering
+│       │   ├── TreeMapCanvas.tsx  # SVG rendering
 │       │   ├── TreeNode.tsx
 │       │   ├── NodeBadge.tsx      # Branch badge (conditional)
 │       │   ├── TreeEdge.tsx
@@ -191,6 +191,8 @@ interface UserSettings {
   maxVisibleNodes: number;    // max chat nodes visible on UI
   language: 'en' | 'ko';      // UI language, default 'en' (#100)
   cacheRetentionDays: number; // tree-cache purge horizon, default 30 (#153)
+  notifyOnComplete: boolean;  // blink header message count on generation complete (#166)
+  // ...panelWidth, themeMode, maxVisibleNodes, language, panelMode — see types.ts
 }
 ```
 
@@ -255,7 +257,7 @@ interface UserSettings {
 | Role | Area |
 |------|------|
 | PM / Lead Dev | Architecture decisions, code review, release |
-| Frontend Dev | Panel UI (React + D3), Popup |
+| Frontend Dev | Panel UI (React + SVG), Popup |
 | Content Dev | Content Script, DOM analysis, branch detection |
 | QA / Docs | Test authoring, agent_docs maintenance |
 

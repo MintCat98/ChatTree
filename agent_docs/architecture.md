@@ -31,7 +31,7 @@
 │  │              UI Panel (Floating)                  │   │
 │  │                                                   │   │
 │  │   TreeMap Renderer  │  Controls  │  Settings      │   │
-│  │   (React + D3/SVG)  │ (position) │ (opacity/sort) │   │
+│  │   (React + SVG)     │ (position) │ (opacity/sort) │   │
 │  └───────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -64,7 +64,7 @@
 | Component | File | Responsibility |
 |-----------|------|----------------|
 | App Root | `App.tsx` | Manages overall panel state (Zustand) |
-| TreeMap | `TreeMap.tsx` | D3-based tree rendering |
+| TreeMap | `TreeMap.tsx` | SVG-based tree rendering (hand-rolled, no D3) |
 | BranchNode | `BranchNode.tsx` | Individual node (regular vs. branch) |
 | ControlBar | `ControlBar.tsx` | Position, direction, and opacity settings UI |
 | Tooltip | `Tooltip.tsx` | Shows original prompt on mouse-over |
@@ -201,7 +201,7 @@ interface UserSettings {
 |-------|--------|--------|
 | Bundler | **Vite** + `crxjs` plugin | MV3 HMR support, fast builds |
 | UI | **React 18** | Team familiarity, rich ecosystem |
-| Tree Rendering | **D3.js** (hierarchy) | Flexible custom layouts |
+| Tree Rendering | Hand-rolled **SVG** (React components) | Simple rail layout needs no library — `d3` was removed as unused in #170 |
 | State Management | **Zustand** | Lightweight, Content Script compatible |
 | Styling | **Tailwind CSS** | Prevents class collisions (prefix: `nav-`) |
 | Shadow DOM | Web Components Shadow DOM | Isolates from host page CSS |

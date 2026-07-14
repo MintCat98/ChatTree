@@ -55,6 +55,7 @@ function resetStore() {
     tagEditNodeId:       null,
     searchPanelOpen:     false,
     searchQuery:         '',
+    generationComplete:  false,
   });
 }
 
@@ -99,6 +100,14 @@ describe('usePanelStore — actions', () => {
   it('setHoveredNode sets hoveredNodeId', () => {
     usePanelStore.getState().setHoveredNode('chatbox-1');
     expect(usePanelStore.getState().hoveredNodeId).toBe('chatbox-1');
+  });
+
+  it('setGenerationComplete sets and clears the flag (issue #166)', () => {
+    expect(usePanelStore.getState().generationComplete).toBe(false);
+    usePanelStore.getState().setGenerationComplete(true);
+    expect(usePanelStore.getState().generationComplete).toBe(true);
+    usePanelStore.getState().setGenerationComplete(false);
+    expect(usePanelStore.getState().generationComplete).toBe(false);
   });
 });
 
