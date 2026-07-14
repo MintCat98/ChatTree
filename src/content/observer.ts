@@ -92,6 +92,13 @@ export function startObserving(): void {
         mutation.attributeName === SELECTORS.STREAMING_ATTR &&
         (mutation.target as HTMLElement).getAttribute(SELECTORS.STREAMING_ATTR) === 'false'
       ) {
+        // Generation-complete notification (issue #166). Only a genuine
+        // 'true' → 'false' flip counts — opening an existing conversation
+        // sets the attribute to 'false' on mount (oldValue null), which is
+        // not a completion.
+        if (mutation.oldValue === 'true') {
+          usePanelStore.getState().setGenerationComplete(true);
+        }
         handleDOMChange();
         break;
       }
@@ -103,6 +110,7 @@ export function startObserving(): void {
     subtree: true,
     attributes: true,
     attributeFilter: [SELECTORS.STREAMING_ATTR],
+    attributeOldValue: true, // distinguishes streaming-end from initial mount (issue #166)
   });
 
   // Initial scan — the conversation may already be (partially) rendered when
