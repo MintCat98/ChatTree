@@ -75,6 +75,10 @@ export function startObserving(): void {
   resetNodeCache(); // fresh conversation — accumulated turns belong to the old one
 
   observer = new MutationObserver((mutations) => {
+    // Scan the WHOLE batch — the streaming-end attribute flip usually arrives
+    // in the same batch as childList churn (final text, indicator removal),
+    // so an early exit on the first childList record would skip it.
+    let domChanged = false;
     for (const mutation of mutations) {
       // Chatboxes mount as childList additions — opening an existing
       // conversation never flips the streaming attribute, so element
@@ -83,8 +87,7 @@ export function startObserving(): void {
         mutation.type === 'childList' &&
         (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0)
       ) {
-        handleDOMChange();
-        break;
+        domChanged = true;
       }
       // End of streaming — the settled DOM is the authoritative state.
       if (
@@ -92,6 +95,7 @@ export function startObserving(): void {
         mutation.attributeName === SELECTORS.STREAMING_ATTR &&
         (mutation.target as HTMLElement).getAttribute(SELECTORS.STREAMING_ATTR) === 'false'
       ) {
+        domChanged = true;
         // Generation-complete notification (issue #166). Only a genuine
         // 'true' → 'false' flip counts — opening an existing conversation
         // sets the attribute to 'false' on mount (oldValue null), which is
@@ -99,10 +103,9 @@ export function startObserving(): void {
         if (mutation.oldValue === 'true') {
           usePanelStore.getState().setGenerationComplete(true);
         }
-        handleDOMChange();
-        break;
       }
     }
+    if (domChanged) handleDOMChange();
   });
 
   observer.observe(container, {
