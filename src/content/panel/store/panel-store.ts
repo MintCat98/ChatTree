@@ -87,7 +87,25 @@ export const usePanelStore = create<PanelState>()(
     searchQuery:         '',
     generationComplete:  false,
 
-    setTree: (tree) => set({ tree, tagEditNodeId: null, activeTagFilters: [], searchQuery: '' }),
+    setTree: (tree) =>
+      set((s) => {
+        // Highlight fallback: keep the active node only while the incoming
+        // tree still contains it. Otherwise (conversation switch — position-
+        // based ids are per-conversation — or the node dropped by a branch
+        // switch) default to the newest message; the IntersectionObserver
+        // overrides as soon as it resolves the actual viewport.
+        const nodes = tree?.nodes ?? [];
+        const activeStillPresent = nodes.some((n) => n.id === s.activeNodeId);
+        return {
+          tree,
+          activeNodeId: activeStillPresent
+            ? s.activeNodeId
+            : nodes[nodes.length - 1]?.id ?? null,
+          tagEditNodeId: null,
+          activeTagFilters: [],
+          searchQuery: '',
+        };
+      }),
 
     updateSettings: (patch) =>
       set((s) => {

@@ -126,6 +126,10 @@ export function startObserving(options?: { trustExistingDom?: boolean }): void {
   // URL shape we failed to parse (startObserving only runs on chat URLs).
   currentSessionId = location.href.match(CHAT_URL_PATTERN)?.[1] ?? 'unknown';
   persistReady = false;
+  // Clear the previous conversation's highlight — position-based node ids
+  // collide across conversations, so a stale active id can wrongly match a
+  // node here. setTree then defaults the highlight to the newest message.
+  usePanelStore.getState().setActiveNode(null);
   // On initial page load the rendered DOM is this conversation's; after an SPA
   // navigation it may still be the previous one's (index.ts passes false).
   domTrusted = options?.trustExistingDom ?? true;
