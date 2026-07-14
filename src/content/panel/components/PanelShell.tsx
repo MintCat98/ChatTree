@@ -112,6 +112,23 @@ export function PanelShell({ children }: PanelShellProps) {
     return () => window.removeEventListener('resize', handleWindowResize);
   }, [settings.panelPosition]);
 
+  // Sidebar mode: push claude.ai's main content to the left so the sidebar doesn't overlay the chat area.
+  useEffect(() => {
+    const container = document.querySelector('#root') as HTMLElement | null;
+    if (!container) return;
+
+    if (isSidebar) {
+      container.style.transition = 'margin-right 200ms ease';
+      container.style.marginRight = `${width}px`;
+    } else {
+      container.style.marginRight = '';
+    }
+
+    return () => {
+      container.style.marginRight = '';
+    };
+  }, [isSidebar, width]);
+
   // Triggered by children that opt-in via data-drag-handle="true" (the Header).
   function startDrag(e: React.MouseEvent) {
     dragOffsetRef.current = { x: e.clientX - position.x, y: e.clientY - position.y };
