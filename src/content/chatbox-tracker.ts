@@ -134,6 +134,15 @@ export function seedNodeCache(nodes: ChatboxNode[]): void {
   }
 }
 
+// Total turn count exposed by the virtualized list (aria-setsize on any
+// mounted article — same source scroll-navigator uses for offset estimates).
+// Returns null when the DOM does not expose it.
+function getTurnSetsize(): number | null {
+  const article = document.querySelector(`${SELECTORS.TURN_ARTICLE}[aria-setsize]`);
+  const setsize = parseInt(article?.getAttribute('aria-setsize') ?? '', 10);
+  return isNaN(setsize) || setsize <= 0 ? null : setsize;
+}
+
 /**
  * Merges the currently mounted bubbles into the session cache and returns the
  * full accumulated node list (sequential `index` for display, id from absolute
@@ -143,6 +152,18 @@ export function seedNodeCache(nodes: ChatboxNode[]): void {
  */
 export function mergeMountedNodes(): ChatboxNode[] {
   const mounted = scanMounted().sort((a, b) => a.absIndex - b.absIndex);
+
+  // Cached turns at indices the conversation cannot contain are contamination:
+  // a scan that spanned an SPA transition and caught the previous
+  // conversation's still-mounted turns, or a tail from a longer branch. The
+  // divergence rule below never catches them (their indices never mount in a
+  // shorter conversation), so prune against the DOM's own turn count.
+  const setsize = getTurnSetsize();
+  if (setsize !== null) {
+    for (const key of [...nodeCache.keys()]) {
+      if (key >= setsize) nodeCache.delete(key);
+    }
+  }
 
   for (const m of mounted) {
     const cached = nodeCache.get(m.absIndex);

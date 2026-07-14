@@ -55,10 +55,16 @@ function makeContainer(bubbles: FakeEl[]) {
   };
 }
 
-function makeDocument(bubbles: FakeEl[]) {
+function makeDocument(bubbles: FakeEl[], setsize?: number) {
   return {
-    querySelector: (sel: string) =>
-      sel === SELECTORS.CHAT_CONTAINER ? makeContainer(bubbles) : null,
+    querySelector: (sel: string) => {
+      if (sel === SELECTORS.CHAT_CONTAINER) return makeContainer(bubbles);
+      // Fakes the '[role="article"][aria-setsize]' lookup in getTurnSetsize.
+      if (setsize !== undefined && sel === `${SELECTORS.TURN_ARTICLE}[aria-setsize]`) {
+        return { getAttribute: (k: string) => (k === 'aria-setsize' ? String(setsize) : null) };
+      }
+      return null;
+    },
   };
 }
 
@@ -144,6 +150,89 @@ describe('mergeMountedNodes', () => {
     const nodes = mergeMountedNodes();
 
     expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-1']);
+  });
+});
+
+describe('mergeMountedNodes — setsize pruning (SPA cross-session contamination)', () => {
+  beforeEach(() => resetNodeCache());
+
+  it('prunes cached turns at indices the conversation cannot contain', () => {
+    // A scan spanning an SPA transition caught the previous conversation's
+    // tail (high absolute indices) — no setsize exposed during the glitch.
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'prev-tail-1', 20),
+      makeBubble(null, 'prev-tail-2', 22),
+    ]);
+    mergeMountedNodes();
+
+    // The real (short) conversation mounts: 4 turns total, user turn at 0.
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'real-q1', 0)],
+      4,
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0']);
+  });
+
+  it('keeps cached turns within the conversation turn count', () => {
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0), makeBubble(null, 'q2', 2)],
+      8,
+    );
+    mergeMountedNodes();
+
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q4', 6)],
+      8,
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2', 'chatbox-6']);
+  });
+
+  it('does not prune when aria-setsize is absent', () => {
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'tail', 20),
+    ]);
+    mergeMountedNodes();
+
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'q1', 0),
+    ]);
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-20']);
+  });
+
+  it('ignores a non-positive aria-setsize (ARIA "unknown size" is -1)', () => {
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'tail', 20),
+    ]);
+    mergeMountedNodes();
+
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0)],
+      -1,
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-20']);
+  });
+
+  it('also drops seeded (hydrated) turns beyond the turn count', () => {
+    seedNodeCache([
+      { id: 'chatbox-2', index: 0, text: 'kept', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+      { id: 'chatbox-30', index: 1, text: 'foreign', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+    ]);
+
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0)],
+      6,
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2']);
   });
 });
 

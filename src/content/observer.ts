@@ -14,9 +14,24 @@ let observer: MutationObserver | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let currentNodes: ChatboxNode[] = [];
 let branchCleanup: (() => void) | null = null;
+// Conversation this observer was started for. buildTree stamps sessionId from
+// the URL *at dispatch time*, and on SPA navigation the URL flips before the
+// DOM swaps — so a scan can carry the previous conversation's nodes under the
+// next conversation's sessionId. Dispatches are dropped on mismatch.
+let currentSessionId: string | null = null;
+// Until hydration settles, scans update the panel but are NOT persisted —
+// otherwise the first post-navigation scan (a handful of mounted turns) races
+// GET_STORED_TREE and can overwrite the accumulated stored tree.
+let persistReady = false;
 
 function dispatchTree(tree: TreeData): void {
+  // Scan spanned an SPA transition — the cache/DOM belong to the previous
+  // conversation while the URL already points at the next one. Drop it.
+  if (tree.sessionId !== currentSessionId) return;
+
   window.dispatchEvent(new CustomEvent(TREE_READY_EVENT, { detail: { tree } }));
+
+  if (!persistReady) return;
   // Persist to session-store via SW (fire-and-forget; Panel already updated above)
   sendToBackground({
     type: MessageType.TREE_UPDATE,
@@ -44,9 +59,13 @@ function handleDOMChange(): void {
 // Seeds the node cache from the tree persisted for this conversation
 // (issue #152), then re-dispatches so the panel shows the full tree without
 // the user having to scroll through the whole conversation again.
+// Settling this request (success or failure) opens the persistence gate.
 function hydrateFromStoredTree(): void {
-  const sessionId = location.href.match(CHAT_URL_PATTERN)?.[1];
-  if (!sessionId) return;
+  const sessionId = currentSessionId;
+  if (!sessionId) {
+    persistReady = true;
+    return;
+  }
 
   requestFromBackground<{ tree: TreeData | null }>({
     type: MessageType.GET_STORED_TREE,
@@ -54,16 +73,20 @@ function hydrateFromStoredTree(): void {
   })
     .then((response) => {
       const tree = response?.tree;
-      // Observer torn down while the request was in flight (SPA nav) — the
-      // stored tree belongs to a conversation we already left.
-      if (!observer) return;
       if (!tree || tree.sessionId !== sessionId || tree.nodes.length === 0) return;
-
       seedNodeCache(tree.nodes);
+    })
+    .catch(() => {}) // no stored tree / SW unreachable — scanning fills the tree as usual
+    .finally(() => {
+      // Observer torn down / conversation changed while the request was in
+      // flight (SPA nav) — the response belongs to a conversation we left.
+      if (!observer || currentSessionId !== sessionId) return;
+      persistReady = true;
+      // Re-dispatch now that persistence is open, so the merged tree (seeded
+      // or plain initial scan) reaches storage exactly once hydration settled.
       currentNodes = mergeMountedNodes();
       dispatchTree(buildTree(currentNodes));
-    })
-    .catch(() => {}); // no stored tree / SW unreachable — scanning fills the tree as usual
+    });
 }
 
 // Rebuilds the tree from the live DOM only, dropping the accumulated cache.
@@ -84,6 +107,10 @@ export function startObserving(): void {
 
   currentNodes = [];
   resetNodeCache(); // fresh conversation — accumulated turns belong to the old one
+  // 'unknown' matches buildTree's fallback so dispatches still flow on any
+  // URL shape we failed to parse (startObserving only runs on chat URLs).
+  currentSessionId = location.href.match(CHAT_URL_PATTERN)?.[1] ?? 'unknown';
+  persistReady = false;
 
   observer = new MutationObserver((mutations) => {
     // Scan the WHOLE batch — the streaming-end attribute flip usually arrives
@@ -158,6 +185,10 @@ export function stopObserving(): void {
   }
   observer?.disconnect();
   observer = null;
+  // Invalidate the session so any in-flight debounce/hydration callback from
+  // this conversation can no longer dispatch or persist.
+  currentSessionId = null;
+  persistReady = false;
   branchCleanup?.();
   branchCleanup = null;
   stopTracking();
