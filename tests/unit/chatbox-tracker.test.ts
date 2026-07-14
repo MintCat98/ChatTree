@@ -3,6 +3,7 @@
 import {
   assignChatboxIds,
   mergeMountedNodes,
+  getCachedNodes,
   resetNodeCache,
   seedNodeCache,
   getCachedTop,
@@ -150,6 +151,30 @@ describe('mergeMountedNodes', () => {
     const nodes = mergeMountedNodes();
 
     expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-1']);
+  });
+});
+
+describe('getCachedNodes', () => {
+  beforeEach(() => resetNodeCache());
+
+  it('returns the seeded cache without touching the DOM', () => {
+    seedNodeCache([
+      { id: 'chatbox-2', index: 0, text: 'b', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+      { id: 'chatbox-0', index: 1, text: 'a', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+    ]);
+    // The previous conversation's DOM must never be queried on this path
+    // (SPA transition, see observer.ts domTrusted).
+    const query = jest.fn(() => null);
+    (global as Record<string, unknown>).document = {
+      querySelector: query,
+      querySelectorAll: query,
+    };
+
+    const nodes = getCachedNodes();
+
+    expect(query).not.toHaveBeenCalled();
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(nodes.map((n) => n.index)).toEqual([0, 1]);
   });
 });
 

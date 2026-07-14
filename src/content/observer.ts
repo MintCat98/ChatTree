@@ -1,5 +1,11 @@
 // Watches the DOM for new chatbox elements via MutationObserver.
-import { mergeMountedNodes, resetNodeCache, seedNodeCache, buildTree } from './chatbox-tracker';
+import {
+  mergeMountedNodes,
+  getCachedNodes,
+  resetNodeCache,
+  seedNodeCache,
+  buildTree,
+} from './chatbox-tracker';
 import { watchBranchChanges } from './branch-change-watcher';
 import { sendToBackground, requestFromBackground } from './message-bridge';
 import { SELECTORS, TIMING, CHAT_URL_PATTERN } from '@shared/constants';
@@ -23,6 +29,13 @@ let currentSessionId: string | null = null;
 // otherwise the first post-navigation scan (a handful of mounted turns) races
 // GET_STORED_TREE and can overwrite the accumulated stored tree.
 let persistReady = false;
+// Whether the currently mounted DOM is known to belong to this conversation.
+// After an SPA navigation the previous conversation's turns can still be
+// mounted (the URL flips before React swaps the view), so scanning — merging
+// foreign turns, honoring a foreign aria-setsize — would corrupt the hydrated
+// cache. The first mutation after startObserving is the render activity of the
+// new conversation and restores trust.
+let domTrusted = true;
 
 function dispatchTree(tree: TreeData): void {
   // Scan spanned an SPA transition — the cache/DOM belong to the previous
@@ -84,7 +97,9 @@ function hydrateFromStoredTree(): void {
       persistReady = true;
       // Re-dispatch now that persistence is open, so the merged tree (seeded
       // or plain initial scan) reaches storage exactly once hydration settled.
-      currentNodes = mergeMountedNodes();
+      // While the mounted DOM may still belong to the previous conversation,
+      // dispatch the seeded cache as-is instead of scanning.
+      currentNodes = domTrusted ? mergeMountedNodes() : getCachedNodes();
       dispatchTree(buildTree(currentNodes));
     });
 }
@@ -100,7 +115,7 @@ export function rescanFromDom(): void {
   dispatchTree(buildTree(currentNodes));
 }
 
-export function startObserving(): void {
+export function startObserving(options?: { trustExistingDom?: boolean }): void {
   const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
   // console.log('[ChatTree DBG] startObserving — container found?', !!container, 'selector=', SELECTORS.CHAT_CONTAINER);
   if (!container) return;
@@ -111,6 +126,9 @@ export function startObserving(): void {
   // URL shape we failed to parse (startObserving only runs on chat URLs).
   currentSessionId = location.href.match(CHAT_URL_PATTERN)?.[1] ?? 'unknown';
   persistReady = false;
+  // On initial page load the rendered DOM is this conversation's; after an SPA
+  // navigation it may still be the previous one's (index.ts passes false).
+  domTrusted = options?.trustExistingDom ?? true;
 
   observer = new MutationObserver((mutations) => {
     // Scan the WHOLE batch — the streaming-end attribute flip usually arrives
@@ -143,7 +161,12 @@ export function startObserving(): void {
         }
       }
     }
-    if (domChanged) handleDOMChange();
+    if (domChanged) {
+      // Render activity after (re)start — the mounted DOM is now this
+      // conversation's; scanning is safe again.
+      domTrusted = true;
+      handleDOMChange();
+    }
   });
 
   observer.observe(container, {
@@ -156,7 +179,10 @@ export function startObserving(): void {
 
   // Initial scan — the conversation may already be (partially) rendered when
   // observing starts; later childList mutations cover anything still loading.
-  handleDOMChange();
+  // Skipped when the pre-existing DOM is distrusted (SPA navigation): the
+  // panel is fed by hydration until the first mutation proves the new
+  // conversation rendered.
+  if (domTrusted) handleDOMChange();
 
   // Restore previously accumulated turns from storage (async; merge order
   // doesn't matter — seeding never overwrites DOM-scanned entries).

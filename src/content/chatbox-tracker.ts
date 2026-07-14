@@ -192,6 +192,18 @@ export function mergeMountedNodes(): ChatboxNode[] {
     });
   }
 
+  return cachedNodeList();
+}
+
+// Cache contents as a display list, WITHOUT scanning the DOM. Used right after
+// an SPA navigation while the previous conversation's DOM may still be mounted
+// — scanning it would merge foreign turns and prune against a foreign
+// aria-setsize, destroying the hydrated cache.
+export function getCachedNodes(): ChatboxNode[] {
+  return cachedNodeList();
+}
+
+function cachedNodeList(): ChatboxNode[] {
   return [...nodeCache.entries()]
     .sort(([a], [b]) => a - b)
     .map(([, cached], i) => ({ ...cached.node, index: i }));

@@ -30,13 +30,16 @@ function whenContainerReady(onReady: () => void): void {
   containerWatch.observe(document.documentElement, { childList: true, subtree: true });
 }
 
-function bootstrap(): void {
+// trustExistingDom: false on SPA navigation — the previous conversation's DOM
+// can still be mounted when the container check passes, and scanning it would
+// corrupt the new conversation's hydrated cache (see observer.ts).
+function bootstrap(trustExistingDom = true): void {
   stopObserving();
   destroyPanel();
   whenContainerReady(() => {
     // console.log('[ChatTree DBG] container ready — injecting panel + observer');
     injectPanel();
-    startObserving();
+    startObserving({ trustExistingDom });
   });
 }
 
@@ -53,7 +56,7 @@ function init(): void {
   // Step 1 — Register SPA navigation listener first so no URL change is missed.
   watchPageChanges((url) => {
     // console.log('[ChatTree DBG] SPA nav → chat page', url);
-    bootstrap();
+    bootstrap(false);
   });
 
   // Step 2 — If the extension loads while already on a chat page, bootstrap immediately.
