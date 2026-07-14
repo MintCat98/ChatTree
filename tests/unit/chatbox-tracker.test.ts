@@ -10,6 +10,7 @@ import {
   reloadFromNode,
 } from '@content/chatbox-tracker';
 import type { ChatboxNode } from '@shared/types';
+import { SELECTORS } from '@shared/constants';
 
 // --- minimal DOM fakes ---
 
@@ -57,7 +58,7 @@ function makeContainer(bubbles: FakeEl[]) {
 function makeDocument(bubbles: FakeEl[]) {
   return {
     querySelector: (sel: string) =>
-      sel === '#main-content' ? makeContainer(bubbles) : null,
+      sel === SELECTORS.CHAT_CONTAINER ? makeContainer(bubbles) : null,
   };
 }
 

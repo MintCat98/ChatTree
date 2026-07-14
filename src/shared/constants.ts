@@ -1,7 +1,9 @@
 // Shared constants: DOM selectors, storage keys, and timing values.
 
 export const SELECTORS = {
-  CHAT_CONTAINER:         '#main-content',
+  // Two claude.ai variants coexist (2026-07 nav rework, rolled out per browser):
+  // legacy pages use #main-content; new pages dropped it — anchor on <main>.
+  CHAT_CONTAINER:         '#main-content, main',
   USER_MESSAGE_BUBBLE:    '[data-user-message-bubble="true"]',
   USER_MESSAGE:           '[data-testid="user-message"]',
   BRANCH_ACTIONS_WRAPPER: '[aria-label="메시지 작업"], [aria-label="Message actions"]',
