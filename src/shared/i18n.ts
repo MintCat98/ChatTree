@@ -55,6 +55,10 @@ export interface Messages {
   themeDark: string;
   maxNodes: string;
   maxNodesAria: string;
+  notifyComplete: string;
+  notifyCompleteAria: string;
+  notifyOnLabel: string;
+  notifyOffLabel: string;
   language: string;
   languageAria: string;
   langEnglish: string;
@@ -150,6 +154,10 @@ const en: Messages = {
   themeDark: 'Dark',
   maxNodes: 'Visible nodes',
   maxNodesAria: 'Max visible nodes',
+  notifyComplete: 'Completion alert',
+  notifyCompleteAria: 'Blink the message count when response generation completes',
+  notifyOnLabel: 'On',
+  notifyOffLabel: 'Off',
   language: 'Language',
   languageAria: 'Language',
   langEnglish: 'English',
@@ -245,6 +253,10 @@ const ko: Messages = {
   themeDark: '다크',
   maxNodes: '노드 표시 수',
   maxNodesAria: '노드 표시 수',
+  notifyComplete: '완료 알림',
+  notifyCompleteAria: '응답 생성이 완료되면 메시지 개수를 깜빡여 알림',
+  notifyOnLabel: '켜짐',
+  notifyOffLabel: '꺼짐',
   language: '언어',
   languageAria: '언어',
   langEnglish: 'English',

@@ -28,6 +28,8 @@ export function ControlBar() {
     updateSettings({ maxVisibleNodes: Number(e.target.value) });
   const handleLanguage = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ language: e.target.value as UserSettings['language'] });
+  const handleNotifyToggle = () =>
+    updateSettings({ notifyOnComplete: !settings.notifyOnComplete });
   const handlePanelMode = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ panelMode: e.target.value as UserSettings['panelMode'] });
   const handleReset = () => updateSettings(DEFAULT_SETTINGS);
@@ -140,6 +142,20 @@ export function ControlBar() {
           className="nav-range"
         />
         <span className="nav-control-readout">{settings.maxVisibleNodes}</span>
+      </div>
+
+      {/* Generation-complete notification (issue #166) */}
+      <div className="nav-control-row">
+        <span className="nav-control-label">{t.notifyComplete}</span>
+        <button
+          type="button"
+          onClick={handleNotifyToggle}
+          aria-label={t.notifyCompleteAria}
+          aria-pressed={settings.notifyOnComplete}
+          className="nav-control nav-control-sort"
+        >
+          {settings.notifyOnComplete ? t.notifyOnLabel : t.notifyOffLabel}
+        </button>
       </div>
 
       {/* Language (issue #100) */}

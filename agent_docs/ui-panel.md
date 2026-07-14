@@ -192,6 +192,7 @@ interface TooltipProps {
 | Position | Dropdown | Top-Right / Bottom-Right / Top-Left / Bottom-Left |
 | Opacity | Slider | 0% ~ 100% (default 80%) |
 | Sort | Toggle | Newest (↓) / Oldest (↑) |
+| Completion alert | Toggle | On / Off (default On) — blinks the header message count for ~3s when response generation completes (issue #166). Placed directly above Language. |
 
 ---
 

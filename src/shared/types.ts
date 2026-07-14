@@ -51,6 +51,7 @@ export interface UserSettings {
   panelWidth: number; // px — panel width (resizable). See issue 02.
   themeMode: 'auto' | 'light' | 'dark'; // 'auto' follows the claude.ai theme. See issue 06.
   maxVisibleNodes: number; // maximum number of chat nodes visible on UI
+  notifyOnComplete: boolean; // blink the header message count when generation completes. See issue #166.
   language: Language; // UI language. Default 'en'. See issue #100.
   panelMode: 'popup' | 'sidebar'; // panel display option: docked sidebar provides more "embedded" interface. Default 'popup'
 }
@@ -72,6 +73,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   panelWidth: PANEL_WIDTH_DEFAULT,
   themeMode: 'auto',
   maxVisibleNodes: MAX_VISIBLE_NODES,
+  notifyOnComplete: true,
   language: 'en',
   panelMode: 'sidebar',
 };

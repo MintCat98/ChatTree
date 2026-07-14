@@ -40,6 +40,8 @@ export const TIMING = {
   HIGHLIGHT_DURATION: 1500,
   // Wait for a virtualized bubble to remount after scrolling to its offset
   VIRTUAL_SCROLL_SETTLE: 700,
+  // How long the header message count blinks after generation completes (issue #166)
+  NOTIFY_BLINK_DURATION: 3000,
 } as const;
 
 export const CHAT_URL_PATTERN = /\/chat\/([0-9a-f-]{36})/;
