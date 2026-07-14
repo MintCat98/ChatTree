@@ -116,11 +116,23 @@
     --nav-duration-slow: 0ms;
     --nav-active-glow: none;
   }
+  /* Static highlight instead of blinking (issue #166) — cleared with the flag. */
+  .nav-header-count.is-notifying {
+    animation: none;
+    background: var(--nav-color-accent-soft);
+  }
 }
 
 @keyframes nav-slide-in {
   from { transform: translateX(20px); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* Generation-complete blink on the message count (issue #166). The observer
+   sets the store flag; a Header timer removes .is-notifying after ~3s. */
+@keyframes nav-notify-blink {
+  from { background: transparent; }
+  to   { background: var(--nav-color-accent-soft); }
 }
 
 /* Right-edge drag-resize handle (issue 02). */
@@ -286,6 +298,14 @@
   color: var(--nav-color-text-muted);
   line-height: 1;
   flex: 1;
+}
+.nav-header-count {
+  padding: 3px 6px;
+  margin: -3px -6px; /* padding gives the blink background breathing room without shifting the text */
+  border-radius: var(--nav-radius-md);
+}
+.nav-header-count.is-notifying {
+  animation: nav-notify-blink 0.5s ease-in-out infinite alternate;
 }
 .nav-header-controls {
   display: flex;

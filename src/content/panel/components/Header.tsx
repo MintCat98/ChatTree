@@ -2,11 +2,11 @@
 // Marked with data-drag-handle="true" so PanelShell starts a drag from here;
 // buttons opt out so their clicks don't drag.
 
-import { useCallback, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, type KeyboardEvent, type ReactNode } from 'react';
 import { Bookmark, Tag, Search, Settings, Flag, CircleHelp, Heart } from 'lucide-react';
 import { usePanelStore } from '../store/panel-store';
 import { useMessages } from '../i18n';
-import { GITHUB_URLS } from '../../../shared/constants';
+import { GITHUB_URLS, TIMING } from '../../../shared/constants';
 
 const FEEDBACK_URL =
   'https://github.com/MintCat98/ChatTree/issues?q=sort%3Aupdated-desc+is%3Aissue+state%3Aopen+';
@@ -25,6 +25,18 @@ export function Header() {
   const toggleTagPanel = usePanelStore((s) => s.toggleTagPanel);
   const toggleSearchPanel = usePanelStore((s) => s.toggleSearchPanel);
   const count = usePanelStore((s) => s.tree?.nodes.length ?? 0);
+  const generationComplete = usePanelStore((s) => s.generationComplete);
+  const setGenerationComplete = usePanelStore((s) => s.setGenerationComplete);
+
+  // Auto-stop the completion blink (issue #166).
+  useEffect(() => {
+    if (!generationComplete) return;
+    const timer = setTimeout(
+      () => setGenerationComplete(false),
+      TIMING.NOTIFY_BLINK_DURATION,
+    );
+    return () => clearTimeout(timer);
+  }, [generationComplete, setGenerationComplete]);
 
   const handleClose = useCallback(() => updateSettings({ panelVisible: false }), [updateSettings]);
   const openUserGuide = useCallback(
@@ -81,7 +93,12 @@ export function Header() {
             <IconButton label={t.support} icon="funding" tooltip onClick={openFunding}>
               <Heart size={12} />
             </IconButton>
-            <span data-drag-handle="true">{t.messageCount(count)}</span>
+            <span
+              data-drag-handle="true"
+              className={generationComplete ? 'nav-header-count is-notifying' : 'nav-header-count'}
+            >
+              {t.messageCount(count)}
+            </span>
           </div>
           <div className="nav-header-tools">
             <IconButton label={t.bookmarksOnly} pressed={bookmarksOnlyFilter} onClick={toggleBookmarksOnlyFilter}>
