@@ -1,6 +1,6 @@
 ### 0. Related Issue
 <!-- Link the issue this PR addresses. Use "Closes #XX" to auto-close on merge. -->
-Resolves #
+Closes #
 
 ---
 
