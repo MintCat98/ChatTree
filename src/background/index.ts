@@ -3,6 +3,9 @@
 import { onMessage } from './message-handler';
 import { purgeExpiredTrees } from './session-store';
 import { purgeOrphanedMetadata } from '@shared/metadata-storage';
+import { runSummaryEval } from '@shared/summary.eval';
+
+Object.assign(globalThis, { runSummaryEval });
 
 chrome.runtime.onMessage.addListener(onMessage);
 
