@@ -13,7 +13,7 @@
 ├──────────────────────────────────────┤
 │                                      │
 │   [Q0]──[Q1]──[Q2]                  │  ← TreeMap
-│             └──[Q2']                 │    (D3 hierarchy)
+│             └──[Q2']                 │    (hand-rolled SVG)
 │                  └──[Q3]            │
 │                                      │
 ├──────────────────────────────────────┤
@@ -106,31 +106,26 @@ const positionStyle: Record<PanelPosition, React.CSSProperties> = {
 
 ### 3-3. `<TreeMapCanvas>`
 
-Renders an SVG tree using the D3 `hierarchy` + `tree` layout.
+Renders the tree as hand-rolled SVG — **no D3** (the `d3` dependency was
+removed in #170; it was never imported). Nodes sit on a fixed vertical left
+rail with the question label to the right of each circle; branch nodes shift
+horizontally by `LANE_OFFSET`.
+
+All coordinates come from `panel/components/constants.ts`:
 
 ```typescript
-// panel/TreeMapCanvas.tsx
-import * as d3 from 'd3';
+// panel/components/constants.ts (excerpt)
+export const NODE_STEP = 58;   // Vertical distance between adjacent nodes
+export const COLUMN_X  = 44;   // x of the node circle centers (left rail)
 
-type Direction = 'top-down' | 'left-right';
-
-function buildD3Layout(nodes: ChatboxNode[], direction: Direction) {
-  const root = d3.hierarchy(buildTreeRoot(nodes));
-
-  const treeLayout = direction === 'top-down'
-    ? d3.tree<ChatboxNode>().size([canvasWidth - 40, canvasHeight - 40])
-    : d3.tree<ChatboxNode>().size([canvasHeight - 40, canvasWidth - 40]);
-
-  return treeLayout(root);
-}
+// viewBox height = top/bottom padding + N nodes × step
+export function calcSvgHeight(nodeCount: number): number;
+// node index (0-based) → vertical center coordinate
+export function nodeCenterY(index: number): number;
 ```
 
-**Coordinate Mapping (Top-Down vs Left-Right):**
-
-| Direction | X-axis meaning | Y-axis meaning |
-|-----------|----------------|----------------|
-| `top-down` | Horizontal spread | Depth (top→bottom) |
-| `left-right` | Depth (left→right) | Vertical spread |
+Changing these constants automatically propagates to `TreeNode`,
+`NodeConnector`, and `GhostNode`.
 
 ### 3-4. `<TreeNode>`
 
@@ -276,7 +271,7 @@ document.querySelectorAll('[data-nav-id]').forEach(el => IO.observe(el));
 
 ### Panel Resizing
 - Resize via drag handle at the bottom-right corner
-- Internal D3 layout is automatically recalculated via `ResizeObserver`
+- Internal SVG layout is automatically recalculated via `ResizeObserver`
 
 ### Keyboard Accessibility
 | Key | Action |
@@ -299,7 +294,7 @@ document.querySelectorAll('[data-nav-id]').forEach(el => IO.observe(el));
 | New node added | node pop-in (scale 0→1) | 150ms ease-out |
 | Scroll after node click | pulse on node in tree | 600ms |
 | On branch switch | replaced nodes fade-out→in | 250ms |
-| Direction change | layout morph (D3 transition) | 300ms ease-in-out |
+| Direction change | layout morph (CSS transition) | 300ms ease-in-out |
 
 When reduced motion is set, all animations are disabled:
 ```css
