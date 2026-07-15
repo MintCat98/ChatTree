@@ -1,6 +1,11 @@
+---
+name: analyzing-claude-dom
+description: Claude.ai DOM structure, selectors, chatbox ID assignment, and MutationObserver setup for the content script. Use when working on src/content/ DOM detection or scroll navigation, changing selectors, debugging chatbox tracking, or when claude.ai markup changes.
+---
+
 # Claude.ai DOM Analysis
 
-> **Target:** `claude.ai/chat/*`  
+> **Target:** `claude.ai/chat/*`
 > **Purpose:** DOM selector reference for chatbox detection, tracking, and branch detection in the Content Script
 
 ---
@@ -50,7 +55,7 @@
 | Next branch button | `button[aria-label="Next edit"]` | `›` |
 | Current/total indicator | `span.branch-indicator` | `"2 / 3"` format |
 
-> ⚠️ **Note:** `branch-navigation` is only rendered when there are **2 or more branches**.  
+> ⚠️ **Note:** `branch-navigation` is only rendered when there are **2 or more branches**.
 > It does not exist on initial messages (no branch).
 
 ### 2-4. AI Response (Assistant Turn)
@@ -106,8 +111,8 @@ Rules:
   sequentially after each merge.
 - Scanned turns accumulate in a per-session cache (`mergeMountedNodes`), so
   turns virtualized out of the DOM stay in the tree. The cache resets on
-  conversation change and invalidates past a divergence point (see
-  [`branch-detection.md`](./branch-detection.md) §5).
+  conversation change and invalidates past a divergence point (see the
+  [detecting-branches skill](../detecting-branches/SKILL.md) §5).
 - The turn's absolute `top` offset is cached alongside each node for
   scroll-navigation to unmounted turns (§5).
 
@@ -233,15 +238,15 @@ window.addEventListener('locationchange', () => {
 
 ---
 
-## 8. Periodic Validation Checklist
+## 8. Periodic Validation
 
-The DOM structure may change with Claude.ai deployments.  
-Check the following **monthly** or **when a malfunction report is received**.
+The DOM structure may change with Claude.ai deployments. Run the checklist in
+[validation-checklist.md](validation-checklist.md) **monthly** or **when a
+malfunction report is received**.
 
-- [ ] `[data-testid="conversation-container"]` exists
-- [ ] `[data-testid="human-turn"]` chatbox detection works correctly
-- [ ] `[data-testid="branch-navigation"]` branch detection works correctly
-- [ ] `span.branch-indicator` text parsing format (`"N / M"`)
-- [ ] `[data-index]` wrapper exists on turns with absolute `style.top` offset (virtualization identity, §3)
-- [ ] `[role="article"]` carries `aria-posinset` / `aria-setsize`
-- [ ] `scrollIntoView` works correctly
+---
+
+## References
+
+- [detecting-branches](../detecting-branches/SKILL.md) — branch detection logic built on these selectors
+- [messaging-and-storage](../messaging-and-storage/SKILL.md) — where detected changes are sent

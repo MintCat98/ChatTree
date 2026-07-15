@@ -5,14 +5,14 @@
 - Neutral, factual style; technical terms / jargon / proper nouns kept in their original form (usually English).
 - Structured output enforced via `NODE_SUMMARY_SCHEMA` passed as `responseConstraint`.
 - Robustness: each attempt runs in an **isolated session** (`session.clone()`); parse first `{…}` → schema-validate → retry once → truncated-text fallback.
-- See [summary.ts](./../src/shared/summary.ts). Prompt: `SUMMARY_SYSTEM_PROMPT`; per-turn input: `buildConversationInput` (detects the turn language and injects the target language).
+- See [summary.ts](../../src/shared/summary.ts). Prompt: `SUMMARY_SYSTEM_PROMPT`; per-turn input: `buildConversationInput` (detects the turn language and injects the target language).
 
 ## Evaluation
 
 ### Setup
 - Model: Gemini Nano via Chrome built-in Prompt API (`responseConstraint = NODE_SUMMARY_SCHEMA`).
 - Chrome: 149.0.7827.115, desktop, locale = ko-KR.
-- Eval set: it#1–it#3 used a synthetic 7-turn set; it#4–it#6 used **real chat turns exported from the author's own conversations** ({en, ko}, n = 4 → 5) ([summary.eval.ts](./../src/shared/summary.eval.ts)).
+- Eval set: it#1–it#3 used a synthetic 7-turn set; it#4–it#6 used **real chat turns exported from the author's own conversations** ({en, ko}, n = 4 → 5) ([summary.eval.ts](../../src/shared/summary.eval.ts)).
 - Language detection: from the **question**, by dominant script (Hangul vs. Latin count), replacing the earlier "any Hangul ⇒ Korean" rule.
 - Rubric (auto): `ok` (valid JSON, no fallback) · `kwOk` (keyword ≤ 20) · `langOk` (output language == input language) · latency. Tone, length, and jargon judged manually.
 

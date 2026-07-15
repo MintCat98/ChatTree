@@ -1,7 +1,12 @@
+---
+name: detecting-branches
+description: Branch detection logic for Claude.ai edit-and-resend forks - detection algorithm, tree building, branch switch handling, reload strategy, and edge cases. Use when working on branch-detector.ts, branch-change-watcher.ts, or tree building in chatbox-tracker.ts, or when debugging wrong branch badges, stale tree tails, or branch switches.
+---
+
 # Branch Detection
 
-> **Purpose:** Logic for detecting chatbox branches (forks created by editing and resending messages) in Claude.ai and modeling them as a tree structure  
-> **Depends on:** [`dom-analysis.md`](./dom-analysis.md) §3, §4
+> **Purpose:** Logic for detecting chatbox branches (forks created by editing and resending messages) in Claude.ai and modeling them as a tree structure
+> **Depends on:** [analyzing-claude-dom](../analyzing-claude-dom/SKILL.md) §3, §4
 
 ---
 
@@ -33,7 +38,7 @@ chatbox-0: "How do I get started with Python?"
 | **No history API access** | Cannot directly read messages from other branches |
 | **Branch switching is a native feature** | The `‹` / `›` buttons are native Claude.ai controls — cannot be overridden |
 
-> Therefore, **full reconstruction of the entire branch tree is not possible**.  
+> Therefore, **full reconstruction of the entire branch tree is not possible**.
 > This project adopts a strategy of **tracking the active branch path** + **visualizing branch occurrence points**.
 
 ---
@@ -112,7 +117,7 @@ function extractSessionId(url: string): string {
 
 ## 4. Branch Switch Detection
 
-When the user presses `‹` / `›` to switch branches, the DOM is replaced.  
+When the user presses `‹` / `›` to switch branches, the DOM is replaced.
 This is detected via MutationObserver to trigger a **partial tree reload**.
 
 ```typescript
@@ -166,8 +171,8 @@ function debouncedBranchChange(navId: string, cb: (id: string) => void) {
 
 After a branch switch replaces the DOM, the tree is rebuilt through the same
 **session node cache** used for virtualization (see
-[`dom-analysis.md`](./dom-analysis.md) §3) — there is no separate partial-reload
-path:
+[analyzing-claude-dom](../analyzing-claude-dom/SKILL.md) §3) — there is no
+separate partial-reload path:
 
 1. The branch watcher (`branch-change-watcher.ts`) fires after the DOM settles.
 2. `mergeMountedNodes()` scans the mounted turns and compares each against its
@@ -195,7 +200,7 @@ divergence rule also covers message edits detected outside the branch watcher.
 | Inactive branch (inferred) | `--color-node-inactive` (gray) | `(previous branch)` |
 | Currently selected node | `--color-node-active` (highlighted purple) | border highlight |
 
-> Since inactive branch nodes do not exist in the DOM, they are **shown consolidated at the branch point node**.  
+> Since inactive branch nodes do not exist in the DOM, they are **shown consolidated at the branch point node**.
 > e.g., branch point node badge → `🔀 3 branches · Current: 2nd`
 
 ---
@@ -251,6 +256,6 @@ if (isStreaming()) return;
 
 ## References
 
-- [`dom-analysis.md`](./dom-analysis.md) — Original DOM selector definitions
-- [`architecture.md`](./architecture.md) — Branch data flow in the overall architecture
-- [`ui-panel.md`](./ui-panel.md) — Branch node rendering rules
+- [analyzing-claude-dom](../analyzing-claude-dom/SKILL.md) — original DOM selector definitions
+- [messaging-and-storage](../messaging-and-storage/SKILL.md) — branch data flow in the overall architecture
+- [building-panel-ui](../building-panel-ui/SKILL.md) — branch node rendering rules
