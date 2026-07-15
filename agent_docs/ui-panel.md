@@ -192,6 +192,8 @@ interface TooltipProps {
 | Position | Dropdown | Top-Right / Bottom-Right / Top-Left / Bottom-Left |
 | Opacity | Slider | 0% ~ 100% (default 80%) |
 | Sort | Toggle | Newest (↓) / Oldest (↑) |
+| Keep cache | Dropdown | 7 / 30 / 90 days (default 30) — tree-cache retention, issue #153 |
+| Clear cached trees | Button | Two-step confirm (re-click within 3 s); clears `tree_*` only, bookmarks/tags untouched |
 | Completion alert | Toggle | On / Off (default On) — blinks the header message count for ~3s when response generation completes (issue #166). Placed directly above Language. |
 
 ---

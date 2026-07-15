@@ -184,7 +184,13 @@ interface UserSettings {
   panelPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   backgroundOpacity: number;  // 0.0 ~ 1.0
   sortOrder: 'asc' | 'desc';
+  summaryEnabled: boolean;    // reserved — summarization is Future Work
   panelVisible: boolean;
+  panelWidth: number;         // px, resizable (issue 02)
+  themeMode: 'auto' | 'light' | 'dark'; // 'auto' follows claude.ai (issue 06)
+  maxVisibleNodes: number;    // max chat nodes visible on UI
+  language: 'en' | 'ko';      // UI language, default 'en' (#100)
+  cacheRetentionDays: number; // tree-cache purge horizon, default 30 (#153)
   notifyOnComplete: boolean;  // blink header message count on generation complete (#166)
   // ...panelWidth, themeMode, maxVisibleNodes, language, panelMode — see types.ts
 }
@@ -207,6 +213,7 @@ interface UserSettings {
 | `GET_STORED_TREE` | Content → BG | `{ sessionId }` | Look up stored tree — request/response, for hydration (#152) |
 | `TREE_READY` | BG → Content/Panel | `{ tree }` | Push after tree data is ready |
 | `SCROLL_TO` | Panel → Content | `{ navId }` | Scroll request on node click |
+| `CLEAR_TREE_CACHE` | Panel → BG | — | Remove all cached trees — request/response, responds `{ ok }` (#153) |
 | `SETTINGS_UPDATED` | Popup → BG | `{ settings }` | Settings changed |
 
 ### Coding Conventions
@@ -224,7 +231,7 @@ interface UserSettings {
 - **Minimum permissions** — `storage` + `activeTab` only. Ask before adding any new permission.
 - **Shadow DOM required** — all UI injected into claude.ai must use `mode: 'closed'`.
 - **No external calls from Content Script** — route through Background SW via `chrome.runtime.sendMessage`.
-- **Storage** — `chrome.storage.session` for tree state, `chrome.storage.local` for user prefs only.
+- **Storage** — `chrome.storage.local` for the tree cache + user prefs; a retention policy is required for the cache (issue #153).
 - **MV3 Service Worker** — avoid long-lived `setTimeout`. Use `chrome.alarms` if needed.
 - **DOM stability** — Claude.ai Tailwind class names are unstable. Always use `data-testid`. See `dom-analysis.md`.
 - **Inactive branches are not in DOM** — only the active branch path is rendered. See `branch-detection.md` §2.

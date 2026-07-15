@@ -1,5 +1,11 @@
 // Watches the DOM for new chatbox elements via MutationObserver.
-import { mergeMountedNodes, resetNodeCache, seedNodeCache, buildTree } from './chatbox-tracker';
+import {
+  mergeMountedNodes,
+  getCachedNodes,
+  resetNodeCache,
+  seedNodeCache,
+  buildTree,
+} from './chatbox-tracker';
 import { watchBranchChanges } from './branch-change-watcher';
 import { sendToBackground, requestFromBackground } from './message-bridge';
 import { SELECTORS, TIMING, CHAT_URL_PATTERN } from '@shared/constants';
@@ -14,9 +20,31 @@ let observer: MutationObserver | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let currentNodes: ChatboxNode[] = [];
 let branchCleanup: (() => void) | null = null;
+// Conversation this observer was started for. buildTree stamps sessionId from
+// the URL *at dispatch time*, and on SPA navigation the URL flips before the
+// DOM swaps — so a scan can carry the previous conversation's nodes under the
+// next conversation's sessionId. Dispatches are dropped on mismatch.
+let currentSessionId: string | null = null;
+// Until hydration settles, scans update the panel but are NOT persisted —
+// otherwise the first post-navigation scan (a handful of mounted turns) races
+// GET_STORED_TREE and can overwrite the accumulated stored tree.
+let persistReady = false;
+// Whether the currently mounted DOM is known to belong to this conversation.
+// After an SPA navigation the previous conversation's turns can still be
+// mounted (the URL flips before React swaps the view), so scanning — merging
+// foreign turns, honoring a foreign aria-setsize — would corrupt the hydrated
+// cache. The first mutation after startObserving is the render activity of the
+// new conversation and restores trust.
+let domTrusted = true;
 
 function dispatchTree(tree: TreeData): void {
+  // Scan spanned an SPA transition — the cache/DOM belong to the previous
+  // conversation while the URL already points at the next one. Drop it.
+  if (tree.sessionId !== currentSessionId) return;
+
   window.dispatchEvent(new CustomEvent(TREE_READY_EVENT, { detail: { tree } }));
+
+  if (!persistReady) return;
   // Persist to session-store via SW (fire-and-forget; Panel already updated above)
   sendToBackground({
     type: MessageType.TREE_UPDATE,
@@ -44,9 +72,13 @@ function handleDOMChange(): void {
 // Seeds the node cache from the tree persisted for this conversation
 // (issue #152), then re-dispatches so the panel shows the full tree without
 // the user having to scroll through the whole conversation again.
+// Settling this request (success or failure) opens the persistence gate.
 function hydrateFromStoredTree(): void {
-  const sessionId = location.href.match(CHAT_URL_PATTERN)?.[1];
-  if (!sessionId) return;
+  const sessionId = currentSessionId;
+  if (!sessionId) {
+    persistReady = true;
+    return;
+  }
 
   requestFromBackground<{ tree: TreeData | null }>({
     type: MessageType.GET_STORED_TREE,
@@ -54,25 +86,53 @@ function hydrateFromStoredTree(): void {
   })
     .then((response) => {
       const tree = response?.tree;
-      // Observer torn down while the request was in flight (SPA nav) — the
-      // stored tree belongs to a conversation we already left.
-      if (!observer) return;
       if (!tree || tree.sessionId !== sessionId || tree.nodes.length === 0) return;
-
       seedNodeCache(tree.nodes);
-      currentNodes = mergeMountedNodes();
-      dispatchTree(buildTree(currentNodes));
     })
-    .catch(() => {}); // no stored tree / SW unreachable — scanning fills the tree as usual
+    .catch(() => {}) // no stored tree / SW unreachable — scanning fills the tree as usual
+    .finally(() => {
+      // Observer torn down / conversation changed while the request was in
+      // flight (SPA nav) — the response belongs to a conversation we left.
+      if (!observer || currentSessionId !== sessionId) return;
+      persistReady = true;
+      // Re-dispatch now that persistence is open, so the merged tree (seeded
+      // or plain initial scan) reaches storage exactly once hydration settled.
+      // While the mounted DOM may still belong to the previous conversation,
+      // dispatch the seeded cache as-is instead of scanning.
+      currentNodes = domTrusted ? mergeMountedNodes() : getCachedNodes();
+      dispatchTree(buildTree(currentNodes));
+    });
 }
 
-export function startObserving(): void {
+// Rebuilds the tree from the live DOM only, dropping the accumulated cache.
+// Used after the user clears the cached trees (issue #153): the panel shows a
+// freshly scanned tree instead of going blank, and dispatchTree re-persists
+// the current conversation via TREE_UPDATE.
+export function rescanFromDom(): void {
+  if (!observer) return;
+  resetNodeCache();
+  currentNodes = mergeMountedNodes();
+  dispatchTree(buildTree(currentNodes));
+}
+
+export function startObserving(options?: { trustExistingDom?: boolean }): void {
   const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
   // console.log('[ChatTree DBG] startObserving — container found?', !!container, 'selector=', SELECTORS.CHAT_CONTAINER);
   if (!container) return;
 
   currentNodes = [];
   resetNodeCache(); // fresh conversation — accumulated turns belong to the old one
+  // 'unknown' matches buildTree's fallback so dispatches still flow on any
+  // URL shape we failed to parse (startObserving only runs on chat URLs).
+  currentSessionId = location.href.match(CHAT_URL_PATTERN)?.[1] ?? 'unknown';
+  persistReady = false;
+  // Clear the previous conversation's highlight — position-based node ids
+  // collide across conversations, so a stale active id can wrongly match a
+  // node here. setTree then defaults the highlight to the newest message.
+  usePanelStore.getState().setActiveNode(null);
+  // On initial page load the rendered DOM is this conversation's; after an SPA
+  // navigation it may still be the previous one's (index.ts passes false).
+  domTrusted = options?.trustExistingDom ?? true;
 
   observer = new MutationObserver((mutations) => {
     // Scan the WHOLE batch — the streaming-end attribute flip usually arrives
@@ -105,7 +165,12 @@ export function startObserving(): void {
         }
       }
     }
-    if (domChanged) handleDOMChange();
+    if (domChanged) {
+      // Render activity after (re)start — the mounted DOM is now this
+      // conversation's; scanning is safe again.
+      domTrusted = true;
+      handleDOMChange();
+    }
   });
 
   observer.observe(container, {
@@ -118,7 +183,10 @@ export function startObserving(): void {
 
   // Initial scan — the conversation may already be (partially) rendered when
   // observing starts; later childList mutations cover anything still loading.
-  handleDOMChange();
+  // Skipped when the pre-existing DOM is distrusted (SPA navigation): the
+  // panel is fed by hydration until the first mutation proves the new
+  // conversation rendered.
+  if (domTrusted) handleDOMChange();
 
   // Restore previously accumulated turns from storage (async; merge order
   // doesn't matter — seeding never overwrites DOM-scanned entries).
@@ -147,6 +215,10 @@ export function stopObserving(): void {
   }
   observer?.disconnect();
   observer = null;
+  // Invalidate the session so any in-flight debounce/hydration callback from
+  // this conversation can no longer dispatch or persist.
+  currentSessionId = null;
+  persistReady = false;
   branchCleanup?.();
   branchCleanup = null;
   stopTracking();

@@ -118,8 +118,8 @@ export function getCachedTop(navId: string): number | null {
 }
 
 /**
- * Seeds the cache from a tree persisted in chrome.storage.session (issue #152)
- * so the full accumulated tree survives new windows / tab reloads. Optimistic:
+ * Seeds the cache from a tree persisted in chrome.storage.local (issues #152, #153)
+ * so the full accumulated tree survives new windows / tab reloads / browser restarts. Optimistic:
  * DOM-scanned entries always win (existing absIndices are never overwritten),
  * and stale seeded turns are dropped by mergeMountedNodes' divergence rule as
  * the live DOM is scanned.
@@ -134,6 +134,15 @@ export function seedNodeCache(nodes: ChatboxNode[]): void {
   }
 }
 
+// Total turn count exposed by the virtualized list (aria-setsize on any
+// mounted article — same source scroll-navigator uses for offset estimates).
+// Returns null when the DOM does not expose it.
+function getTurnSetsize(): number | null {
+  const article = document.querySelector(`${SELECTORS.TURN_ARTICLE}[aria-setsize]`);
+  const setsize = parseInt(article?.getAttribute('aria-setsize') ?? '', 10);
+  return isNaN(setsize) || setsize <= 0 ? null : setsize;
+}
+
 /**
  * Merges the currently mounted bubbles into the session cache and returns the
  * full accumulated node list (sequential `index` for display, id from absolute
@@ -143,6 +152,18 @@ export function seedNodeCache(nodes: ChatboxNode[]): void {
  */
 export function mergeMountedNodes(): ChatboxNode[] {
   const mounted = scanMounted().sort((a, b) => a.absIndex - b.absIndex);
+
+  // Cached turns at indices the conversation cannot contain are contamination:
+  // a scan that spanned an SPA transition and caught the previous
+  // conversation's still-mounted turns, or a tail from a longer branch. The
+  // divergence rule below never catches them (their indices never mount in a
+  // shorter conversation), so prune against the DOM's own turn count.
+  const setsize = getTurnSetsize();
+  if (setsize !== null) {
+    for (const key of [...nodeCache.keys()]) {
+      if (key >= setsize) nodeCache.delete(key);
+    }
+  }
 
   for (const m of mounted) {
     const cached = nodeCache.get(m.absIndex);
@@ -171,6 +192,18 @@ export function mergeMountedNodes(): ChatboxNode[] {
     });
   }
 
+  return cachedNodeList();
+}
+
+// Cache contents as a display list, WITHOUT scanning the DOM. Used right after
+// an SPA navigation while the previous conversation's DOM may still be mounted
+// — scanning it would merge foreign turns and prune against a foreign
+// aria-setsize, destroying the hydrated cache.
+export function getCachedNodes(): ChatboxNode[] {
+  return cachedNodeList();
+}
+
+function cachedNodeList(): ChatboxNode[] {
   return [...nodeCache.entries()]
     .sort(([a], [b]) => a - b)
     .map(([, cached], i) => ({ ...cached.node, index: i }));

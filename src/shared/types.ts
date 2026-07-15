@@ -5,7 +5,7 @@
 // ---------------------------------------------------------------------------
 // Node Metadata — per-node user data (bookmarks, tags). Issue #96.
 // Persisted in chrome.storage.local under STORAGE_KEYS.NODE_METADATA,
-// keyed as: NodeMetadataStore[sessionId][nodeId].
+// keyed as: NodeMetadataStore[sessionId].nodes[nodeId].
 // ---------------------------------------------------------------------------
 
 export interface NodeMetadata {
@@ -13,8 +13,16 @@ export interface NodeMetadata {
   tags: string[];
 }
 
+// Per-session envelope: node map + last-touched timestamp used by the orphaned-
+// metadata GC (issue #153). v1 stored the node map directly; metadata-storage.ts
+// migrates legacy entries on read.
+export interface SessionMetadata {
+  nodes: Record<string, NodeMetadata>;
+  lastUpdated: number;
+}
+
 // Full store shape written to chrome.storage.local
-export type NodeMetadataStore = Record<string, Record<string, NodeMetadata>>;
+export type NodeMetadataStore = Record<string, SessionMetadata>;
 
 export const DEFAULT_NODE_METADATA: NodeMetadata = {
   bookmarked: false,
@@ -53,6 +61,7 @@ export interface UserSettings {
   maxVisibleNodes: number; // maximum number of chat nodes visible on UI
   notifyOnComplete: boolean; // blink the header message count when generation completes. See issue #166.
   language: Language; // UI language. Default 'en'. See issue #100.
+  cacheRetentionDays: number; // days before a cached tree is purged from chrome.storage.local (issue #153)
   panelMode: 'popup' | 'sidebar'; // panel display option: docked sidebar provides more "embedded" interface. Default 'popup'
 }
 
@@ -75,5 +84,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   maxVisibleNodes: MAX_VISIBLE_NODES,
   notifyOnComplete: true,
   language: 'en',
+  cacheRetentionDays: 30,
   panelMode: 'sidebar',
 };

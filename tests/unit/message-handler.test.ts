@@ -14,13 +14,15 @@ jest.mock('@background/session-store', () => ({
   getTree: jest.fn(),
   updateTree: jest.fn(),
   clearTree: jest.fn(),
+  clearAllTrees: jest.fn(),
 }));
 
-import { getTree, updateTree, clearTree } from '@background/session-store';
+import { getTree, updateTree, clearTree, clearAllTrees } from '@background/session-store';
 
 const mockGetTree = getTree as jest.MockedFunction<typeof getTree>;
 const mockUpdateTree = updateTree as jest.MockedFunction<typeof updateTree>;
 const mockClearTree = clearTree as jest.MockedFunction<typeof clearTree>;
+const mockClearAllTrees = clearAllTrees as jest.MockedFunction<typeof clearAllTrees>;
 
 // ---------------------------------------------------------------------------
 // chrome API mock
@@ -402,5 +404,47 @@ describe('GET_STORED_TREE', () => {
     await flush();
 
     expect(sendResponse).toHaveBeenCalledWith({ tree: null });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CLEAR_TREE_CACHE (issue #153 — cache-clear request/response)
+// ---------------------------------------------------------------------------
+
+describe('CLEAR_TREE_CACHE', () => {
+  it('returns true, clears all trees, and responds { ok: true }', async () => {
+    mockClearAllTrees.mockResolvedValue(undefined);
+    const sendResponse = jest.fn();
+
+    const result = onMessage(
+      { type: MessageType.CLEAR_TREE_CACHE },
+      sender(TAB_ID),
+      sendResponse,
+    );
+    await flush();
+
+    expect(result).toBe(true); // keeps sendResponse alive across the async removal
+    expect(mockClearAllTrees).toHaveBeenCalled();
+    expect(sendResponse).toHaveBeenCalledWith({ ok: true });
+  });
+
+  it('responds { ok: false } when the removal rejects', async () => {
+    mockClearAllTrees.mockRejectedValue(new Error('storage gone'));
+    const sendResponse = jest.fn();
+
+    onMessage({ type: MessageType.CLEAR_TREE_CACHE }, sender(TAB_ID), sendResponse);
+    await flush();
+
+    expect(sendResponse).toHaveBeenCalledWith({ ok: false });
+  });
+
+  it('does not touch node metadata or user settings storage', async () => {
+    mockClearAllTrees.mockResolvedValue(undefined);
+
+    onMessage({ type: MessageType.CLEAR_TREE_CACHE }, sender(TAB_ID), jest.fn());
+    await flush();
+
+    // The handler delegates to clearAllTrees only — no direct storage writes.
+    expect(mockStorageLocalSet).not.toHaveBeenCalled();
   });
 });

@@ -97,6 +97,41 @@ describe('usePanelStore — actions', () => {
     expect(usePanelStore.getState().activeNodeId).toBe('chatbox-3');
   });
 
+  describe('setTree — active node fallback', () => {
+    const node = (id: string): TreeData['nodes'][number] => ({
+      id, index: 0, text: 'x', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null,
+    });
+    const tree = (ids: string[]): TreeData => ({
+      sessionId: 'test-uuid',
+      nodes: ids.map(node),
+      activeBranchPath: ids,
+      lastUpdated: 0,
+    });
+
+    it('keeps the active node when the incoming tree still contains it', () => {
+      usePanelStore.getState().setActiveNode('chatbox-2');
+      usePanelStore.getState().setTree(tree(['chatbox-0', 'chatbox-2', 'chatbox-4']));
+      expect(usePanelStore.getState().activeNodeId).toBe('chatbox-2');
+    });
+
+    it('defaults to the newest message when the active node is gone', () => {
+      usePanelStore.getState().setActiveNode('chatbox-18');
+      usePanelStore.getState().setTree(tree(['chatbox-0', 'chatbox-2']));
+      expect(usePanelStore.getState().activeNodeId).toBe('chatbox-2');
+    });
+
+    it('defaults to the newest message when nothing was active (conversation entry)', () => {
+      usePanelStore.getState().setTree(tree(['chatbox-0', 'chatbox-2']));
+      expect(usePanelStore.getState().activeNodeId).toBe('chatbox-2');
+    });
+
+    it('clears the highlight when the tree is empty', () => {
+      usePanelStore.getState().setActiveNode('chatbox-0');
+      usePanelStore.getState().setTree(tree([]));
+      expect(usePanelStore.getState().activeNodeId).toBeNull();
+    });
+  });
+
   it('setHoveredNode sets hoveredNodeId', () => {
     usePanelStore.getState().setHoveredNode('chatbox-1');
     expect(usePanelStore.getState().hoveredNodeId).toBe('chatbox-1');
