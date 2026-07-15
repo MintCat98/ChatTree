@@ -5,7 +5,7 @@ dist/
 .DS_Store
 
 # Claude
-agent_docs/issues/
+.claude/settings.local.json
 
 # VS Code
 .vscode/launch.json
