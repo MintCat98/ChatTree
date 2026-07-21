@@ -32,6 +32,7 @@ export const STORAGE_KEYS = {
   USER_SETTINGS: 'userSettings',
   LEGACY_USER_SETTINGS: 'settings',
   NODE_METADATA: 'nodeMetadata',  // chrome.storage.local — NodeMetadataStore (issue #96)
+  NODE_CACHE: 'nodeCache',
 } as const;
 
 export const TIMING = {
