@@ -3,8 +3,10 @@
 import { onMessage } from './message-handler';
 import { purgeExpiredTrees } from './session-store';
 import { purgeOrphanedMetadata } from '@shared/metadata-storage';
-import { purgeOrphanedNodeCache } from '@shared/node-cache';
+import { setNodeCache, getSessionNodeCache, clearSessionNodeCache, purgeOrphanedNodeCache } from '@shared/node-cache';
 import { runSummaryEval } from '@shared/summary.eval';
+
+Object.assign(globalThis, { setNodeCache, getSessionNodeCache, clearSessionNodeCache, purgeOrphanedNodeCache });
 
 Object.assign(globalThis, { runSummaryEval });
 
