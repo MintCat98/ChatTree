@@ -55,6 +55,9 @@ export interface Messages {
   themeDark: string;
   maxNodes: string;
   maxNodesAria: string;
+  tooltipDelay: string;
+  tooltipDelayAria: string;
+  tooltipDelayReadout: (ms: number) => string;
   language: string;
   languageAria: string;
   langEnglish: string;
@@ -144,6 +147,9 @@ const en: Messages = {
   themeDark: 'Dark',
   maxNodes: 'Visible nodes',
   maxNodesAria: 'Max visible nodes',
+  tooltipDelay: 'Tooltip delay',
+  tooltipDelayAria: 'Delay before the prompt tooltip appears on hover',
+  tooltipDelayReadout: (ms) => (ms <= 0 ? 'Instant' : `${ms}ms`),
   language: 'Language',
   languageAria: 'Language',
   langEnglish: 'English',
@@ -233,6 +239,9 @@ const ko: Messages = {
   themeDark: '다크',
   maxNodes: '노드 표시 수',
   maxNodesAria: '노드 표시 수',
+  tooltipDelay: '툴팁 지연',
+  tooltipDelayAria: '노드 호버 시 프롬프트 툴팁이 나타나기까지의 지연',
+  tooltipDelayReadout: (ms) => (ms <= 0 ? '즉시' : `${ms}ms`),
   language: '언어',
   languageAria: '언어',
   langEnglish: 'English',

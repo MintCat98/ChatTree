@@ -52,6 +52,7 @@ export interface UserSettings {
   themeMode: 'auto' | 'light' | 'dark'; // 'auto' follows the claude.ai theme. See issue 06.
   maxVisibleNodes: number; // maximum number of chat nodes visible on UI
   language: Language; // UI language. Default 'en'. See issue #100.
+  tooltipDelay: number; // ms before the full-prompt tooltip appears on hover. Default 300, 0 = instant. See issue #146.
 }
 
 // Panel width bounds and default (used by the resize handle and width controls).
@@ -61,6 +62,14 @@ export const PANEL_WIDTH_DEFAULT = 280;
 
 // Maximum number of chat nodes default
 export const MAX_VISIBLE_NODES = 4;
+
+// Tooltip hover-delay bounds and default (ms). Exposed as a settings slider so
+// users can choose an instant tooltip (0) while keeping 300ms as the default.
+// See issue #146. Note: TOOLTIP_DELAY_MS in panel/components/constants.ts is a
+// separate legacy constant and is not the source of this default.
+export const TOOLTIP_DELAY_MIN = 0;
+export const TOOLTIP_DELAY_MAX = 600;
+export const TOOLTIP_DELAY_DEFAULT = 300;
 
 export const DEFAULT_SETTINGS: UserSettings = {
   panelPosition: 'top-right',
@@ -72,4 +81,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   themeMode: 'auto',
   maxVisibleNodes: MAX_VISIBLE_NODES,
   language: 'en',
+  tooltipDelay: TOOLTIP_DELAY_DEFAULT,
 };

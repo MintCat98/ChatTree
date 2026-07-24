@@ -46,6 +46,7 @@ AI chatbot sessions grow long and complex — especially when you edit previous 
 - 🌫️ Background opacity adjustment
 - 🔃 Sort order: ascending / descending by latest node
 - 🌐 Language: English / 한국어 (default: English)
+- ⏱️ Tooltip delay: hover delay before the full-prompt tooltip appears, 0–600ms (default: 300ms, 0 = instant)
 
 ## 3. Supported Platforms
 

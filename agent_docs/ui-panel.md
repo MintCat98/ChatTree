@@ -183,7 +183,7 @@ interface TooltipProps {
 
 - Rendered via Portal at the top of the Shadow DOM
 - Max width: 320px, max height: 200px (overflow: scroll)
-- Delay: shown after 300ms hover, hidden immediately on leave
+- Delay: configurable via the `tooltipDelay` setting (default 300ms, 0 = instant); hidden immediately on leave. See issue #146.
 
 ### 3-7. `<ControlBar>`
 
