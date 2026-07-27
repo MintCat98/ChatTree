@@ -552,6 +552,33 @@
   cursor: default;
 }
 
+/* CollapsedRunButton — "+ n" pill on the spine (issue #167). Always visible:
+   it is the collapsed-state indicator, not a hover affordance. */
+.nav-collapsed-run {
+  cursor: pointer;
+  outline: none;
+}
+
+.nav-collapsed-run .nav-collapsed-run-pill {
+  fill: var(--nav-color-surface-2);
+  transition: fill var(--nav-transition);
+}
+
+.nav-collapsed-run .nav-collapsed-run-count {
+  fill: var(--nav-color-text-muted);
+  transition: fill var(--nav-transition);
+}
+
+.nav-collapsed-run:hover .nav-collapsed-run-pill,
+.nav-collapsed-run:focus-visible .nav-collapsed-run-pill {
+  fill: var(--nav-color-accent-soft);
+}
+
+.nav-collapsed-run:hover .nav-collapsed-run-count,
+.nav-collapsed-run:focus-visible .nav-collapsed-run-count {
+  fill: var(--nav-color-accent);
+}
+
 /* BookmarkButton (foreignObject + lucide icon) */
 .nav-node-bookmark {
   opacity: 0;

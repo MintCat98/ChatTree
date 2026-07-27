@@ -104,6 +104,9 @@ export interface Messages {
   // NodeBadge
   branchBadge: (current: number, total: number) => string;
 
+  // CollapsedRunButton
+  expandHidden: (n: number) => string;
+
   // TreeMapCanvas
   treeAria: string;
   earlierMessagesHint: string;
@@ -209,6 +212,9 @@ const en: Messages = {
   // NodeBadge
   branchBadge: (current, total) => `Branch ${current} of ${total}`,
 
+  // CollapsedRunButton
+  expandHidden: (n) => `Show ${n} hidden message${n === 1 ? '' : 's'}`,
+
   // TreeMapCanvas
   treeAria: 'Chat node tree',
   earlierMessagesHint: 'Scroll up for earlier messages',
@@ -313,6 +319,9 @@ const ko: Messages = {
 
   // NodeBadge
   branchBadge: (current, total) => `브랜치 ${current}/${total}`,
+
+  // CollapsedRunButton
+  expandHidden: (n) => `숨긴 메시지 ${n}개 보기`,
 
   // TreeMapCanvas
   treeAria: '채팅 노드 트리',
