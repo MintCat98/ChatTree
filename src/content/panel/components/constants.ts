@@ -7,7 +7,7 @@ export const NODE_STEP = 58;           // Vertical distance between adjacent nod
 export const PANEL_PADDING = 21;       // Top/bottom padding inside the SVG.
 export const LANE_OFFSET = 20;         // Horizontal offset of the branch lane from the main lane.
 export const LABEL_MAX_CHARS = 25;     // Max characters displayed inside a node before truncation.
-export const TOOLTIP_DELAY_MS = 300;   // Delay before showing the tooltip on hover.
+export const TOOLTIP_DELAY_MS = 50;    // Delay before showing the tooltip on hover. Short enough to read as instant, long enough to not fire while sweeping the cursor across nodes (issue #146).
 
 // SVG layout coordinates (shared by TreeMapCanvas and TreeNode).
 export const COLUMN_X = 44;              // x of the node circle centers (left rail). Shifted right to make room for left-side icon buttons.

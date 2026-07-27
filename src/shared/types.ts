@@ -59,7 +59,6 @@ export interface UserSettings {
   panelWidth: number; // px — panel width (resizable). See issue 02.
   themeMode: 'auto' | 'light' | 'dark'; // 'auto' follows the claude.ai theme. See issue 06.
   maxVisibleNodes: number; // maximum number of chat nodes visible on UI
-  tooltipDelay: number; // ms of hover before the full-prompt tooltip appears. 0 = instant. See issue #146.
   notifyOnComplete: boolean; // blink the header message count when generation completes. See issue #166.
   language: Language; // UI language. Default 'en'. See issue #100.
   cacheRetentionDays: number; // days before a cached tree is purged from chrome.storage.local (issue #153)
@@ -74,14 +73,6 @@ export const PANEL_WIDTH_DEFAULT = 280;
 // Maximum number of chat nodes default
 export const MAX_VISIBLE_NODES = 4;
 
-// Tooltip hover-delay bounds, step and default (ms). Exposed as a settings
-// slider so users can pick an instant tooltip (0) while 300ms stays the
-// default, i.e. nothing changes for existing users. See issue #146.
-export const TOOLTIP_DELAY_MIN = 0;
-export const TOOLTIP_DELAY_MAX = 600;
-export const TOOLTIP_DELAY_STEP = 50;
-export const TOOLTIP_DELAY_DEFAULT = 300;
-
 export const DEFAULT_SETTINGS: UserSettings = {
   panelPosition: 'top-right',
   backgroundOpacity: 0.85,
@@ -91,7 +82,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   panelWidth: PANEL_WIDTH_DEFAULT,
   themeMode: 'auto',
   maxVisibleNodes: MAX_VISIBLE_NODES,
-  tooltipDelay: TOOLTIP_DELAY_DEFAULT,
   notifyOnComplete: true,
   language: 'en',
   cacheRetentionDays: 30,

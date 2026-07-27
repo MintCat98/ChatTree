@@ -1,6 +1,5 @@
 // Control bar (settings) shown under the header when the Settings button is on.
-// Controls: position, width, opacity, sort, theme, visible nodes, tooltip delay,
-// language, reset.
+// Controls: position, width, opacity, sort, theme, visible nodes, language, reset.
 // Every change is committed via store.updateSettings → persisted to localStorage +
 // mirrored to chrome.storage.local (so the popup stays in sync).
 
@@ -8,15 +7,7 @@ import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import { usePanelStore } from '../store/panel-store';
 import { useMessages } from '../i18n';
 import type { UserSettings } from '@shared/types';
-import {
-  PANEL_WIDTH_MIN,
-  PANEL_WIDTH_MAX,
-  MAX_VISIBLE_NODES,
-  TOOLTIP_DELAY_MIN,
-  TOOLTIP_DELAY_MAX,
-  TOOLTIP_DELAY_STEP,
-  DEFAULT_SETTINGS,
-} from '@shared/types';
+import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, MAX_VISIBLE_NODES, DEFAULT_SETTINGS } from '@shared/types';
 import { MessageType } from '@shared/message-types';
 import { requestFromBackground } from '../../message-bridge';
 import { rescanFromDom } from '../../observer';
@@ -52,8 +43,6 @@ export function ControlBar() {
     updateSettings({ themeMode: e.target.value as UserSettings['themeMode'] });
   const handleMaxVisibleNodes = (e: ChangeEvent<HTMLInputElement>) =>
     updateSettings({ maxVisibleNodes: Number(e.target.value) });
-  const handleTooltipDelay = (e: ChangeEvent<HTMLInputElement>) =>
-    updateSettings({ tooltipDelay: Number(e.target.value) });
   const handleLanguage = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ language: e.target.value as UserSettings['language'] });
   const handleRetention = (e: ChangeEvent<HTMLSelectElement>) =>
@@ -186,22 +175,6 @@ export function ControlBar() {
           className="nav-range"
         />
         <span className="nav-control-readout">{settings.maxVisibleNodes}</span>
-      </div>
-
-      {/* Tooltip hover delay (issue #146) */}
-      <div className="nav-control-row">
-        <span className="nav-control-label">{t.tooltipDelay}</span>
-        <input
-          type="range"
-          min={TOOLTIP_DELAY_MIN}
-          max={TOOLTIP_DELAY_MAX}
-          step={TOOLTIP_DELAY_STEP}
-          value={settings.tooltipDelay}
-          onChange={handleTooltipDelay}
-          aria-label={t.tooltipDelayAria}
-          className="nav-range"
-        />
-        <span className="nav-control-readout">{t.tooltipDelayReadout(settings.tooltipDelay)}</span>
       </div>
 
       {/* Generation-complete notification (issue #166) */}

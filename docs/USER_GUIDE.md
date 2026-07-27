@@ -178,7 +178,6 @@ Open the **Settings panel** from the panel header to customize ChatTree's behavi
 | **Sort** | Display nodes in **ascending** (oldest first) or **descending** (newest first) order. |
 | **Theme** | Choose between **Light** and **Dark** mode, or leave it on **Auto** to follow Claude's current theme. |
 | **Visible Nodes** | Adjust the number of nodes visible at once without scrolling. Supports up to **8 nodes**. |
-| **Tooltip Delay** | How long you must hover a node before the full-prompt tooltip appears — **0–600ms** in 50ms steps (default **300ms**). Set it to **0** to show the tooltip instantly. |
 | **Language** | Switch the panel UI language between **Korean** and **English**. Applies immediately. |
 | **Reset to Default** | Restore all settings to their original values in one click. |
 
