@@ -32,17 +32,14 @@ export const DEFAULT_NODE_METADATA: NodeMetadata = {
   hidden: false,
 };
 
-// Node Summary and Relevance Caching
+// Node Summary and Relevance Caching (issue #159). Stored in chrome.storage.local
+// under `nodeCache_<sessionId>` as a flat { [nodeId]: NodeCacheEntry } map — see
+// node-cache.ts. All fields optional: this is a rebuildable derived cache, not
+// user data, so summary (#160) and relevance (#161) can be filled independently.
 export interface NodeCacheEntry {
   summary?: NodeSummary;
   relevance?: number;
 }
-
-export interface SessionNodeCache {
-  nodes: Record<string, NodeCacheEntry>;
-}
-
-export type NodeCacheStore = Record<string, SessionNodeCache>;
 
 export interface ChatboxNode {
   id: string; // "chatbox-0", "chatbox-1", ... (assigned by tracker.ts)
