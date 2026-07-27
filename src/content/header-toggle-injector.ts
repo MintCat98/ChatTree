@@ -6,6 +6,9 @@
 import { STORAGE_KEYS } from '@shared/constants';
 import type { UserSettings } from '@shared/types';
 import { DEFAULT_SETTINGS } from '@shared/types';
+import { createElement } from 'react';
+import { renderToString } from 'react-dom/server';
+import { PanelRight } from 'lucide-react';
 
 const HEADER_SELECTOR = '[data-testid="page-header"]';
 const ACTIONS_SELECTOR = '[data-testid="wiggle-controls-actions"]';
@@ -44,12 +47,7 @@ function createToggleButton(): HTMLButtonElement {
     color: currentColor;
     transition: background 150ms ease;
   `;
-  btn.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M3 4.2c0-.66.54-1.2 1.2-1.2h7.6c.66 0 1.2.54 1.2 1.2v5.1c0 .66-.54 1.2-1.2 1.2H7l-3 2.5v-2.5h-0c-.66 0-1.2-.54-1.2-1.2V4.2Z"
-        stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
-    </svg>
-  `;
+  btn.innerHTML = renderToString(createElement(PanelRight, { size: 16 }));
   btn.addEventListener('mouseenter', () => {
     btn.style.background = 'var(--cds-fill-ghost-hover, rgba(127,127,127,0.15))';
   });
