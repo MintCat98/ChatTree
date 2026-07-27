@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import type { ChatboxNode } from '@shared/types';
 import { usePanelStore } from '../store/panel-store';
+import { scrollToNode } from '../../scroll-navigator';
 
 // Dev flag: relevance scoring mock strategy.
 // TODO: Remove when real relevance scoring lands.
@@ -126,7 +127,9 @@ export function InteractiveMap() {
         .enter()
         .append('g')
         .attr('class', 'im-node')
-        .attr('transform', (d) => `translate(${(d.y ?? 0) - minY}, ${(d.x ?? 0) - minX})`);
+        .attr('transform', (d) => `translate(${(d.y ?? 0) - minY}, ${(d.x ?? 0) - minX})`)
+        .style('cursor', 'pointer')
+        .on('click', (_event, d) => scrollToNode(d.data.id));
 
     nodeGroup
       .append('rect')
