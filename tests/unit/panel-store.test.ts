@@ -155,21 +155,22 @@ describe('usePanelStore — sessionMetadata (issue #96)', () => {
 
   it('setSessionMetadata replaces the full metadata map', () => {
     usePanelStore.getState().setSessionMetadata({
-      'chatbox-0': { bookmarked: true, tags: ['a'] },
+      'chatbox-0': { bookmarked: true, tags: ['a'], hidden: false },
     });
     expect(usePanelStore.getState().sessionMetadata).toEqual({
-      'chatbox-0': { bookmarked: true, tags: ['a'] },
+      'chatbox-0': { bookmarked: true, tags: ['a'], hidden: false },
     });
   });
 
   it('patchNodeMetadata merges defaults with existing entry', () => {
     usePanelStore.getState().setSessionMetadata({
-      'chatbox-0': { bookmarked: false, tags: ['x'] },
+      'chatbox-0': { bookmarked: false, tags: ['x'], hidden: false },
     });
     usePanelStore.getState().patchNodeMetadata('chatbox-0', { bookmarked: true });
     expect(usePanelStore.getState().sessionMetadata['chatbox-0']).toEqual({
       bookmarked: true,
       tags: ['x'],
+      hidden: false,
     });
   });
 
@@ -178,18 +179,33 @@ describe('usePanelStore — sessionMetadata (issue #96)', () => {
     expect(usePanelStore.getState().sessionMetadata['chatbox-1']).toEqual({
       bookmarked: true,
       tags: [],
+      hidden: false,
     });
   });
 
   it('patchNodeMetadata does not affect other nodes', () => {
     usePanelStore.getState().setSessionMetadata({
-      'chatbox-0': { bookmarked: false, tags: [] },
-      'chatbox-1': { bookmarked: true, tags: ['y'] },
+      'chatbox-0': { bookmarked: false, tags: [], hidden: false },
+      'chatbox-1': { bookmarked: true, tags: ['y'], hidden: false },
     });
     usePanelStore.getState().patchNodeMetadata('chatbox-0', { bookmarked: true });
     expect(usePanelStore.getState().sessionMetadata['chatbox-1']).toEqual({
       bookmarked: true,
       tags: ['y'],
+      hidden: false,
+    });
+  });
+
+  // Issue #167 — the hide control patches the same metadata layer.
+  it('patchNodeMetadata sets hidden without clearing bookmarks or tags', () => {
+    usePanelStore.getState().setSessionMetadata({
+      'chatbox-0': { bookmarked: true, tags: ['x'], hidden: false },
+    });
+    usePanelStore.getState().patchNodeMetadata('chatbox-0', { hidden: true });
+    expect(usePanelStore.getState().sessionMetadata['chatbox-0']).toEqual({
+      bookmarked: true,
+      tags: ['x'],
+      hidden: true,
     });
   });
 });

@@ -11,6 +11,7 @@
 export interface NodeMetadata {
   bookmarked: boolean;
   tags: string[];
+  hidden: boolean; // collapsed out of the tree map (issue #167)
 }
 
 // Per-session envelope: node map + last-touched timestamp used by the orphaned-
@@ -27,6 +28,7 @@ export type NodeMetadataStore = Record<string, SessionMetadata>;
 export const DEFAULT_NODE_METADATA: NodeMetadata = {
   bookmarked: false,
   tags: [],
+  hidden: false,
 };
 
 export interface ChatboxNode {
