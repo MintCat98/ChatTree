@@ -28,7 +28,7 @@ AI chatbot sessions grow long and complex — especially when you edit previous 
 ## 2. Features
 
 - 🗺️ **Tree-map navigator** — visualizes every chatbox as a node, floated over the chat UI
-- 💬 **Hover to preview** — mouse over any node to see the original full prompt in a popup
+- 💬 **Hover to preview** — mouse over any node to see the original full prompt in a popup, with a configurable hover delay (0–600ms; `0` shows it instantly)
 - 🖱️ **Click to jump** — click any node to instantly scroll that chatbox to the top of the page
 - 🌿 **Branch tracking** — branch nodes show count (e.g., `1/3`) with a dotted-line indicator; only displayed when other branches actually exist
 - ✨ **Dynamic highlight** — the active chat highlight moves dynamically as you navigate

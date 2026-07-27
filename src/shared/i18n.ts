@@ -55,6 +55,9 @@ export interface Messages {
   themeDark: string;
   maxNodes: string;
   maxNodesAria: string;
+  tooltipDelay: string;
+  tooltipDelayAria: string;
+  tooltipDelayReadout: (ms: number) => string;
   notifyComplete: string;
   notifyCompleteAria: string;
   notifyOnLabel: string;
@@ -160,6 +163,9 @@ const en: Messages = {
   themeDark: 'Dark',
   maxNodes: 'Visible nodes',
   maxNodesAria: 'Max visible nodes',
+  tooltipDelay: 'Tooltip delay',
+  tooltipDelayAria: 'Delay before the prompt tooltip appears on hover',
+  tooltipDelayReadout: (ms) => (ms <= 0 ? 'Instant' : `${ms}ms`),
   notifyComplete: 'Completion alert',
   notifyCompleteAria: 'Blink the message count when response generation completes',
   notifyOnLabel: 'On',
@@ -265,6 +271,9 @@ const ko: Messages = {
   themeDark: '다크',
   maxNodes: '노드 표시 수',
   maxNodesAria: '노드 표시 수',
+  tooltipDelay: '툴팁 지연',
+  tooltipDelayAria: '노드에 마우스를 올린 뒤 프롬프트 툴팁이 나타나기까지의 지연',
+  tooltipDelayReadout: (ms) => (ms <= 0 ? '즉시' : `${ms}ms`),
   notifyComplete: '완료 알림',
   notifyCompleteAria: '응답 생성이 완료되면 메시지 개수를 깜빡여 알림',
   notifyOnLabel: '켜짐',

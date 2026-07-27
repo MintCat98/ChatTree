@@ -6,7 +6,6 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePanelStore } from '../store/panel-store';
-import { TOOLTIP_DELAY_MS } from './constants';
 const TOOLTIP_WIDTH = 280;      // fixed box width for visual consistency
 const TOOLTIP_MAX_HEIGHT = 200; // long prompts scroll inside this
 const CURSOR_OFFSET = 16;
@@ -21,6 +20,8 @@ export function Tooltip() {
   const hoveredNodeId = usePanelStore((s) => s.hoveredNodeId);
   const hoverPos = usePanelStore((s) => s.hoverPos);
   const tree = usePanelStore((s) => s.tree);
+  // User-configurable hover delay (issue #146). 0 = show instantly.
+  const tooltipDelay = usePanelStore((s) => s.settings.tooltipDelay);
   const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState<Pos | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -30,7 +31,7 @@ export function Tooltip() {
     ? (tree?.nodes.find((n) => n.id === hoveredNodeId) ?? null)
     : null;
 
-  // Show after a short delay; hide immediately when the hover clears.
+  // Show after the configured delay; hide immediately when the hover clears.
   useEffect(() => {
     if (delayTimerRef.current) {
       window.clearTimeout(delayTimerRef.current);
@@ -41,11 +42,15 @@ export function Tooltip() {
       setPos(null); // recompute placement fresh on the next hover
       return;
     }
-    delayTimerRef.current = window.setTimeout(() => setVisible(true), TOOLTIP_DELAY_MS);
+    if (tooltipDelay <= 0) {
+      setVisible(true); // instant: skip the timer entirely
+      return;
+    }
+    delayTimerRef.current = window.setTimeout(() => setVisible(true), tooltipDelay);
     return () => {
       if (delayTimerRef.current) window.clearTimeout(delayTimerRef.current);
     };
-  }, [hoveredNodeId]);
+  }, [hoveredNodeId, tooltipDelay]);
 
   // After the tooltip is in the DOM, measure its height and pick the side with
   // more room. Width is fixed (TOOLTIP_WIDTH), so the only horizontal decision is
