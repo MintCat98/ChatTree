@@ -101,6 +101,9 @@ export interface Messages {
   addBookmark: string;
   removeBookmark: string;
 
+  // HideButton
+  hideNode: string;
+
   // NodeBadge
   branchBadge: (current: number, total: number) => string;
 
@@ -209,6 +212,9 @@ const en: Messages = {
   addBookmark: 'Add bookmark',
   removeBookmark: 'Remove bookmark',
 
+  // HideButton
+  hideNode: 'Hide this message',
+
   // NodeBadge
   branchBadge: (current, total) => `Branch ${current} of ${total}`,
 
@@ -316,6 +322,9 @@ const ko: Messages = {
   // BookmarkButton
   addBookmark: '북마크 추가',
   removeBookmark: '북마크 해제',
+
+  // HideButton
+  hideNode: '이 메시지 숨기기',
 
   // NodeBadge
   branchBadge: (current, total) => `브랜치 ${current}/${total}`,

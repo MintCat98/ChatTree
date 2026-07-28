@@ -14,6 +14,7 @@ import { NODE_RADIUS, NODE_RADIUS_ACTIVE, NODE_STEP, ROW_V_GAP, LABEL_TRAILING_M
 import { NodeBadge } from './NodeBadge';
 import { BookmarkButton } from './BookmarkButton';
 import { TagButton } from './TagButton';
+import { HideButton } from './HideButton';
 
 interface TreeNodeProps {
   node: ChatboxNode;
@@ -47,6 +48,7 @@ export function TreeNode({
   const isActive = activeNodeId === node.id;
   const isHovered = hoveredNodeId === node.id;
   const isBranch = node.hasBranch;
+  const hasBadge = isBranch && node.branchTotal > 1; // two or more branches
   const isBookmarked = sessionMetadata[node.id]?.bookmarked ?? false;
   const nodeTags = sessionMetadata[node.id]?.tags ?? [];
   const hasTags = nodeTags.length > 0;
@@ -121,6 +123,15 @@ export function TreeNode({
       setTagEditNodeId(isTagOpen ? null : node.id);
     },
     [node.id, isTagOpen, setTagEditNodeId],
+  );
+
+  const handleHide = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      patchNodeMetadata(node.id, { hidden: true });
+      setNodeMetadata(sessionId, node.id, { hidden: true });
+    },
+    [node.id, sessionId, patchNodeMetadata],
   );
 
   const nodeClass = [
@@ -215,7 +226,7 @@ export function TreeNode({
         </div>
       </foreignObject>
 
-      {isBranch && node.branchTotal > 1 ? ( // Check if there are two or more branches
+      {hasBadge ? (
         <NodeBadge
           cx={cx + NODE_RADIUS}
           cy={cy - 3 * NODE_RADIUS / 2}
@@ -223,6 +234,15 @@ export function TreeNode({
           total={node.branchTotal}
         />
       ) : null}
+
+      {/* Hide control at the node's top-right corner. On a branch point the
+          badge already owns that corner, so it mirrors below instead — a
+          horizontal shift past the 32px badge would push it into the label. */}
+      <HideButton
+        x={cx + NODE_RADIUS - 2}
+        cy={hasBadge ? cy + 3 * NODE_RADIUS / 2 : cy - 3 * NODE_RADIUS / 2}
+        onHide={handleHide}
+      />
 
       {/* Left-side icon stack: bookmark (top) + tag (bottom), vertically centered on cy */}
       <BookmarkButton

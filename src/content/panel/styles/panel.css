@@ -658,6 +658,39 @@
   color: var(--nav-color-accent);
 }
 
+/* HideButton (foreignObject + lucide Minus) — issue #167.
+   Unlike the bookmark/tag buttons this also gates pointer-events: a control
+   that removes the row from view must not be clickable while invisible. */
+.nav-node-hide {
+  opacity: 0;
+  pointer-events: none;
+  overflow: visible;
+  transition: opacity var(--nav-transition);
+}
+
+.nav-node:hover .nav-node-hide {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nav-hide-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--nav-radius-pill);
+  background: var(--nav-color-bg);
+  cursor: pointer;
+  color: var(--nav-color-text-muted);
+  transition: color var(--nav-transition);
+}
+
+.nav-hide-btn:hover {
+  color: var(--nav-color-accent);
+}
+
 /* TagEditorPopover — absolute-positioned HTML overlay inside nav-treemap */
 .nav-tag-popover {
   position: absolute;
