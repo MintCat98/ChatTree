@@ -5,7 +5,7 @@
 // Chain: each node simply connects to its predecessor
 // Random: each node connects to random previous nodes
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import type { ChatboxNode } from '@shared/types';
 import { usePanelStore } from '../store/panel-store';
@@ -24,6 +24,11 @@ const PADDING = 16;
 const EDGE_COLOR = 'var(--nav-color-edge)';
 const EDGE_STROKE_WIDTH = 1.5;
 
+// Zoom-related constants
+const ZOOM_LADDER = [25, 50, 75, 100, 125, 150, 200];
+const ZOOM_MIN = ZOOM_LADDER[0] / 100;
+const ZOOM_MAX = ZOOM_LADDER[ZOOM_LADDER.length - 1] / 100;
+
 // Mock relevance: pick a parent for each node from earlier nodes.
 // 'chain' → previous node; 'random' → any earlier node (or root).
 function pickParent(nodes: ChatboxNode[], i: number): string | null {
@@ -31,6 +36,16 @@ function pickParent(nodes: ChatboxNode[], i: number): string | null {
   if (MOCK_RELEVANCE_MODE === 'chain') return nodes[i - 1].id;
   const idx = Math.floor(Math.random() * i);
   return nodes[idx].id;
+}
+
+function nextLadderStep(current: number, direction: 1 | -1): number {
+  if (direction === 1) {
+    const next = ZOOM_LADDER.find((v) => v > current);
+    return next ?? ZOOM_LADDER[ZOOM_LADDER.length - 1];
+  } else {
+    const prev = [...ZOOM_LADDER].reverse().find((v) => v < current);
+    return prev ?? ZOOM_LADDER[0];
+  }
 }
 
 // Turn the flat node list into a d3.hierarchy. Multiple roots collapse
@@ -63,6 +78,10 @@ function buildHierarchy(nodes: ChatboxNode[]): TreeDatum {
 export function InteractiveMap() {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const tree = usePanelStore((s) => s.tree);
+
+  // Zoom behavior state
+  const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const [zoomPercent, setZoomPercent] = useState(100);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -98,12 +117,14 @@ export function InteractiveMap() {
     
     const zoomBehavior = d3
       .zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.25, 2])
+      .scaleExtent([ZOOM_MIN, ZOOM_MAX])
       .on('zoom', (event) => {
         viewport.attr('transform', event.transform.toString());
+        setZoomPercent(Math.round(event.transform.k * 100));
       });
     
       svg.call(zoomBehavior);
+      zoomBehaviorRef.current = zoomBehavior;
 
     // Curved edges — drawn first so nodes render on top of them.
     const linkGenerator = d3
@@ -169,12 +190,80 @@ export function InteractiveMap() {
       });
   }, [tree]);
 
+
+  const zoomTo = (percent: number) => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    const k = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, percent / 100));
+    const svg = d3.select(svgRef.current);
+    const { width, height } = svgRef.current.getBoundingClientRect();
+    const cx = width / 2;
+    const cy = height / 2;
+    const currentTransform = d3.zoomTransform(svgRef.current);
+    const newTransform = d3.zoomIdentity
+      .translate(cx - k * ((cx - currentTransform.x) / currentTransform.k),
+                 cy - k * ((cy - currentTransform.y) / currentTransform.k))
+      .scale(k);
+    svg.transition().duration(150).call(zoomBehaviorRef.current.transform, newTransform);
+  };
+
   return (
-    <svg
-      ref={svgRef}
-      width="100%"
-      height="100%"
-      style={{ display: 'block', cursor: 'grab' }}
-    />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <svg
+        ref={svgRef}
+        width="100%"
+        height="100%"
+        style={{ display: 'block', cursor: 'grab' }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          right: 8,
+          bottom: 8,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '4px 6px',
+          background: 'var(--nav-color-bg)',
+          border: '1px solid var(--nav-color-border)',
+          borderRadius: 8,
+          fontFamily: 'var(--nav-font-family)',
+          fontSize: 'var(--nav-font-size-sm)',
+          color: 'var(--nav-color-text)',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+          userSelect: 'none',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => zoomTo(nextLadderStep(zoomPercent, -1))}
+          aria-label="Zoom out"
+          style={zoomBtnStyle}
+        >
+          −
+        </button>
+        <span style={{ minWidth: 40, textAlign: 'center' }}>{zoomPercent}%</span>
+        <button
+          type="button"
+          onClick={() => zoomTo(nextLadderStep(zoomPercent, 1))}
+          aria-label="Zoom in"
+          style={zoomBtnStyle}
+        >
+          +
+        </button>
+      </div>
+    </div>
   );
 }
+
+const zoomBtnStyle: React.CSSProperties = {
+  width: 22,
+  height: 22,
+  padding: 0,
+  border: 'none',
+  background: 'transparent',
+  color: 'currentColor',
+  cursor: 'pointer',
+  fontSize: 14,
+  lineHeight: 1,
+  borderRadius: 4,
+};
