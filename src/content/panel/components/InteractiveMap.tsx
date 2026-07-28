@@ -85,6 +85,7 @@ export function InteractiveMap() {
   const isSpacePressedRef = useRef(false);
   const isPointerInsideRef = useRef(false);
   const [zoomPercent, setZoomPercent] = useState(100);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Zoom helpers wrapped in useCallback so the listener effect has stable refs.
   const zoomTo = useCallback((percent: number) => {
@@ -304,10 +305,25 @@ export function InteractiveMap() {
         return t.length > 18 ? t.slice(0, 17) + '…' : t;
       });
   }, [tree]);
+
+  // Sync expand state to the parent sidebar-bottom container so it can
+  // break out horizontally beyond the sidebar width.
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const parent = svgRef.current.closest('.nav-sidebar-bottom');
+    if (!parent) return;
+    parent.classList.toggle('is-expanded', isExpanded);
+    return () => parent.classList.remove('is-expanded');
+  }, [isExpanded]);
   
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ 
+        position: 'relative',
+        width: '100%',
+        height: '100%'
+      }}
+    >
       <svg
         ref={svgRef}
         width="100%"
@@ -315,6 +331,36 @@ export function InteractiveMap() {
         style={{ display: 'block', cursor: 'grab', outline: 'none' }}
         tabIndex={0}
       />
+
+      {/* Horizontal expand toggle (bottom-right, left of zoom control) */}
+      <button
+        type="button"
+        onClick={() => setIsExpanded((v) => !v)}
+        aria-label={isExpanded ? 'Collapse map' : 'Expand map'}
+        aria-pressed={isExpanded}
+        title={isExpanded ? 'Collapse' : 'Expand'}
+        style={{
+          position: 'absolute',
+          right: 108,
+          bottom: 8,
+          width: 28,
+          height: 28,
+          padding: 0,
+          background: 'var(--nav-color-bg)',
+          border: '1px solid var(--nav-color-border)',
+          borderRadius: 8,
+          color: 'var(--nav-color-text)',
+          cursor: 'pointer',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {isExpanded ? '⇥' : '⇤'}
+      </button>
+
+      {/* Zoom control (bottom-right) */}
       <div
         style={{
           position: 'absolute',
