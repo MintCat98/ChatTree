@@ -89,7 +89,21 @@ export function InteractiveMap() {
     const minX = d3.min(drawable, (d) => d.x ?? 0) ?? 0;
     const minY = d3.min(drawable, (d) => d.y ?? 0) ?? 0;
 
-    const g = svg.append('g').attr('transform', `translate(${PADDING}, ${PADDING})`);
+    // Zoom + pan behavior. All content goes into #zoom-viewport
+    // d3.zoom() writes a transform into it so we don't recompute layout on every gesture
+    const viewport = svg.append('g').attr('class', 'zoom-viewport');
+    const g = viewport
+      .append('g')
+      .attr('transform', `translate(${PADDING}, ${PADDING})`);
+    
+    const zoomBehavior = d3
+      .zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.25, 2])
+      .on('zoom', (event) => {
+        viewport.attr('transform', event.transform.toString());
+      });
+    
+      svg.call(zoomBehavior);
 
     // Curved edges — drawn first so nodes render on top of them.
     const linkGenerator = d3
@@ -160,7 +174,7 @@ export function InteractiveMap() {
       ref={svgRef}
       width="100%"
       height="100%"
-      style={{ display: 'block' }}
+      style={{ display: 'block', cursor: 'grab' }}
     />
   );
 }
