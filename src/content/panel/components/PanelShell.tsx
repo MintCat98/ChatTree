@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePanelStore } from '../store/panel-store';
 import { useMessages } from '../i18n';
 import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX } from '@shared/types';
+import { InteractiveMap } from './InteractiveMap';
 
 const PANEL_INITIAL_HEIGHT = 600; // Estimated panel height for bottom-anchor initial placement.
 const DRAG_BOTTOM_CLEARANCE = 100; // Minimum px above the viewport bottom edge during drag.
@@ -157,10 +158,9 @@ export function PanelShell({ children }: PanelShellProps) {
           {children}
         </div>
 
-        {/* Bottom: Interactive Map (To be implemented..)*/}
+        {/* Bottom: Interactive Map*/}
         <div className="nav-sidebar-bottom">
-          <span> Interactive Map </span>
-          <span style={{ fontSize: 'var(--nav-font-size-xs)' }}>Coming Soon</span>
+          <InteractiveMap />
         </div>
 
         {/* left resize handle */}
