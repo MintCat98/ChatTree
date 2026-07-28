@@ -5,7 +5,7 @@
 // Chain: each node simply connects to its predecessor
 // Random: each node connects to random previous nodes
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import type { ChatboxNode } from '@shared/types';
 import { usePanelStore } from '../store/panel-store';
@@ -28,6 +28,7 @@ const EDGE_STROKE_WIDTH = 1.5;
 const ZOOM_LADDER = [25, 50, 75, 100, 125, 150, 200];
 const ZOOM_MIN = ZOOM_LADDER[0] / 100;
 const ZOOM_MAX = ZOOM_LADDER[ZOOM_LADDER.length - 1] / 100;
+const ZOOM_FINE_STEP = 0.05;
 
 // Mock relevance: pick a parent for each node from earlier nodes.
 // 'chain' → previous node; 'random' → any earlier node (or root).
@@ -81,56 +82,172 @@ export function InteractiveMap() {
 
   // Zoom behavior state
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const isSpacePressedRef = useRef(false);
+  const isPointerInsideRef = useRef(false);
   const [zoomPercent, setZoomPercent] = useState(100);
 
+  // Zoom helpers wrapped in useCallback so the listener effect has stable refs.
+  const zoomTo = useCallback((percent: number) => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    const k = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, percent / 100));
+    const svg = d3.select(svgRef.current);
+    const { width, height } = svgRef.current.getBoundingClientRect();
+    const cx = width / 2;
+    const cy = height / 2;
+    const current = d3.zoomTransform(svgRef.current);
+    const newTransform = d3.zoomIdentity
+      .translate(cx - k * ((cx - current.x) / current.k),
+                 cy - k * ((cy - current.y) / current.k))
+      .scale(k);
+    svg.transition().duration(150).call(zoomBehaviorRef.current.transform, newTransform);
+  }, []);
+
+  const zoomAtPoint = useCallback((deltaK: number, px: number, py: number) => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    const svg = d3.select(svgRef.current);
+    const current = d3.zoomTransform(svgRef.current);
+    const k = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, current.k + deltaK));
+    const newTransform = d3.zoomIdentity
+      .translate(px - k * ((px - current.x) / current.k),
+                 py - k * ((py - current.y) / current.k))
+      .scale(k);
+    svg.call(zoomBehaviorRef.current.transform, newTransform);
+  }, []);
+
+  // Effect A - event listeners. Registered once on mount so pointer/space
+  // state and DOM listeners survive tree re-enders
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const svgEl = svgRef.current;
+    const shadowRoot = svgEl.getRootNode() as ShadowRoot;
+
+    const onPointerEnter = () => {
+      isPointerInsideRef.current = true;
+      svgEl.focus();
+    };
+    const onPointerLeave = () => {
+      isPointerInsideRef.current = false;
+    }
+    const onPointerDown = () => {
+      setTimeout(() => svgEl.focus(), 0);
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!isPointerInsideRef.current) return;
+      
+      if (e.code === 'Space') {
+        e.preventDefault();
+        e.stopPropagation();
+        isSpacePressedRef.current = true;
+        svgEl.style.cursor = 'grabbing';
+        return;
+      }
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = svgEl.getBoundingClientRect();
+        zoomAtPoint(ZOOM_FINE_STEP, rect.width / 2, rect.height / 2);
+        return;
+      }
+      if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = svgEl.getBoundingClientRect();
+        zoomAtPoint(-ZOOM_FINE_STEP, rect.width / 2, rect.height / 2);
+        return;
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return;
+      e.stopPropagation();
+      isSpacePressedRef.current = false;
+      svgEl.style.cursor = 'grab';
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const direction = e.deltaY < 0 ? 1 : -1;
+      const rect = svgEl.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      zoomAtPoint(direction * ZOOM_FINE_STEP, px, py);
+    };
+
+    svgEl.addEventListener('pointerenter', onPointerEnter);
+    svgEl.addEventListener('pointerleave', onPointerLeave);
+    svgEl.addEventListener('pointerdown', onPointerDown);
+    svgEl.addEventListener('wheel', onWheel, { passive: false });
+    shadowRoot.addEventListener('keydown', onKeyDown as EventListener);
+    shadowRoot.addEventListener('keyup', onKeyUp as EventListener);
+
+    return () => {
+      svgEl.removeEventListener('pointerenter', onPointerEnter);
+      svgEl.removeEventListener('pointerleave', onPointerLeave);
+      svgEl.removeEventListener('pointerdown', onPointerDown);
+      svgEl.removeEventListener('wheel', onWheel);
+      shadowRoot.removeEventListener('keydown', onKeyDown as EventListener);
+      shadowRoot.removeEventListener('keyup', onKeyUp as EventListener);
+    };
+  }, [zoomAtPoint]);
+
+  // Effect B - render tree. Runs on every tree update, but preserves the
+  // user/s pan/zoom transform so typing in the chat doesn't reset the view.
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
 
-    if (!tree || tree.nodes.length === 0) return;
+    const preservedTransform = zoomBehaviorRef.current
+      ? d3.zoomTransform(svgRef.current)
+      : d3.zoomIdentity;
+    
+      svg.selectAll('*').remove();
 
-    const root = d3.hierarchy(buildHierarchy(tree.nodes));
+      if(!tree || tree.nodes.length === 0) {
+        zoomBehaviorRef.current = null;
+        return;
+      }
 
-    // Left-to-right layout: swap x/y from d3.tree defaults.
-    // nodeSize gives us predictable spacing regardless of container size.
-    const layout = d3.tree<TreeDatum>().nodeSize([
-      NODE_HEIGHT + V_GAP, // vertical step per sibling
-      NODE_WIDTH + H_GAP,  // horizontal step per depth
+      const root = d3.hierarchy(buildHierarchy(tree.nodes));
+      const layout = d3.tree<TreeDatum>().nodeSize([
+      NODE_HEIGHT + V_GAP,
+      NODE_WIDTH + H_GAP,
     ]);
     layout(root);
 
-    // Descendants excludes the synthetic root by filtering depth 0.
     const drawable = root.descendants().filter((d) => d.depth > 0);
     if (drawable.length === 0) return;
 
-    // Normalize so the top-left of the drawn tree sits at (PADDING, PADDING).
     const minX = d3.min(drawable, (d) => d.x ?? 0) ?? 0;
     const minY = d3.min(drawable, (d) => d.y ?? 0) ?? 0;
 
-    // Zoom + pan behavior. All content goes into #zoom-viewport
-    // d3.zoom() writes a transform into it so we don't recompute layout on every gesture
     const viewport = svg.append('g').attr('class', 'zoom-viewport');
-    const g = viewport
-      .append('g')
-      .attr('transform', `translate(${PADDING}, ${PADDING})`);
-    
+    const g = viewport.append('g').attr('transform', `translate(${PADDING}, ${PADDING})`);
+
     const zoomBehavior = d3
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([ZOOM_MIN, ZOOM_MAX])
+      .filter((event) => {
+        if (event.type === 'wheel') return false;
+        if (event.button === 1) return true;
+        if (isSpacePressedRef.current && event.button === 0) return true;
+        if (event.button === 0) {
+          const target = event.target as Element;
+          return !target.closest('g.im-node');
+        }
+        return false;
+      })
       .on('zoom', (event) => {
         viewport.attr('transform', event.transform.toString());
         setZoomPercent(Math.round(event.transform.k * 100));
       });
-    
-      svg.call(zoomBehavior);
-      zoomBehaviorRef.current = zoomBehavior;
 
-    // Curved edges — drawn first so nodes render on top of them.
+    svg.call(zoomBehavior);
+    zoomBehaviorRef.current = zoomBehavior;
+
+    // Restore the previous pan/zoom so tree updates don't jump the view.
+    svg.call(zoomBehavior.transform, preservedTransform);
+
     const linkGenerator = d3
       .linkHorizontal<d3.HierarchyPointLink<TreeDatum>, d3.HierarchyPointNode<TreeDatum>>()
-      // Anchor edges on the right side of the source and left side of the target
-      // so lines emerge from and land into the node edges, not their centers.
       .source((d) => ({
         ...d.source,
         x: (d.source.x ?? 0) - minX + NODE_HEIGHT / 2,
@@ -141,8 +258,6 @@ export function InteractiveMap() {
         x: (d.target.x ?? 0) - minX + NODE_HEIGHT / 2,
         y: (d.target.y ?? 0) - minY,
       } as d3.HierarchyPointNode<TreeDatum>))
-      // d3.linkHorizontal reads (y, x) as (horizontal, vertical) by default;
-      // we already swapped the coords in the layout, so keep it consistent.
       .x((d) => d.y ?? 0)
       .y((d) => d.x ?? 0);
 
@@ -157,14 +272,14 @@ export function InteractiveMap() {
       .attr('stroke-width', EDGE_STROKE_WIDTH);
 
     const nodeGroup = g
-        .selectAll<SVGGElement, d3.HierarchyPointNode<TreeDatum>>('g.im-node')
-        .data(drawable as d3.HierarchyPointNode<TreeDatum>[])
-        .enter()
-        .append('g')
-        .attr('class', 'im-node')
-        .attr('transform', (d) => `translate(${(d.y ?? 0) - minY}, ${(d.x ?? 0) - minX})`)
-        .style('cursor', 'pointer')
-        .on('click', (_event, d) => scrollToNode(d.data.id));
+      .selectAll<SVGGElement, d3.HierarchyPointNode<TreeDatum>>('g.im-node')
+      .data(drawable as d3.HierarchyPointNode<TreeDatum>[])
+      .enter()
+      .append('g')
+      .attr('class', 'im-node')
+      .attr('transform', (d) => `translate(${(d.y ?? 0) - minY}, ${(d.x ?? 0) - minX})`)
+      .style('cursor', 'pointer')
+      .on('click', (_event, d) => scrollToNode(d.data.id));
 
     nodeGroup
       .append('rect')
@@ -189,22 +304,7 @@ export function InteractiveMap() {
         return t.length > 18 ? t.slice(0, 17) + '…' : t;
       });
   }, [tree]);
-
-
-  const zoomTo = (percent: number) => {
-    if (!svgRef.current || !zoomBehaviorRef.current) return;
-    const k = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, percent / 100));
-    const svg = d3.select(svgRef.current);
-    const { width, height } = svgRef.current.getBoundingClientRect();
-    const cx = width / 2;
-    const cy = height / 2;
-    const currentTransform = d3.zoomTransform(svgRef.current);
-    const newTransform = d3.zoomIdentity
-      .translate(cx - k * ((cx - currentTransform.x) / currentTransform.k),
-                 cy - k * ((cy - currentTransform.y) / currentTransform.k))
-      .scale(k);
-    svg.transition().duration(150).call(zoomBehaviorRef.current.transform, newTransform);
-  };
+  
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -212,7 +312,8 @@ export function InteractiveMap() {
         ref={svgRef}
         width="100%"
         height="100%"
-        style={{ display: 'block', cursor: 'grab' }}
+        style={{ display: 'block', cursor: 'grab', outline: 'none' }}
+        tabIndex={0}
       />
       <div
         style={{
