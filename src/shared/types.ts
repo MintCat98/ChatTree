@@ -36,6 +36,7 @@ export const DEFAULT_NODE_METADATA: NodeMetadata = {
 // user data, so summary (#160) and relevance (#161) can be filled independently.
 export interface NodeCacheEntry {
   summary?: NodeSummary;
+  summaryFallback?: boolean; // true = truncated fallback (timeout/parse fail); re-summarize when possible (#160)
   relevance?: number;
 }
 

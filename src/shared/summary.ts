@@ -44,7 +44,7 @@ Example (Korean)
 
 function detectLanguage(text: string): 'Korean' | 'English' {
   const hangul = (text.match(/[가-힣]/g) ?? []).length;
-  const latin  = (text.match(/[A-Za-z]/g) ?? []).length;
+  const latin = (text.match(/[A-Za-z]/g) ?? []).length;
   return hangul > latin ? 'Korean' : 'English';
 }
 
@@ -96,13 +96,14 @@ function fallbackSummary(question: string, answer: string): NodeSummary {
 export async function summarizeConversation(
   session: LanguageModelSession,
   question: string,
-  answer: string
+  answer: string,
+  signal?: AbortSignal
 ): Promise<SummaryResult> {
   const input = buildConversationInput(question, answer);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     let raw: string | undefined;
     try {
-      raw = await session.prompt(input, { responseConstraint: NODE_SUMMARY_SCHEMA });
+      raw = await session.prompt(input, { responseConstraint: NODE_SUMMARY_SCHEMA, signal });
       const parsed = extractJson(raw);
       if (isNodeSummary(parsed)) {
         return {
@@ -118,7 +119,13 @@ export async function summarizeConversation(
     } catch (err) {
       // Malformed or non-JSON output - ignore, let the loop retry
       // fall through to the truncated fallback below
-      console.warn('[summary] prompt/parse failed, will retry of fall back:', err, '\nRAW>>>', raw, '<<<');
+      console.warn(
+        '[summary] prompt/parse failed, will retry of fall back:',
+        err,
+        '\nRAW>>>',
+        raw,
+        '<<<'
+      );
     }
   }
 
