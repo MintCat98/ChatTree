@@ -7,7 +7,12 @@ import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import { usePanelStore } from '../store/panel-store';
 import { useMessages } from '../i18n';
 import type { UserSettings } from '@shared/types';
-import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, MAX_VISIBLE_NODES, DEFAULT_SETTINGS } from '@shared/types';
+import {
+  PANEL_WIDTH_MIN,
+  PANEL_WIDTH_MAX,
+  MAX_VISIBLE_NODES,
+  DEFAULT_SETTINGS,
+} from '@shared/types';
 import { MessageType } from '@shared/message-types';
 import { requestFromBackground } from '../../message-bridge';
 import { rescanFromDom } from '../../observer';
@@ -28,7 +33,7 @@ export function ControlBar() {
     () => () => {
       if (confirmTimer.current) clearTimeout(confirmTimer.current);
     },
-    [],
+    []
   );
 
   const handlePosition = (e: ChangeEvent<HTMLSelectElement>) =>
@@ -61,8 +66,8 @@ export function ControlBar() {
       .catch(() => {})
       .finally(() => rescanFromDom());
   };
-  const handleNotifyToggle = () =>
-    updateSettings({ notifyOnComplete: !settings.notifyOnComplete });
+  const handleNotifyToggle = () => updateSettings({ notifyOnComplete: !settings.notifyOnComplete });
+  const handleSummaryToggle = () => updateSettings({ summaryEnabled: !settings.summaryEnabled });
   const handlePanelMode = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ panelMode: e.target.value as UserSettings['panelMode'] });
   const handleReset = () => updateSettings(DEFAULT_SETTINGS);
@@ -99,7 +104,6 @@ export function ControlBar() {
           </select>
         </div>
       )}
-      
 
       {/* Panel width (issue 02) */}
       <div className="nav-control-row">

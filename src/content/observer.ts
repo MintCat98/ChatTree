@@ -1,5 +1,6 @@
 // Watches the DOM for new chatbox elements via MutationObserver.
 import {
+  getCachedAnswer,
   mergeMountedNodes,
   getCachedNodes,
   resetNodeCache,
@@ -8,9 +9,9 @@ import {
 } from './chatbox-tracker';
 import { watchBranchChanges } from './branch-change-watcher';
 import { sendToBackground, requestFromBackground } from './message-bridge';
-import { SELECTORS, TIMING, CHAT_URL_PATTERN } from '@shared/constants';
+import { SELECTORS, TIMING, CHAT_URL_PATTERN, STORAGE_KEYS } from '@shared/constants';
 import { MessageType } from '@shared/message-types';
-import type { ChatboxNode, TreeData } from '@shared/types';
+import { DEFAULT_SETTINGS, UserSettings, type ChatboxNode, type TreeData } from '@shared/types';
 import { startTracking, stopTracking, observeNode } from './active-node-tracker';
 import { usePanelStore } from './panel/store/panel-store';
 
@@ -37,6 +38,38 @@ let persistReady = false;
 // new conversation and restores trust.
 let domTrusted = true;
 
+let summaryEnabled = DEFAULT_SETTINGS.summaryEnabled;
+chrome.storage.local.get(STORAGE_KEYS.USER_SETTINGS).then((r) => {
+  summaryEnabled =
+    (r[STORAGE_KEYS.USER_SETTINGS] as UserSettings | undefined)?.summaryEnabled ??
+    DEFAULT_SETTINGS.summaryEnabled;
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes[STORAGE_KEYS.USER_SETTINGS]) {
+    summaryEnabled =
+      (changes[STORAGE_KEYS.USER_SETTINGS].newValue as UserSettings)?.summaryEnabled ?? false;
+  }
+});
+
+const summarizedSent = new Set<string>();
+
+function enqueueSummaries(nodes: ChatboxNode[], sessionId: string): void {
+  if (!summaryEnabled) return;
+
+  const pending = nodes
+    .filter((n) => !summarizedSent.has(n.id))
+    .map((n) => ({ nodeId: n.id, question: n.text, answer: getCachedAnswer(n.id) }))
+    .filter((t): t is { nodeId: string; question: string; answer: string } => Boolean(t.answer));
+
+  if (pending.length === 0) return;
+  pending.forEach((t) => summarizedSent.add(t.nodeId));
+
+  sendToBackground({
+    type: MessageType.SUMMARIZE_TURNS,
+    payload: { sessionId, turns: pending },
+  }).catch(() => {});
+}
+
 function dispatchTree(tree: TreeData): void {
   // Scan spanned an SPA transition — the cache/DOM belong to the previous
   // conversation while the URL already points at the next one. Drop it.
@@ -50,6 +83,8 @@ function dispatchTree(tree: TreeData): void {
     type: MessageType.TREE_UPDATE,
     payload: { nodes: tree.nodes, sessionId: tree.sessionId },
   }).catch(() => {});
+
+  enqueueSummaries(tree.nodes, tree.sessionId);
 }
 
 function handleDOMChange(): void {
@@ -63,9 +98,7 @@ function handleDOMChange(): void {
     currentNodes = mergeMountedNodes();
     // console.log('[ChatTree DBG] DOM change → tree built, nodeCount=', currentNodes.length);
     dispatchTree(buildTree(currentNodes));
-    document
-      .querySelectorAll(`[${SELECTORS.NAV_ID_ATTR}]`)
-      .forEach((el) => observeNode(el));
+    document.querySelectorAll(`[${SELECTORS.NAV_ID_ATTR}]`).forEach((el) => observeNode(el));
   }, TIMING.OBSERVER_DEBOUNCE);
 }
 
@@ -122,6 +155,7 @@ export function startObserving(options?: { trustExistingDom?: boolean }): void {
 
   currentNodes = [];
   resetNodeCache(); // fresh conversation — accumulated turns belong to the old one
+  summarizedSent.clear();
   // 'unknown' matches buildTree's fallback so dispatches still flow on any
   // URL shape we failed to parse (startObserving only runs on chat URLs).
   currentSessionId = location.href.match(CHAT_URL_PATTERN)?.[1] ?? 'unknown';
