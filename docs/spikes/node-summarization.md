@@ -115,13 +115,34 @@ backfill for turns that were never displayed. This is by design, not a gap to cl
 partial text; reading it would cache a truncated summary. Gate on `STREAMING_ATTR`
 (`data-is-streaming`) / `STREAMING_INDICATOR` before enqueueing.
 
-**Open questions (verify before building the queue).**
-- `AI_RESPONSE` (`[data-testid="ai-response"]`) / `AI_TURN` (`[data-testid="assistant-turn"]`)
-  are defined in `constants.ts` but used nowhere yet — confirm they actually capture the
-  answer body on live claude.ai.
-- How to pair a user bubble with its assistant answer in the DOM (sibling / shared
-  article / `data-index`) — the tracker currently reads user bubbles only.
-- Confirm `data-is-streaming` reliably clears when generation finishes.
+**DOM findings (resolved).**
+- The former `ai-response` / `assistant-turn` testids are **gone** (0 elements on live
+  claude.ai). The answer body is anchored on the semantic class `.font-claude-response`
+  (`CLAUDE_RESPONSE`); text is read from nested `.standard-markdown` (`RESPONSE_MARKDOWN`).
+  No data-testid exists for the response, so class selectors are unavoidable here.
+- Pairing: `scanMounted` collects user bubbles and `.font-claude-response` elements in
+  mounted DOM order and pairs them by index (`answerTexts[domIndex]`).
+- `data-is-streaming` toggles `'true'`→`'false'` on completion and is gated via
+  `el.closest('[data-is-streaming="true"]')`; the streaming-end flip also triggers a
+  rescan (observer), so a completed answer is picked up automatically.
+
+**Dedup (in scope, no content hash).** Avoid re-summarizing and per-tick message spam:
+- Content: a `Set<nodeId>` of turns already sent this session (cleared on conversation
+  change); `enqueueSummaries` skips them, so steady-state payload is empty.
+- SW: skip a turn whose `NodeCacheEntry.summary` already exists (authoritative; survives
+  reload / cross-tab).
+
+**Known limitations (deferred to a follow-up issue).**
+- **Order-based pairing is fragile.** `answerTexts[domIndex]` assumes mounted user
+  bubbles and `.font-claude-response` elements are 1:1 in the same order. At
+  virtualization boundaries (a bubble mounted while its answer is not, or vice versa) the
+  alignment shifts and a wrong answer can attach to a node → wrong summary cached. A
+  sibling-walk pairing (bubble → adjacent answer) would fix this.
+- **Edited / regenerated turns are not re-summarized.** Dedup is by `nodeId` only, and
+  `nodeId` (`chatbox-<absIndex>`) is stable across an edit, so a turn whose question is
+  edited or answer regenerated keeps its stale summary. Fixing this needs a source
+  signature (hash of question+answer) stored with the summary so the SW can detect the
+  change — deferred together with the pairing fix.
 
 **Branch note.** #159 (node-cache layer) and #160 are developed and merged to `dev`
 together — `feat/160` is stacked on `feat/159`, so the two ship as one unit rather than
