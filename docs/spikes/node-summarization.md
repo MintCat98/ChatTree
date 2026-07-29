@@ -81,3 +81,48 @@
 - #160: run the pipeline per turn, cache results, reuse `summarizeConversation`. **Run each summary in its own (cloned) session.** Add a **hard timeout (`AbortSignal`)** (runaway can hang ~5 min). Enforce `answer` length / tone / jargon by **post-processing** — the prompt alone does not fully control them.
 - #165: render `keyword` on the node, `question`/`answer` in the dropdown; clamp/truncate `answer` for layout.
 - Metric note: replace the Hangul-based `langOk` with a proper-noun-aware check before relying on it in later evaluations.
+
+## Decision — #160 pipeline (answer sourcing & storage)
+
+**Decision.** Do **not** persist the assistant's full answer text anywhere. The tree
+caches only the user prompt (`ChatboxNode.text`); the answer is read from the DOM at
+scan time, passed straight into the summary queue, and discarded. Only the resulting
+`NodeSummary` is persisted, in `NodeCacheEntry.summary` (node-cache, `setNodeCache`).
+
+**Why.**
+- Persisting full answers would bloat `chrome.storage.local` with raw text that is
+  redundant once the summary exists.
+- It would also fight the tree lifecycle: `session-store.updateTree` rebuilds the tree
+  from the DOM on every update, so anything hung on `ChatboxNode` is wiped — the same
+  reason summaries live in the separate node-cache (see CLAUDE.md, issue #159).
+
+**Read vs. summarize timing.** Reading the answer off a mounted turn is cheap and
+synchronous, but summarizing is **not**: each call is ~2–7 s (runaway up to ~5 min), so
+it must never run inside the DOM scan. Flow:
+
+> scan a mounted turn → read `{question, answer}` → enqueue → SW summarizes async
+> (cloned session + `AbortSignal` timeout) → `setNodeCache(sessionId, nodeId, {summary})`.
+
+This is the "incremental queueing" #160 calls for: cost is spread over time instead of
+spiking on page load.
+
+**Consequence (accepted).** Because the answer is only readable while its turn is
+mounted, a turn the user has **never scrolled into view** cannot be summarized until it
+mounts. Off-screen turns are summarized lazily as the user reaches them; there is no
+backfill for turns that were never displayed. This is by design, not a gap to close.
+
+**Streaming gate.** Only summarize completed turns. A turn still generating exposes
+partial text; reading it would cache a truncated summary. Gate on `STREAMING_ATTR`
+(`data-is-streaming`) / `STREAMING_INDICATOR` before enqueueing.
+
+**Open questions (verify before building the queue).**
+- `AI_RESPONSE` (`[data-testid="ai-response"]`) / `AI_TURN` (`[data-testid="assistant-turn"]`)
+  are defined in `constants.ts` but used nowhere yet — confirm they actually capture the
+  answer body on live claude.ai.
+- How to pair a user bubble with its assistant answer in the DOM (sibling / shared
+  article / `data-index`) — the tracker currently reads user bubbles only.
+- Confirm `data-is-streaming` reliably clears when generation finishes.
+
+**Branch note.** #159 (node-cache layer) and #160 are developed and merged to `dev`
+together — `feat/160` is stacked on `feat/159`, so the two ship as one unit rather than
+as separate PRs.
