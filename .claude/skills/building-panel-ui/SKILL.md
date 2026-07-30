@@ -192,8 +192,8 @@ share a location on the spine:
 |---------|--------|-----------|
 | `BookmarkButton` | left gutter, `x = ROW_INSET`, above center | hover, or always when bookmarked |
 | `TagButton` | left gutter, `x = ROW_INSET`, below center | hover, or always when tagged |
-| `HideButton` (#167) | node top-right; mirrors to bottom-right when `NodeBadge` occupies the corner | hover only |
-| `NodeBadge` | node top-right | always, branch points only |
+| `HideButton` (#167) | node top-right — the same spot on **every** node | hover only |
+| `NodeBadge` | node top-right; slides right by 20px while the row is hovered, so the hide button never has to relocate | always, branch points only |
 | `CollapsedRunButton` (#167) | the **gap** between rows, on the spine | always |
 
 The left gutter fits exactly one 16px icon column (`COLUMN_X` 44 − `ROW_INSET`

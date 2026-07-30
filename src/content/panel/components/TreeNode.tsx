@@ -235,12 +235,13 @@ export function TreeNode({
         />
       ) : null}
 
-      {/* Hide control at the node's top-right corner. On a branch point the
-          badge already owns that corner, so it mirrors below instead — a
-          horizontal shift past the 32px badge would push it into the label. */}
+      {/* Hide control at the node's top-right corner — the same spot on every
+          node. When a branch badge shares that corner, panel.css slides the
+          badge right on hover to make room (.nav-node:hover .nav-node-badge)
+          rather than relocating this button. */}
       <HideButton
         x={cx + NODE_RADIUS - 2}
-        cy={hasBadge ? cy + 3 * NODE_RADIUS / 2 : cy - 3 * NODE_RADIUS / 2}
+        cy={cy - 3 * NODE_RADIUS / 2}
         onHide={handleHide}
       />
 

@@ -550,6 +550,15 @@
 /* NodeBadge */
 .nav-node-badge {
   cursor: default;
+  transition: transform var(--nav-transition);
+}
+
+/* The hide control (#167) sits at the node's top-right on every node, so on a
+   branch point the badge slides out of its way instead of the button moving.
+   20px = the badge's left edge (cx + NODE_RADIUS - 4) clearing the button's
+   right edge (cx + NODE_RADIUS + 14) plus a 2px gap. */
+.nav-node:hover .nav-node-badge {
+  transform: translateX(20px);
 }
 
 /* CollapsedRunButton — "+ n" pill on the spine (issue #167). Always visible:
