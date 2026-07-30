@@ -84,6 +84,27 @@ export async function setNodeMetadata(
   await writeStore(store);
 }
 
+// Applies the same patch to several nodes in ONE read-modify-write. Calling
+// setNodeMetadata N times in parallel would have each call read the store
+// before the others wrote, so all but the last patch would be lost. Used when
+// expanding a collapsed run (issue #167).
+export async function setNodeMetadataBatch(
+  sessionId: string,
+  nodeIds: string[],
+  patch: Partial<NodeMetadata>,
+): Promise<void> {
+  if (nodeIds.length === 0) return;
+
+  const store = await readStore();
+  const entry = store[sessionId] ?? { nodes: {}, lastUpdated: 0 };
+  const nodes = { ...entry.nodes };
+  for (const nodeId of nodeIds) {
+    nodes[nodeId] = { ...DEFAULT_NODE_METADATA, ...nodes[nodeId], ...patch };
+  }
+  store[sessionId] = { nodes, lastUpdated: Date.now() };
+  await writeStore(store);
+}
+
 export async function clearSessionMetadata(sessionId: string): Promise<void> {
   const store = await readStore();
   delete store[sessionId];

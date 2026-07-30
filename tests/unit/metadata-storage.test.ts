@@ -1,8 +1,10 @@
-// Unit tests for metadata-storage helpers (issue #96; v2 envelope + GC, issue #153).
+// Unit tests for metadata-storage helpers (issue #96; v2 envelope + GC, issue #153;
+// hidden flag + batch write, issue #167).
 
 import {
   getSessionMetadata,
   setNodeMetadata,
+  setNodeMetadataBatch,
   clearSessionMetadata,
   purgeOrphanedMetadata,
   METADATA_RETENTION_DAYS,
@@ -73,11 +75,11 @@ describe('getSessionMetadata', () => {
   });
 
   it('returns only the requested session nodes', async () => {
-    seedSession('sess-1', { 'chatbox-0': { bookmarked: true, tags: ['important'] } }, Date.now());
-    seedSession('sess-2', { 'chatbox-0': { bookmarked: false, tags: [] } }, Date.now());
+    seedSession('sess-1', { 'chatbox-0': { bookmarked: true, tags: ['important'], hidden: false } }, Date.now());
+    seedSession('sess-2', { 'chatbox-0': { bookmarked: false, tags: [], hidden: false } }, Date.now());
 
     const result = await getSessionMetadata('sess-1');
-    expect(result).toEqual({ 'chatbox-0': { bookmarked: true, tags: ['important'] } });
+    expect(result).toEqual({ 'chatbox-0': { bookmarked: true, tags: ['important'], hidden: false } });
   });
 
   it('reads a legacy v1 entry (bare node map) and persists the migration', async () => {
@@ -121,7 +123,7 @@ describe('setNodeMetadata', () => {
     await setNodeMetadata('sess-1', 'chatbox-0', { bookmarked: true });
 
     expect(readSession('sess-1')?.nodes).toEqual({
-      'chatbox-0': { bookmarked: true, tags: [] },
+      'chatbox-0': { bookmarked: true, tags: [], hidden: false },
     });
   });
 
@@ -133,13 +135,14 @@ describe('setNodeMetadata', () => {
   });
 
   it('patches an existing entry without overwriting unchanged fields', async () => {
-    seedSession('sess-1', { 'chatbox-0': { bookmarked: false, tags: ['a', 'b'] } }, 0);
+    seedSession('sess-1', { 'chatbox-0': { bookmarked: false, tags: ['a', 'b'], hidden: false } }, 0);
 
     await setNodeMetadata('sess-1', 'chatbox-0', { bookmarked: true });
 
     expect(readSession('sess-1')?.nodes['chatbox-0']).toEqual({
       bookmarked: true,
       tags: ['a', 'b'],
+      hidden: false,
     });
   });
 
@@ -147,25 +150,26 @@ describe('setNodeMetadata', () => {
     seedSession(
       'sess-1',
       {
-        'chatbox-0': { bookmarked: false, tags: [] },
-        'chatbox-1': { bookmarked: true, tags: ['x'] },
+        'chatbox-0': { bookmarked: false, tags: [], hidden: false },
+        'chatbox-1': { bookmarked: true, tags: ['x'], hidden: false },
       },
       0,
     );
 
     await setNodeMetadata('sess-1', 'chatbox-0', { bookmarked: true });
 
-    expect(readSession('sess-1')?.nodes['chatbox-1']).toEqual({ bookmarked: true, tags: ['x'] });
+    expect(readSession('sess-1')?.nodes['chatbox-1']).toEqual({ bookmarked: true, tags: ['x'], hidden: false });
   });
 
   it('does not affect other sessions', async () => {
-    seedSession('sess-2', { 'chatbox-0': { bookmarked: true, tags: ['keep'] } }, 0);
+    seedSession('sess-2', { 'chatbox-0': { bookmarked: true, tags: ['keep'], hidden: false } }, 0);
 
     await setNodeMetadata('sess-1', 'chatbox-0', { bookmarked: true });
 
     expect(readSession('sess-2')?.nodes['chatbox-0']).toEqual({
       bookmarked: true,
       tags: ['keep'],
+      hidden: false,
     });
   });
 
@@ -184,8 +188,122 @@ describe('setNodeMetadata', () => {
 
     expect(readSession('sess-1')?.nodes).toEqual({
       'chatbox-0': { bookmarked: true, tags: ['legacy'] },
-      'chatbox-1': { bookmarked: true, tags: [] },
+      'chatbox-1': { bookmarked: true, tags: [], hidden: false },
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hidden flag (issue #167)
+// ---------------------------------------------------------------------------
+
+describe('hidden flag', () => {
+  it('round-trips through setNodeMetadata → getSessionMetadata', async () => {
+    await setNodeMetadata('sess-1', 'chatbox-0', { hidden: true });
+
+    const result = await getSessionMetadata('sess-1');
+    expect(result['chatbox-0'].hidden).toBe(true);
+  });
+
+  it('defaults to false on a record written before the flag existed', async () => {
+    // Pre-#167 record: no `hidden` key at all.
+    seedSession(
+      'sess-1',
+      { 'chatbox-0': { bookmarked: true, tags: ['a'] } as NodeMetadata },
+      0,
+    );
+
+    await setNodeMetadata('sess-1', 'chatbox-0', { bookmarked: false });
+
+    expect(readSession('sess-1')?.nodes['chatbox-0']).toEqual({
+      bookmarked: false,
+      tags: ['a'],
+      hidden: false,
+    });
+  });
+
+  it('does not clear bookmarks or tags when hiding', async () => {
+    seedSession('sess-1', { 'chatbox-0': { bookmarked: true, tags: ['keep'], hidden: false } }, 0);
+
+    await setNodeMetadata('sess-1', 'chatbox-0', { hidden: true });
+
+    expect(readSession('sess-1')?.nodes['chatbox-0']).toEqual({
+      bookmarked: true,
+      tags: ['keep'],
+      hidden: true,
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setNodeMetadataBatch (issue #167)
+// ---------------------------------------------------------------------------
+
+describe('setNodeMetadataBatch', () => {
+  it('applies the patch to every node in a single storage write', async () => {
+    await setNodeMetadataBatch('sess-1', ['chatbox-0', 'chatbox-1', 'chatbox-2'], {
+      hidden: false,
+    });
+
+    expect(mockLocalStorage.set).toHaveBeenCalledTimes(1);
+    expect(Object.keys(readSession('sess-1')?.nodes ?? {})).toEqual([
+      'chatbox-0',
+      'chatbox-1',
+      'chatbox-2',
+    ]);
+  });
+
+  it('preserves each node bookmarks and tags', async () => {
+    seedSession(
+      'sess-1',
+      {
+        'chatbox-0': { bookmarked: true, tags: ['a'], hidden: true },
+        'chatbox-1': { bookmarked: false, tags: ['b'], hidden: true },
+      },
+      0,
+    );
+
+    await setNodeMetadataBatch('sess-1', ['chatbox-0', 'chatbox-1'], { hidden: false });
+
+    expect(readSession('sess-1')?.nodes).toEqual({
+      'chatbox-0': { bookmarked: true, tags: ['a'], hidden: false },
+      'chatbox-1': { bookmarked: false, tags: ['b'], hidden: false },
+    });
+  });
+
+  it('does not lose updates the way parallel setNodeMetadata calls would', async () => {
+    seedSession(
+      'sess-1',
+      {
+        'chatbox-0': { bookmarked: false, tags: [], hidden: true },
+        'chatbox-1': { bookmarked: false, tags: [], hidden: true },
+        'chatbox-2': { bookmarked: false, tags: [], hidden: true },
+      },
+      0,
+    );
+
+    await setNodeMetadataBatch('sess-1', ['chatbox-0', 'chatbox-1', 'chatbox-2'], {
+      hidden: false,
+    });
+
+    const nodes = readSession('sess-1')?.nodes ?? {};
+    expect(Object.values(nodes).every((m) => m.hidden === false)).toBe(true);
+  });
+
+  it('leaves untouched nodes and other sessions alone', async () => {
+    seedSession('sess-1', { 'chatbox-9': { bookmarked: true, tags: [], hidden: true } }, 0);
+    seedSession('sess-2', { 'chatbox-0': { bookmarked: true, tags: [], hidden: true } }, 0);
+
+    await setNodeMetadataBatch('sess-1', ['chatbox-0'], { hidden: false });
+
+    expect(readSession('sess-1')?.nodes['chatbox-9'].hidden).toBe(true);
+    expect(readSession('sess-2')?.nodes['chatbox-0'].hidden).toBe(true);
+  });
+
+  it('is a no-op for an empty id list', async () => {
+    await setNodeMetadataBatch('sess-1', [], { hidden: false });
+
+    expect(mockLocalStorage.set).not.toHaveBeenCalled();
   });
 });
 
@@ -195,8 +313,8 @@ describe('setNodeMetadata', () => {
 
 describe('clearSessionMetadata', () => {
   it('removes the session entry from the store', async () => {
-    seedSession('sess-1', { 'chatbox-0': { bookmarked: true, tags: [] } }, 0);
-    seedSession('sess-2', { 'chatbox-0': { bookmarked: false, tags: [] } }, 0);
+    seedSession('sess-1', { 'chatbox-0': { bookmarked: true, tags: [], hidden: false } }, 0);
+    seedSession('sess-2', { 'chatbox-0': { bookmarked: false, tags: [], hidden: false } }, 0);
 
     await clearSessionMetadata('sess-1');
 
@@ -217,7 +335,7 @@ describe('purgeOrphanedMetadata', () => {
   const EXPIRED = Date.now() - (METADATA_RETENTION_DAYS + 1) * DAY;
 
   it('removes metadata with no cached tree that is past the retention horizon', async () => {
-    seedSession('orphan', { 'chatbox-0': { bookmarked: true, tags: [] } }, EXPIRED);
+    seedSession('orphan', { 'chatbox-0': { bookmarked: true, tags: [], hidden: false } }, EXPIRED);
 
     await purgeOrphanedMetadata();
 
@@ -225,7 +343,7 @@ describe('purgeOrphanedMetadata', () => {
   });
 
   it('keeps expired metadata when a cached tree still exists', async () => {
-    seedSession('kept', { 'chatbox-0': { bookmarked: true, tags: [] } }, EXPIRED);
+    seedSession('kept', { 'chatbox-0': { bookmarked: true, tags: [], hidden: false } }, EXPIRED);
     mockStorage.set('tree_kept', { sessionId: 'kept', nodes: [], activeBranchPath: [], lastUpdated: 0 });
 
     await purgeOrphanedMetadata();
@@ -234,7 +352,11 @@ describe('purgeOrphanedMetadata', () => {
   });
 
   it('keeps orphaned metadata that is within the retention horizon', async () => {
-    seedSession('recent-orphan', { 'chatbox-0': { bookmarked: true, tags: [] } }, Date.now() - DAY);
+    seedSession(
+      'recent-orphan',
+      { 'chatbox-0': { bookmarked: true, tags: [], hidden: false } },
+      Date.now() - DAY,
+    );
 
     await purgeOrphanedMetadata();
 

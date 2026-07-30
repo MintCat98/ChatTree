@@ -550,6 +550,42 @@
 /* NodeBadge */
 .nav-node-badge {
   cursor: default;
+  transition: transform var(--nav-transition);
+}
+
+/* The hide control (#167) sits at the node's top-right on every node, so on a
+   branch point the badge slides out of its way instead of the button moving.
+   20px = the badge's left edge (cx + NODE_RADIUS - 4) clearing the button's
+   right edge (cx + NODE_RADIUS + 14) plus a 2px gap. */
+.nav-node:hover .nav-node-badge {
+  transform: translateX(20px);
+}
+
+/* CollapsedRunButton — "+ n" pill on the spine (issue #167). Always visible:
+   it is the collapsed-state indicator, not a hover affordance. */
+.nav-collapsed-run {
+  cursor: pointer;
+  outline: none;
+}
+
+.nav-collapsed-run .nav-collapsed-run-pill {
+  fill: var(--nav-color-surface-2);
+  transition: fill var(--nav-transition);
+}
+
+.nav-collapsed-run .nav-collapsed-run-count {
+  fill: var(--nav-color-text-muted);
+  transition: fill var(--nav-transition);
+}
+
+.nav-collapsed-run:hover .nav-collapsed-run-pill,
+.nav-collapsed-run:focus-visible .nav-collapsed-run-pill {
+  fill: var(--nav-color-accent-soft);
+}
+
+.nav-collapsed-run:hover .nav-collapsed-run-count,
+.nav-collapsed-run:focus-visible .nav-collapsed-run-count {
+  fill: var(--nav-color-accent);
 }
 
 /* BookmarkButton (foreignObject + lucide icon) */
@@ -628,6 +664,39 @@
 }
 
 .nav-node-tag.is-open .nav-tag-btn {
+  color: var(--nav-color-accent);
+}
+
+/* HideButton (foreignObject + lucide Minus) — issue #167.
+   Unlike the bookmark/tag buttons this also gates pointer-events: a control
+   that removes the row from view must not be clickable while invisible. */
+.nav-node-hide {
+  opacity: 0;
+  pointer-events: none;
+  overflow: visible;
+  transition: opacity var(--nav-transition);
+}
+
+.nav-node:hover .nav-node-hide {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nav-hide-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--nav-radius-pill);
+  background: var(--nav-color-bg);
+  cursor: pointer;
+  color: var(--nav-color-text-muted);
+  transition: color var(--nav-transition);
+}
+
+.nav-hide-btn:hover {
   color: var(--nav-color-accent);
 }
 
@@ -955,7 +1024,7 @@
 }
 
 @keyframes nav-slide-in-sidebar {
-  from  { transform: trnaslateX(20px);  opacity: 0; }
+  from  { transform: translateX(20px);  opacity: 0; }
   to    { transform: translateX(0);     opcaity: 1; }
 }
 
@@ -982,5 +1051,88 @@
   font-family: var(--nav-font-family);
   font-size: var(--nav-font-size-sm);
   background: var(--nav-color-surface-2);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+}
+
+/* Interactive Map — horizontal expand.
+   When expanded, the sidebar's bottom section (which contains the map)
+   breaks out horizontally to the left of the sidebar, overlaying the page. */
+.nav-sidebar-bottom.is-expanded {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: calc(var(--panel-w) + 480px);
+  height: 60%;
+  z-index: 5;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+}
+
+.nav-im-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  outline: none;
+}
+
+.nav-im-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Bottom-right controls (expand toggle + zoom) */
+.nav-im-expand-btn {
+  position: absolute;
+  right: 108px;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: var(--nav-color-bg);
+  border: 1px solid var(--nav-color-border);
+  border-radius: 8px;
+  color: var(--nav-color-text);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-im-zoom-control {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--nav-color-bg);
+  border: 1px solid var(--nav-color-border);
+  border-radius: 8px;
+  font-family: var(--nav-font-family);
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-color-text);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  user-select: none;
+}
+
+.nav-im-zoom-readout {
+  min-width: 40px;
+  text-align: center;
+}
+
+.nav-im-zoom-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: currentColor;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 4px;
 }

@@ -101,8 +101,14 @@ export interface Messages {
   addBookmark: string;
   removeBookmark: string;
 
+  // HideButton
+  hideNode: string;
+
   // NodeBadge
   branchBadge: (current: number, total: number) => string;
+
+  // CollapsedRunButton
+  expandHidden: (n: number) => string;
 
   // TreeMapCanvas
   treeAria: string;
@@ -206,8 +212,14 @@ const en: Messages = {
   addBookmark: 'Add bookmark',
   removeBookmark: 'Remove bookmark',
 
+  // HideButton
+  hideNode: 'Hide this message',
+
   // NodeBadge
   branchBadge: (current, total) => `Branch ${current} of ${total}`,
+
+  // CollapsedRunButton
+  expandHidden: (n) => `Show ${n} hidden message${n === 1 ? '' : 's'}`,
 
   // TreeMapCanvas
   treeAria: 'Chat node tree',
@@ -311,8 +323,14 @@ const ko: Messages = {
   addBookmark: '북마크 추가',
   removeBookmark: '북마크 해제',
 
+  // HideButton
+  hideNode: '이 메시지 숨기기',
+
   // NodeBadge
   branchBadge: (current, total) => `브랜치 ${current}/${total}`,
+
+  // CollapsedRunButton
+  expandHidden: (n) => `숨긴 메시지 ${n}개 보기`,
 
   // TreeMapCanvas
   treeAria: '채팅 노드 트리',

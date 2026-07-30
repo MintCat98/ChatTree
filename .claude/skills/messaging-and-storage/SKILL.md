@@ -1,6 +1,6 @@
 ---
 name: messaging-and-storage
-description: Extension message contracts and flow between Content Script, Background service worker, and Panel, plus the chrome.storage.local tree cache - hydration on conversation entry and retention/purge policy. Use when adding or changing message types, working on src/background/ or session-store, or changing cache, hydration, or retention behavior.
+description: Extension message contracts and flow between Content Script, Background service worker, and Panel, plus the chrome.storage.local tree cache and per-node metadata (bookmarks, tags, hidden) - hydration on conversation entry, the metadata read/write API, and retention/purge policy. Use when adding or changing message types, working on src/background/ or session-store, reading or writing node metadata, or changing cache, hydration, or retention behavior.
 ---
 
 # Messaging & Storage
@@ -57,9 +57,13 @@ description: Extension message contracts and flow between Content Script, Backgr
 | `TREE_UPDATE` | Content → BG | `{ nodes, sessionId }` | Request full tree recalculation |
 | `GET_STORED_TREE` | Content → BG | `{ sessionId }` | Look up stored tree — request/response, for hydration (#152) |
 | `TREE_READY` | BG → Content/Panel | `{ tree }` | Push after tree data is ready |
-| `SCROLL_TO` | Panel → Content | `{ navId }` | Scroll request on node click |
+| `SCROLL_TO_NODE` | Panel → Content | `{ navId }` | Scroll request — relayed, but **no sender today**: the panel runs in the content-script context and calls `scrollToNode()` directly |
 | `CLEAR_TREE_CACHE` | Panel → BG | — | Remove all cached trees — request/response, responds `{ ok }` (#153) |
-| `SETTINGS_UPDATED` | Popup → BG | `{ settings }` | Settings changed |
+| `SETTINGS_CHANGE` | Popup → BG | `{ settings }` | Settings changed |
+
+**Node metadata has no message type.** The panel reads and writes
+`chrome.storage.local` directly (§7) — content scripts have `chrome.storage`
+access, so routing it through Background would buy nothing.
 
 ---
 
@@ -125,8 +129,8 @@ hydration source.
   `UserSettings.cacheRetentionDays` (default 30). Every `updateTree` refreshes
   `lastUpdated`, so the horizon means "days since last visit/update".
 - **Orphaned-metadata GC** runs right after the tree purge (order matters — the
-  orphan check must see the post-purge tree set): node metadata (bookmarks/tags,
-  issue #96) for sessions with **no cached tree** and untouched for
+  orphan check must see the post-purge tree set): node metadata (bookmarks,
+  tags, hidden — issue #96) for sessions with **no cached tree** and untouched for
   `METADATA_RETENTION_DAYS` (180) is dropped. Metadata is user data, not a
   rebuildable cache — it re-attaches on revisit via deterministic position-based
   node IDs — hence the far more conservative horizon than the tree cache.
@@ -145,8 +149,39 @@ hydration source.
 | Key | Owner | Contents |
 |-----|-------|----------|
 | `tree_<sessionId>` | Background (`session-store.ts`) | Cached `TreeData` per conversation — subject to retention purge |
-| Node metadata (bookmarks/tags, #96) | `src/shared/metadata-storage.ts` | User data, **not** a rebuildable cache — 180-day orphan GC only |
-| `chat-nav-settings` | Panel Zustand `persist` (localStorage inside Shadow DOM context) | Persisted `UserSettings` only |
+| `nodeMetadata` | `src/shared/metadata-storage.ts` | User data, **not** a rebuildable cache — 180-day orphan GC only |
+| `userSettings` | Panel store `mirrorToChromeStorage` | `UserSettings` — `chrome.storage.local`, no localStorage fallback |
+
+---
+
+## 7. Node Metadata API (`src/shared/metadata-storage.ts`)
+
+On-disk shape (v2): `{ [sessionId]: { nodes: { [nodeId]: NodeMetadata }, lastUpdated } }`.
+v1 stored the node map bare; `readStore` migrates on read and persists the
+migration once, so the GC clock is not re-stamped on every read.
+
+`NodeMetadata` is `{ bookmarked, tags, hidden }` — `hidden` collapses the node
+out of the tree map (#167) and is the flag the conversation DOM will subscribe
+to in #168. Records written before a field existed simply lack the key; every
+write merges `DEFAULT_NODE_METADATA` first, so reads should still use
+`?? false` rather than assuming the key is present.
+
+| Function | Use |
+|----------|-----|
+| `getSessionMetadata(sessionId)` | Read one session's node map. Runs on **every** `TREE_READY` (frequent during streaming), so the `lastUpdated` touch only writes past a 1-hour threshold |
+| `setNodeMetadata(sessionId, nodeId, patch)` | Patch **one** node |
+| `setNodeMetadataBatch(sessionId, nodeIds, patch)` | Patch **many** nodes |
+| `clearSessionMetadata` / `purgeOrphanedMetadata` | Delete one session / daily GC |
+
+**Use the batch helper for multi-node writes — this is correctness, not
+convenience.** Every setter does a full read-modify-write of the whole
+multi-session store. Firing N `setNodeMetadata` calls in parallel has each one
+read the store before the others have written, so all but the last patch are
+silently lost. `setNodeMetadataBatch` does one read-modify-write for the whole
+set (expanding a collapsed run of hidden nodes is the case that needs it).
+
+There is no debouncing anywhere in this layer, so avoid attaching large
+per-node payloads: each keystroke-level change rewrites the entire store.
 
 ---
 

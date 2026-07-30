@@ -5,6 +5,7 @@ import { watchPageChanges } from './page-watcher';
 import { injectPanel, destroyPanel, isPanelMounted, getResolvedTheme } from './ui-injector';
 import { CHAT_URL_PATTERN, SELECTORS } from '@shared/constants';
 import { MessageType } from '@shared/message-types';
+import { startHeaderToggleInjector } from './header-toggle-injector';
 
 let containerWatch: MutationObserver | null = null;
 
@@ -52,6 +53,9 @@ function init(): void {
   //   pathname: location.pathname,
   //   readyState: document.readyState,
   // });
+
+  // Step 0 — Inject the panel toggle into Claude's header (data-testid based).
+  startHeaderToggleInjector();
 
   // Step 1 — Register SPA navigation listener first so no URL change is missed.
   watchPageChanges((url) => {

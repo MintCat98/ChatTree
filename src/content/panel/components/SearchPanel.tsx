@@ -9,11 +9,14 @@ export function SearchPanel() {
   const tree = usePanelStore((s) => s.tree);
   const searchQuery = usePanelStore((s) => s.searchQuery);
   const setSearchQuery = usePanelStore((s) => s.setSearchQuery);
+  const sessionMetadata = usePanelStore((s) => s.sessionMetadata);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  const nodes = tree?.nodes ?? [];
+  // Hidden nodes (issue #167) stay out of the results — hiding wins over every
+  // view filter, so a match never drags a collapsed node back into sight.
+  const nodes = (tree?.nodes ?? []).filter((n) => !sessionMetadata[n.id]?.hidden);
   const q = searchQuery.toLowerCase().trim();
   const matches = q ? nodes.filter((n) => n.text.toLowerCase().includes(q)) : [];
 
