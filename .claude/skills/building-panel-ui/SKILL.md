@@ -37,15 +37,25 @@ description: Tree map panel UI - component specs, SVG layout constants, Zustand 
 ```
 <App>                          ← Zustand Provider, message listener
   <PanelShell>                 ← Shadow DOM mount wrapper, manages size and position
-    <Header>                   ← Drag handle, title, settings/close buttons
+    <Header>                   ← Drag handle, title, filter/tag/search/settings buttons
     <TreeMapCanvas>            ← SVG-based tree rendering area
+      <NodeConnector>          ← Vertical line between adjacent rows (N-1)
       <TreeNode>               ← Individual chatbox node (N)
         <NodeBadge>            ← Branch badge (conditional)
-      <TreeEdge>               ← Connecting edges between nodes (N-1)
-    <Tooltip>                  ← Mouse-over popup (Portal)
-    <ControlBar>               ← Direction, opacity, and sort controls
+        <BookmarkButton>       ← Hover affordance, left gutter top
+        <TagButton>            ← Hover affordance, left gutter bottom
+        <HideButton>           ← Hover affordance, node top-right (#167)
+      <GhostNode>              ← "earlier messages" dashed row (conditional, #152)
+      <CollapsedRunButton>     ← "+ n" pill in a row gap (conditional, #167)
+      <TagEditorPopover>       ← HTML overlay, anchored to a row (conditional)
+    <Tooltip>                  ← Mouse-over popup (Portal, outside the Shadow DOM)
+    <ControlBar>               ← Settings panel (conditional)
+    <TagPanel> / <SearchPanel> ← Collapsible panels below the canvas (conditional)
     <EmptyState>               ← Placeholder when no chatboxes exist
 ```
+
+`TreeEdge.tsx` and `BranchLane.tsx` exist in the folder but are **dead code** —
+nothing imports them. Do not extend them.
 
 ---
 
@@ -132,6 +142,21 @@ export function nodeCenterY(index: number): number;
 Changing these constants automatically propagates to `TreeNode`,
 `NodeConnector`, and `GhostNode`.
 
+**Rows ≠ nodes.** Hidden nodes (#167) are dropped from the row flow entirely, so
+never index rows with `tree.nodes`. The split lives in
+`panel/components/tree-layout.ts` — a plain `.ts` module, because Jest's
+`testMatch` only picks up `tests/unit/**/*.test.ts` and cannot test `.tsx`:
+
+```typescript
+buildTreeLayout(sortedNodes, sessionMetadata) → { visible, runs }
+runCenterY(run, visibleCount, ghostOffset)    → y of the "+ n" pill
+```
+
+Row index for any rendered element is therefore
+`visible.indexOf(node) + ghostOffset`, where `ghostOffset` is 1 when the ghost
+row (#152) occupies row 0 in ascending order. This applies to the auto-scroll
+effect and the `TagEditorPopover` anchor as well — both index `visible`.
+
 ### 3-4. `<TreeNode>`
 
 ```typescript
@@ -142,19 +167,41 @@ interface TreeNodeProps {
 }
 ```
 
-**Visual Spec:**
+**Visual Spec** — circles, not boxes. State is driven by class modifiers on the
+`<g class="nav-node">` wrapper; descendant SVG fill/stroke follow from CSS.
 
-| State | Size | Background | Border |
-|-------|------|-----------|--------|
-| Default | 36×36px | `--nav-color-node` (`#7c3aed`) | None |
-| Active (current position) | 40×40px | `--nav-color-active` (`#6d28d9`) | 2px white |
-| Branch node | 36×36px | `--nav-color-branch` (`#d97706`) | None |
-| Hover | 38×38px | 10% lighter | 1px `--nav-color-hover` |
+| State | Radius | Fill | Ring |
+|-------|--------|------|------|
+| Default | `NODE_RADIUS` (13) | `--nav-color-node-fill` | `--nav-color-node-border` |
+| Active (in viewport) | `NODE_RADIUS_ACTIVE` (14) | `--nav-color-node-active` | none + `--nav-active-glow` |
+| Hover | `NODE_RADIUS + 1` | unchanged | `--nav-color-accent` |
 
-**Node Label:**
-- Summary text: max 8 chars + `...` (truncated)
-- If summary not yet generated: `Loading...` spinner
-- On mouse-over: full original prompt shown via `<Tooltip>`
+Modifier classes: `is-active`, `is-hovered`, `is-branch`, `is-bookmarked`,
+`is-tag-match`, `is-search-match`. **`is-latest` is dead** — five `panel.css`
+selectors still say `:not(.is-latest)` but no component emits it.
+
+**Node Label:** the full prompt text, rendered in a `foreignObject` with
+`text-overflow: ellipsis` (`pointer-events: none` so the row keeps the click).
+`truncate()` in `constants.ts` is for SVG `<text>` and is only used by
+`SearchPanel`. Summaries are Future Work — there is no summary field.
+
+**Affordance anchor map.** Each control owns exactly one spot, so no two ever
+share a location on the spine:
+
+| Control | Anchor | Visibility |
+|---------|--------|-----------|
+| `BookmarkButton` | left gutter, `x = ROW_INSET`, above center | hover, or always when bookmarked |
+| `TagButton` | left gutter, `x = ROW_INSET`, below center | hover, or always when tagged |
+| `HideButton` (#167) | node top-right — the same spot on **every** node | hover only |
+| `NodeBadge` | node top-right; slides right by 20px while the row is hovered, so the hide button never has to relocate | always, branch points only |
+| `CollapsedRunButton` (#167) | the **gap** between rows, on the spine | always |
+
+The left gutter fits exactly one 16px icon column (`COLUMN_X` 44 − `ROW_INSET`
+10); a third icon there would not fit, which is why hide is anchored to the node.
+
+`HideButton` also gates `pointer-events`, unlike the bookmark/tag buttons which
+only zero `opacity` and stay clickable while invisible. A control that removes a
+row from view must not be a hidden click target.
 
 ### 3-5. `<NodeBadge>`
 
@@ -172,7 +219,38 @@ Rendered only on branch point nodes.
 └──────────────────┘
 ```
 
-### 3-6. `<Tooltip>`
+### 3-6. `<CollapsedRunButton>` — hidden nodes (#167)
+
+```typescript
+interface CollapsedRunButtonProps {
+  cx: number;    // spine x — same column as the node circles
+  cy: number;    // gap midpoint, from runCenterY()
+  count: number; // hidden nodes in this run
+  onExpand: () => void;
+}
+```
+
+Consecutive hidden nodes collapse into **one** `+ n` pill sitting on the
+connector, in the gap between the two surrounding visible rows. The run consumes
+**zero** vertical space — remaining rows keep their normal `NODE_STEP` spacing.
+Like `NodeBadge`, the pill strokes itself with `--nav-color-bg` so the connector
+line does not run through it.
+
+Three geometry cases `runCenterY` handles — get these wrong and the pill clips
+or vanishes:
+
+| Case | y |
+|------|---|
+| middle / trailing run | half a step below the last visible row above it |
+| leading run | half a step above the first visible row, **clamped** so it is not cut off by the top of the SVG when no ghost row sits above it |
+| every node hidden | centered on a single reserved row (`totalRows` floors at 1 — an all-hidden tree is not an empty tree, so `EmptyState` must not take over) |
+
+**Expanding is a permanent unhide**: it clears `hidden` on every node in the run
+and persists it. There is no transient "peek" state — the metadata flag is the
+single source of truth so the conversation DOM (#168) can subscribe to it
+without drifting from the panel.
+
+### 3-7. `<Tooltip>`
 
 ```typescript
 interface TooltipProps {
@@ -185,7 +263,7 @@ interface TooltipProps {
 - Max width: 320px, max height: 200px (overflow: scroll)
 - Delay: shown after 300ms hover, hidden immediately on leave
 
-### 3-7. `<ControlBar>`
+### 3-8. `<ControlBar>`
 
 ```
 [ ↕ Top-Down ▾ ]  [ ◐ 80% ]  [ ↓ Newest ▾ ]
@@ -205,44 +283,35 @@ interface TooltipProps {
 
 ## 4. Zustand Store
 
+> Read `panel/store/panel-store.ts` for the current field list — it grows with
+> every panel feature. The rules below are what matters.
+
+**No `persist` middleware.** `chrome.storage.local` is the single source of
+truth; there is no localStorage fallback. `updateSettings` mirrors the full
+settings object to `chrome.storage` on every call, and `hydrateSettings` applies
+an incoming patch **without** writing back — use it for storage-change
+hydration and live drag-resize, or you get a write loop.
+
+**Persisted vs transient.** Only `settings` and node metadata survive a reload.
+`bookmarksOnlyFilter`, `activeTagFilters`, `searchQuery`, panel open/close flags
+and `generationComplete` are all transient view state, and `setTree` resets the
+filter/search ones on a conversation switch.
+
+**Node metadata** (`sessionMetadata`, keyed by nodeId — bookmarks, tags, and
+`hidden`) is refetched from `chrome.storage.local` on every `TREE_READY`, so it
+is a mirror, not the store's own state. Writes are two-step and both halves are
+required:
+
 ```typescript
-// panel/store/panel-store.ts
-
-interface PanelState {
-  tree: TreeData | null;
-  settings: UserSettings;
-  hoveredNodeId: string | null;
-  activeNodeId: string | null;
-
-  // Actions
-  setTree: (tree: TreeData) => void;
-  updateSettings: (patch: Partial<UserSettings>) => void;
-  setHoveredNode: (id: string | null) => void;
-  setActiveNode: (id: string | null) => void;
-}
-
-export const usePanelStore = create<PanelState>()(
-  persist(
-    (set) => ({
-      tree: null,
-      settings: DEFAULT_SETTINGS,
-      hoveredNodeId: null,
-      activeNodeId: null,
-
-      setTree: (tree) => set({ tree }),
-      updateSettings: (patch) =>
-        set((s) => ({ settings: { ...s.settings, ...patch } })),
-      setHoveredNode: (id) => set({ hoveredNodeId: id }),
-      setActiveNode: (id) => set({ activeNodeId: id }),
-    }),
-    {
-      name: 'chat-nav-settings',
-      storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ settings: s.settings }), // persist settings only
-    }
-  )
-);
+patchNodeMetadata(node.id, { hidden: true });          // optimistic, re-renders now
+setNodeMetadata(sessionId, node.id, { hidden: true }); // async persist
 ```
+
+For several nodes at once use `setNodeMetadataBatch` — see
+[messaging-and-storage §7](../messaging-and-storage/SKILL.md).
+
+Store fields are enumerated exhaustively in `resetStore()` in
+`tests/unit/panel-store.test.ts`; add new ones there too.
 
 ---
 

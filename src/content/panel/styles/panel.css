@@ -550,6 +550,42 @@
 /* NodeBadge */
 .nav-node-badge {
   cursor: default;
+  transition: transform var(--nav-transition);
+}
+
+/* The hide control (#167) sits at the node's top-right on every node, so on a
+   branch point the badge slides out of its way instead of the button moving.
+   20px = the badge's left edge (cx + NODE_RADIUS - 4) clearing the button's
+   right edge (cx + NODE_RADIUS + 14) plus a 2px gap. */
+.nav-node:hover .nav-node-badge {
+  transform: translateX(20px);
+}
+
+/* CollapsedRunButton — "+ n" pill on the spine (issue #167). Always visible:
+   it is the collapsed-state indicator, not a hover affordance. */
+.nav-collapsed-run {
+  cursor: pointer;
+  outline: none;
+}
+
+.nav-collapsed-run .nav-collapsed-run-pill {
+  fill: var(--nav-color-surface-2);
+  transition: fill var(--nav-transition);
+}
+
+.nav-collapsed-run .nav-collapsed-run-count {
+  fill: var(--nav-color-text-muted);
+  transition: fill var(--nav-transition);
+}
+
+.nav-collapsed-run:hover .nav-collapsed-run-pill,
+.nav-collapsed-run:focus-visible .nav-collapsed-run-pill {
+  fill: var(--nav-color-accent-soft);
+}
+
+.nav-collapsed-run:hover .nav-collapsed-run-count,
+.nav-collapsed-run:focus-visible .nav-collapsed-run-count {
+  fill: var(--nav-color-accent);
 }
 
 /* BookmarkButton (foreignObject + lucide icon) */
@@ -628,6 +664,39 @@
 }
 
 .nav-node-tag.is-open .nav-tag-btn {
+  color: var(--nav-color-accent);
+}
+
+/* HideButton (foreignObject + lucide Minus) — issue #167.
+   Unlike the bookmark/tag buttons this also gates pointer-events: a control
+   that removes the row from view must not be clickable while invisible. */
+.nav-node-hide {
+  opacity: 0;
+  pointer-events: none;
+  overflow: visible;
+  transition: opacity var(--nav-transition);
+}
+
+.nav-node:hover .nav-node-hide {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nav-hide-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--nav-radius-pill);
+  background: var(--nav-color-bg);
+  cursor: pointer;
+  color: var(--nav-color-text-muted);
+  transition: color var(--nav-transition);
+}
+
+.nav-hide-btn:hover {
   color: var(--nav-color-accent);
 }
 
