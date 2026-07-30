@@ -318,12 +318,7 @@ export function InteractiveMap() {
   
 
   return (
-    <div style={{ 
-        position: 'relative',
-        width: '100%',
-        height: '100%'
-      }}
-    >
+    <div className="nav-im-container">
       <svg
         ref={svgRef}
         className="nav-im-svg"
@@ -337,61 +332,27 @@ export function InteractiveMap() {
         aria-label={isExpanded ? 'Collapse map' : 'Expand map'}
         aria-pressed={isExpanded}
         title={isExpanded ? 'Collapse' : 'Expand'}
-        style={{
-          position: 'absolute',
-          right: 108,
-          bottom: 8,
-          width: 28,
-          height: 28,
-          padding: 0,
-          background: 'var(--nav-color-bg)',
-          border: '1px solid var(--nav-color-border)',
-          borderRadius: 8,
-          color: 'var(--nav-color-text)',
-          cursor: 'pointer',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        className="nav-im-expand-btn"
       >
         {isExpanded ? '⇥' : '⇤'}
       </button>
 
       {/* Zoom control (bottom-right) */}
-      <div
-        style={{
-          position: 'absolute',
-          right: 8,
-          bottom: 8,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          padding: '4px 6px',
-          background: 'var(--nav-color-bg)',
-          border: '1px solid var(--nav-color-border)',
-          borderRadius: 8,
-          fontFamily: 'var(--nav-font-family)',
-          fontSize: 'var(--nav-font-size-sm)',
-          color: 'var(--nav-color-text)',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-          userSelect: 'none',
-        }}
-      >
+      <div className="nav-im-zoom-control">
         <button
           type="button"
           onClick={() => zoomTo(nextLadderStep(zoomPercent, -1))}
           aria-label="Zoom out"
-          style={zoomBtnStyle}
+          className="nav-im-zoom-btn"
         >
           −
         </button>
-        <span style={{ minWidth: 40, textAlign: 'center' }}>{zoomPercent}%</span>
+        <span className="nav-im-zoom-readout">{zoomPercent}%</span>
         <button
           type="button"
           onClick={() => zoomTo(nextLadderStep(zoomPercent, 1))}
           aria-label="Zoom in"
-          style={zoomBtnStyle}
+          className="nav-im-zoom-btn"
         >
           +
         </button>
@@ -399,16 +360,3 @@ export function InteractiveMap() {
     </div>
   );
 }
-
-const zoomBtnStyle: React.CSSProperties = {
-  width: 22,
-  height: 22,
-  padding: 0,
-  border: 'none',
-  background: 'transparent',
-  color: 'currentColor',
-  cursor: 'pointer',
-  fontSize: 14,
-  lineHeight: 1,
-  borderRadius: 4,
-};
