@@ -3,6 +3,7 @@
 import { onMessage } from './message-handler';
 import { purgeExpiredTrees } from './session-store';
 import { purgeOrphanedMetadata } from '@shared/metadata-storage';
+import { purgeOrphanedNodeCache } from '@shared/node-cache';
 import { runSummaryEval } from '@shared/summary.eval';
 
 Object.assign(globalThis, { runSummaryEval });
@@ -27,6 +28,7 @@ chrome.alarms.create('tree-cache-purge', { periodInMinutes: 1440 });
 function runRetentionPurge(): void {
   purgeExpiredTrees()
     .then(() => purgeOrphanedMetadata())
+    .then(() => purgeOrphanedNodeCache())
     .catch((err) => console.warn('[ChatTree] retention purge failed:', err));
 }
 

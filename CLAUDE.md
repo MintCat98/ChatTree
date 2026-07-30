@@ -138,8 +138,12 @@ changes go through normal PR review.
   not rely on copies in docs.**
 - Messages: use the `message-types.ts` enum, never raw string literals. Flow
   and payload semantics: `messaging-and-storage` skill.
-- **Do not add a `summary` field to `ChatboxNode`** — summarization is Future
-  Work (spike record: `docs/spikes/node-summarization.md`).
+- **Node summaries (#158) and relevance scores (#161) live in `NodeCacheEntry`**
+  — a separate `chrome.storage.local` cache (`src/shared/node-cache.ts`, issue
+  #159), keyed by session + node. **Do not put `summary`/`relevance` on
+  `ChatboxNode`:** `session-store.updateTree` rebuilds the tree from the DOM on
+  every update and would wipe them. Summary spike:
+  `docs/spikes/node-summarization.md`.
 
 ### Coding Conventions
 

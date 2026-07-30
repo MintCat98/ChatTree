@@ -6,6 +6,7 @@ import type { ChatboxNode, UserSettings } from '@shared/types';
 import { DEFAULT_SETTINGS } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
 import { getTree, updateTree, clearAllTrees } from '@background/session-store';
+import { clearAllNodeCache } from '@shared/node-cache';
 
 export function onMessage(
   message: BridgeMessage,
@@ -26,10 +27,11 @@ export function onMessage(
     return true;
   }
 
-  // Request/response path — removes all cached trees (issue #153). Node
-  // metadata (bookmarks/tags) has its own lifecycle and is not touched.
+  // Request/response path — removes all cached trees plus the node cache
+  // (summaries/relevance) derived from them (issues #153, #159). Node metadata
+  // (bookmarks/tags) has its own lifecycle and is not touched.
   if (message.type === MessageType.CLEAR_TREE_CACHE) {
-    clearAllTrees()
+    Promise.all([clearAllTrees(), clearAllNodeCache()])
       .then(() => sendResponse({ ok: true }))
       .catch(() => sendResponse({ ok: false }));
     return true;

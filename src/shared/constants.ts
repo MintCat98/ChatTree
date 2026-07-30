@@ -27,6 +27,12 @@ export const SELECTORS = {
 // Shared by session-store (owner) and the orphaned-metadata GC.
 export const TREE_KEY_PREFIX = 'tree_';
 
+// chrome.storage.local key prefix for the per-conversation node cache
+// (summaries #158/#160 + relevance #161, issue #159). Keyed per session like
+// TREE_KEY_PREFIX so each read/write touches one conversation, not one global
+// blob, and orphan GC / cache-clear can scan by prefix.
+export const NODE_CACHE_KEY_PREFIX = 'nodeCache_';
+
 export const STORAGE_KEYS = {
   TREE_DATA: 'chatTreeData',
   USER_SETTINGS: 'userSettings',

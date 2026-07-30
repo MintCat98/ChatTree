@@ -1,12 +1,13 @@
 // src/shared/types.ts
 // MVP scope only. Do NOT add fields not listed here without team agreement.
-// Future Work (out of scope): summary, aiSummary, or any LLM-related fields.
 
 // ---------------------------------------------------------------------------
 // Node Metadata — per-node user data (bookmarks, tags). Issue #96.
 // Persisted in chrome.storage.local under STORAGE_KEYS.NODE_METADATA,
 // keyed as: NodeMetadataStore[sessionId].nodes[nodeId].
 // ---------------------------------------------------------------------------
+
+import type { NodeSummary } from './summary';
 
 export interface NodeMetadata {
   bookmarked: boolean;
@@ -30,6 +31,15 @@ export const DEFAULT_NODE_METADATA: NodeMetadata = {
   tags: [],
   hidden: false,
 };
+
+// Node Summary and Relevance Caching (issue #159). Stored in chrome.storage.local
+// under `nodeCache_<sessionId>` as a flat { [nodeId]: NodeCacheEntry } map — see
+// node-cache.ts. All fields optional: this is a rebuildable derived cache, not
+// user data, so summary (#160) and relevance (#161) can be filled independently.
+export interface NodeCacheEntry {
+  summary?: NodeSummary;
+  relevance?: number;
+}
 
 export interface ChatboxNode {
   id: string; // "chatbox-0", "chatbox-1", ... (assigned by tracker.ts)
