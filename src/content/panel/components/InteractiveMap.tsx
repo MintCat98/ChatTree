@@ -326,9 +326,7 @@ export function InteractiveMap() {
     >
       <svg
         ref={svgRef}
-        width="100%"
-        height="100%"
-        style={{ display: 'block', cursor: 'grab', outline: 'none' }}
+        className="nav-im-svg"
         tabIndex={0}
       />
 
