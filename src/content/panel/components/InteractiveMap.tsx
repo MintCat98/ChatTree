@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import type { ChatboxNode } from '@shared/types';
+import type { ChatboxNode, NodeMetadata } from '@shared/types';
 import { usePanelStore } from '../store/panel-store';
 import { scrollToNode } from '../../scroll-navigator';
 
@@ -34,7 +34,16 @@ const SNAP_RADIUS = 30;
 
 // Mock relevance: pick a parent for each node from earlier nodes.
 // 'chain' → previous node; 'random' → any earlier node (or root).
-function pickParent(nodes: ChatboxNode[], i: number): string | null {
+function pickParent(
+  nodes: ChatboxNode[], 
+  i: number,
+  metadata: Record<string, NodeMetadata>,
+): string | null {
+  const node = nodes[i];
+  // User edit wins over the mock relevance.
+  const override = metadata[node.id]?.parentOverride;
+  if (override !== undefined && override !== null) return override;
+
   if (i === 0) return null;
   if (MOCK_RELEVANCE_MODE === 'chain') return nodes[i - 1].id;
   const idx = Math.floor(Math.random() * i);
@@ -60,13 +69,16 @@ interface TreeDatum {
   children: TreeDatum[];
 }
 
-function buildHierarchy(nodes: ChatboxNode[]): TreeDatum {
+function buildHierarchy(
+  nodes: ChatboxNode[],
+  metadata: Record<string, NodeMetadata>,
+): TreeDatum {
   const byId = new Map<string, TreeDatum>();
   nodes.forEach((n) => byId.set(n.id, { id: n.id, text: n.text, children: [] }));
 
   const roots: TreeDatum[] = [];
   nodes.forEach((n, i) => {
-    const parentId = pickParent(nodes, i);
+    const parentId = pickParent(nodes, i, metadata);
     const self = byId.get(n.id)!;
     if (parentId && byId.has(parentId)) {
       byId.get(parentId)!.children.push(self);
@@ -86,6 +98,8 @@ function bezier(x1: number, y1: number, x2: number, y2: number): string {
 export function InteractiveMap() {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const tree = usePanelStore((s) => s.tree);
+  const sessionMetadata = usePanelStore((s) => s.sessionMetadata);
+  const patchNodeMetadata = usePanelStore((s) => s.patchNodeMetadata);
 
   // Zoom behavior state
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -214,7 +228,7 @@ export function InteractiveMap() {
         return;
       }
 
-      const root = d3.hierarchy(buildHierarchy(tree.nodes));
+      const root = d3.hierarchy(buildHierarchy(tree?.nodes, sessionMetadata));
       const layout = d3.tree<TreeDatum>().nodeSize([
       NODE_HEIGHT + V_GAP,
       NODE_WIDTH + H_GAP,
@@ -436,7 +450,7 @@ export function InteractiveMap() {
             clearHighlight(snappedTargetId);
             if (snappedTargetId !== null) {
               // TODO next step — persist edge override: d.data.id → snappedTargetId.
-              console.log('[rewire] would connect', d.data.id, '→', snappedTargetId);
+              void patchNodeMetadata(d.data.id, { parentOverride: snappedTargetId });
             }
             snappedTargetId = null
             window.removeEventListener('pointermove', onPointerMove);
@@ -446,7 +460,7 @@ export function InteractiveMap() {
           window.addEventListener('pointermove', onPointerMove);
           window.addEventListener('pointerup', onPointerUp);
         });
-  }, [tree]);
+  }, [tree, sessionMetadata]);
 
   // Sync expand state to the parent sidebar-bottom container so it can
   // break out horizontally beyond the sidebar width.

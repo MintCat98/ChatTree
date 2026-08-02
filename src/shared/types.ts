@@ -13,6 +13,7 @@ export interface NodeMetadata {
   bookmarked: boolean;
   tags: string[];
   hidden: boolean; // collapsed out of the tree map (issue #167)
+  parentOverride: string | null; // user-picked parent for the Interactive Map (Issue #164)
 }
 
 // Per-session envelope: node map + last-touched timestamp used by the orphaned-
@@ -30,6 +31,7 @@ export const DEFAULT_NODE_METADATA: NodeMetadata = {
   bookmarked: false,
   tags: [],
   hidden: false,
+  parentOverride: null,
 };
 
 // Node Summary and Relevance Caching (issue #159). Stored in chrome.storage.local
