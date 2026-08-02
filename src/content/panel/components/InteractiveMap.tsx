@@ -306,6 +306,8 @@ export function InteractiveMap() {
       });
 
     // Hover handles
+    const previewLayer = g.append('g').attr('class', 'im-preview-layer');
+
     const HANDLE_RADIUS = 5;
 
     // Left handle (incoming edge target)
@@ -330,7 +332,61 @@ export function InteractiveMap() {
       .attr('fill', 'var(--nav-color-node-fill)')
       .attr('stroke', 'var(--nav-color-node-border)')
       .attr('stroke-width', 1.5)
-      .style('opacity', 0);
+      .style('opacity', 0)
+      .on('pointerdown', function (event: PointerEvent, d) {
+          // Don't let d3.zoom start a pan when a handle is grabbed.
+          event.stopPropagation();
+          event.preventDefault();
+
+          // Source point: this handle's position in the g coord system.
+          const srcX = (d.y ?? 0) - minY + NODE_WIDTH;
+          const srcY = (d.x ?? 0) - minX + NODE_HEIGHT / 2;
+
+          // Preview path — starts as a zero-length curve at the source.
+          const previewPath = previewLayer
+            .append('path')
+            .attr('class', 'im-preview-edge')
+            .attr('fill', 'none')
+            .attr('stroke', 'var(--nav-color-edge)')
+            .attr('stroke-width', EDGE_STROKE_WIDTH)
+            .attr('stroke-dasharray', '4 3')
+            .attr('pointer-events', 'none');
+
+          // Capture the pointer so we get moves even off the handle circle.
+          (event.target as Element).setPointerCapture?.(event.pointerId);
+
+          function pointToSvgCoords(clientX: number, clientY: number) {
+            // Convert client (viewport) coords → svg → viewport-group coords.
+            if (!svgRef.current) return { x: 0, y: 0 };
+            const pt = svgRef.current.createSVGPoint();
+            pt.x = clientX;
+            pt.y = clientY;
+            const ctm = (g.node() as SVGGraphicsElement).getScreenCTM();
+            if (!ctm) return { x: 0, y: 0 };
+            const local = pt.matrixTransform(ctm.inverse());
+            return { x: local.x, y: local.y };
+          }
+
+          function bezier(x1: number, y1: number, x2: number, y2: number): string {
+            // Same horizontal-cubic style as d3.linkHorizontal for visual continuity.
+            const midX = (x1 + x2) / 2;
+            return `M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}`;
+          }
+
+          const onPointerMove = (moveEvent: PointerEvent) => {
+            const { x, y } = pointToSvgCoords(moveEvent.clientX, moveEvent.clientY);
+            previewPath.attr('d', bezier(srcX, srcY, x, y));
+          };
+
+          const onPointerUp = () => {
+            previewPath.remove();
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+          };
+
+          window.addEventListener('pointermove', onPointerMove);
+          window.addEventListener('pointerup', onPointerUp);
+        });
   }, [tree]);
 
   // Sync expand state to the parent sidebar-bottom container so it can
