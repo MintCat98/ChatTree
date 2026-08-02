@@ -19,7 +19,6 @@ const NODE_WIDTH = 140;
 const NODE_HEIGHT = 40;
 const H_GAP = 60;       // extra horizontal spacing between depth levels
 const V_GAP = 12;       // extra vertical spacing betwen siblings
-const NODE_GAP_Y = 12;
 const PADDING = 16;
 const EDGE_COLOR = 'var(--nav-color-edge)';
 const EDGE_STROKE_WIDTH = 1.5;
@@ -29,6 +28,9 @@ const ZOOM_LADDER = [25, 50, 75, 100, 125, 150, 200];
 const ZOOM_MIN = ZOOM_LADDER[0] / 100;
 const ZOOM_MAX = ZOOM_LADDER[ZOOM_LADDER.length - 1] / 100;
 const ZOOM_FINE_STEP = 0.05;
+
+const HANDLE_RADIUS = 5;
+const SNAP_RADIUS = 30;
 
 // Mock relevance: pick a parent for each node from earlier nodes.
 // 'chain' → previous node; 'random' → any earlier node (or root).
@@ -74,6 +76,11 @@ function buildHierarchy(nodes: ChatboxNode[]): TreeDatum {
   });
 
   return { id: '__root__', text: '', children: roots };
+}
+
+function bezier(x1: number, y1: number, x2: number, y2: number): string {
+  const midX = (x1 + x2) / 2;
+  return `M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}`;
 }
 
 export function InteractiveMap() {
@@ -232,7 +239,7 @@ export function InteractiveMap() {
         if (isSpacePressedRef.current && event.button === 0) return true;
         if (event.button === 0) {
           const target = event.target as Element;
-          return !target.closest('g.im-node');
+          return !target.closest('g.im-node') && !target.closest('im-handle');
         }
         return false;
       })
@@ -307,8 +314,12 @@ export function InteractiveMap() {
 
     // Hover handles
     const previewLayer = g.append('g').attr('class', 'im-preview-layer');
-
-    const HANDLE_RADIUS = 5;
+    
+    const dropTargets = drawable.map((node) => ({
+      id: node.data.id,
+      x: (node.y ?? 0) - minY,
+      y: (node.x ?? 0) - minX + NODE_HEIGHT / 2,
+    }));
 
     // Left handle (incoming edge target)
     nodeGroup
@@ -367,19 +378,67 @@ export function InteractiveMap() {
             return { x: local.x, y: local.y };
           }
 
-          function bezier(x1: number, y1: number, x2: number, y2: number): string {
-            // Same horizontal-cubic style as d3.linkHorizontal for visual continuity.
-            const midX = (x1 + x2) / 2;
-            return `M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}`;
-          }
+          // Snap tracking + highlight helpers.
+          let snappedTargetId: string | null = null;
+
+          const clearHighlight = (id: string | null) => {
+            if (id === null) return;
+            g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-left')
+              .filter((nd) => nd.data.id === id)
+              .attr('fill', 'var(--nav-color-node-fill)')
+              .attr('stroke', 'var(--nav-color-node-border)')
+              .style('opacity', 0);
+          };
+
+          const applyHighlight = (id: string) => {
+            g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-left')
+              .filter((nd) => nd.data.id === id)
+              .attr('fill', 'var(--nav-color-accent)')
+              .attr('stroke', 'var(--nav-color-accent)')
+              .style('opacity', 1);
+          };
 
           const onPointerMove = (moveEvent: PointerEvent) => {
             const { x, y } = pointToSvgCoords(moveEvent.clientX, moveEvent.clientY);
-            previewPath.attr('d', bezier(srcX, srcY, x, y));
+            // Find nearest valid target inside snap radius.
+            // Excludes the source node itself so it can't reconnect to its own outgoing edge.
+            let bestId: string | null = null;
+            let bestDist = SNAP_RADIUS;
+            for (const t of dropTargets) {
+              if (t.id === d.data.id) continue;
+              const dx = t.x - x;
+              const dy = t.y - y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < bestDist) {
+                bestDist = dist;
+                bestId = t.id;
+              }
+            }
+
+            // Preview snaps to target if any, otherwise follows the cursor.
+            if (bestId !== null) {
+              const target = dropTargets.find((t) => t.id === bestId)!;
+              previewPath.attr('d', bezier(srcX, srcY, target.x, target.y));
+            } else {
+              previewPath.attr('d', bezier(srcX, srcY, x, y));
+            }
+
+            // Update highlight when snapped target changes.
+            if (bestId !== snappedTargetId) {
+              clearHighlight(snappedTargetId);
+              if (bestId !== null) applyHighlight(bestId);
+              snappedTargetId = bestId;
+            }
           };
 
           const onPointerUp = () => {
             previewPath.remove();
+            clearHighlight(snappedTargetId);
+            if (snappedTargetId !== null) {
+              // TODO next step — persist edge override: d.data.id → snappedTargetId.
+              console.log('[rewire] would connect', d.data.id, '→', snappedTargetId);
+            }
+            snappedTargetId = null
             window.removeEventListener('pointermove', onPointerMove);
             window.removeEventListener('pointerup', onPointerUp);
           };
