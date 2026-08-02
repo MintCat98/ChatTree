@@ -98,7 +98,9 @@ function handleDOMChange(): void {
     currentNodes = mergeMountedNodes();
     // console.log('[ChatTree DBG] DOM change → tree built, nodeCount=', currentNodes.length);
     dispatchTree(buildTree(currentNodes));
-    document.querySelectorAll(`[${SELECTORS.NAV_ID_ATTR}]`).forEach((el) => observeNode(el));
+    document
+      .querySelectorAll(`[${SELECTORS.NAV_ID_ATTR}]`)
+      .forEach((el) => observeNode(el));
   }, TIMING.OBSERVER_DEBOUNCE);
 }
 

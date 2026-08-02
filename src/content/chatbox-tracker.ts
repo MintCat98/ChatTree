@@ -109,10 +109,7 @@ export function assignChatboxIds(): ChatboxNode[] {
 
 // Per-session accumulator: absIndex → last known state of that turn.
 // Survives virtualization unmounts; reset on conversation change.
-const nodeCache = new Map<
-  number,
-  { node: ChatboxNode; top: number | null; answer: string | null }
->();
+const nodeCache = new Map<number, { node: ChatboxNode; top: number | null; answer: string | null }>();
 
 export function resetNodeCache(): void {
   nodeCache.clear();
@@ -239,7 +236,7 @@ export function detectBranch(el: HTMLElement): BranchInfo {
 
   // BRANCH_INDICATOR includes text like "[current branch #]/[Total # of branch]"
   const indicator = wrapper.querySelector(SELECTORS.BRANCH_INDICATOR);
-  const text = indicator?.textContent ?? '';
+  const text = indicator?.textContent ?? ''; 
   const [n, m] = text.split('/').map(Number);
 
   // There won't be any texts if this chat has single branch
@@ -267,20 +264,20 @@ export function buildTree(_nodes: ChatboxNode[]): TreeData {
     if (node.hasBranch) {
       parentId = lastBranchPointId;
       lastBranchPointId = node.id;
-    } else {
+    } else{
       parentId = prevNodeId;
     }
 
     prevNodeId = node.id;
-    return { ...node, parentId };
+    return {...node, parentId};
   });
 
   return {
     sessionId,
     nodes: linked,
-    activeBranchPath: linked.map((node) => node.id),
-    lastUpdated: Date.now(),
-  };
+    activeBranchPath: linked.map((node)=>node.id),
+    lastUpdated:Date.now(),
+  }
 }
 
 /**
@@ -289,7 +286,7 @@ export function buildTree(_nodes: ChatboxNode[]): TreeData {
  * branch node is not found in the current node list (e.g. stale state after reload).
  */
 export function reloadFromNode(branchNodeId: string, allNodes: ChatboxNode[]): ChatboxNode[] {
-  const branchIndex = allNodes.findIndex((n) => n.id === branchNodeId);
+  const branchIndex = allNodes.findIndex(n => n.id === branchNodeId);
   if (branchIndex === -1) return assignChatboxIds();
 
   const preserved = allNodes.slice(0, branchIndex + 1);

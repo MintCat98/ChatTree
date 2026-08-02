@@ -12,7 +12,7 @@ import { clearAllNodeCache } from '@shared/node-cache';
 export function onMessage(
   message: BridgeMessage,
   sender: chrome.runtime.MessageSender,
-  sendResponse: (response?: unknown) => void
+  sendResponse: (response?: unknown) => void,
 ): boolean | void {
   // Request/response path — must return true to keep sendResponse alive
   // across the async storage read (MV3 contract).
@@ -40,11 +40,14 @@ export function onMessage(
 
   // All other messages are fire-and-forget: no sendResponse, return void.
   handleAsync(message, sender.tab?.id).catch((err) =>
-    console.warn('[ChatTree] handler failed:', message.type, err)
+    console.warn('[ChatTree] handler failed:', message.type, err),
   );
 }
 
-async function handleAsync(message: BridgeMessage, tabId: number | undefined): Promise<void> {
+async function handleAsync(
+  message: BridgeMessage,
+  tabId: number | undefined,
+): Promise<void> {
   switch (message.type) {
     case MessageType.TREE_UPDATE: {
       if (tabId === undefined) return;
@@ -82,9 +85,7 @@ async function handleAsync(message: BridgeMessage, tabId: number | undefined): P
       // conversation being entered (issue #152). Only reset the panel.
       await broadcastToTab(tabId, {
         type: MessageType.TREE_READY,
-        payload: {
-          tree: { sessionId: '', nodes: [], activeBranchPath: [], lastUpdated: Date.now() },
-        },
+        payload: { tree: { sessionId: '', nodes: [], activeBranchPath: [], lastUpdated: Date.now() } },
       });
       break;
     }
@@ -108,8 +109,7 @@ async function handleAsync(message: BridgeMessage, tabId: number | undefined): P
       // so any remaining SETTINGS_CHANGE sender stays consistent.
       const patch = (message.payload ?? {}) as Partial<UserSettings>;
       const result = await chrome.storage.local.get(STORAGE_KEYS.USER_SETTINGS);
-      const current =
-        (result[STORAGE_KEYS.USER_SETTINGS] as UserSettings | undefined) ?? DEFAULT_SETTINGS;
+      const current = (result[STORAGE_KEYS.USER_SETTINGS] as UserSettings | undefined) ?? DEFAULT_SETTINGS;
       const next: UserSettings = { ...current, ...patch };
       await chrome.storage.local.set({ [STORAGE_KEYS.USER_SETTINGS]: next });
       break;

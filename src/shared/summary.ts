@@ -44,7 +44,7 @@ Example (Korean)
 
 function detectLanguage(text: string): 'Korean' | 'English' {
   const hangul = (text.match(/[가-힣]/g) ?? []).length;
-  const latin = (text.match(/[A-Za-z]/g) ?? []).length;
+  const latin  = (text.match(/[A-Za-z]/g) ?? []).length;
   return hangul > latin ? 'Korean' : 'English';
 }
 
@@ -119,13 +119,7 @@ export async function summarizeConversation(
     } catch (err) {
       // Malformed or non-JSON output - ignore, let the loop retry
       // fall through to the truncated fallback below
-      console.warn(
-        '[summary] prompt/parse failed, will retry of fall back:',
-        err,
-        '\nRAW>>>',
-        raw,
-        '<<<'
-      );
+      console.warn('[summary] prompt/parse failed, will retry of fall back:', err, '\nRAW>>>', raw, '<<<');
     }
   }
 
