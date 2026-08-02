@@ -1136,3 +1136,13 @@
   line-height: 1;
   border-radius: 4px;
 }
+
+/* Interactive Map — hover-only rewiring handles */
+.im-node .im-handle {
+  transition: opacity 120ms ease;
+  cursor: crosshair;
+}
+
+.im-node:hover .im-handle {
+  opacity: 1 !important;
+}

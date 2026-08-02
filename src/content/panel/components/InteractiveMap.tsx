@@ -304,6 +304,33 @@ export function InteractiveMap() {
         const t = d.data.text.trim();
         return t.length > 18 ? t.slice(0, 17) + '…' : t;
       });
+
+    // Hover handles
+    const HANDLE_RADIUS = 5;
+
+    // Left handle (incoming edge target)
+    nodeGroup
+      .append('circle')
+      .attr('class', 'im-handle im-handle-left')
+      .attr('cx', 0)
+      .attr('cy', NODE_HEIGHT / 2)
+      .attr('r', HANDLE_RADIUS)
+      .attr('fill', 'var(--nav-color-node-fill)')
+      .attr('stroke', 'var(--nav-color-node-border)')
+      .attr('stroke-width', 1.5)
+      .style('opacity', 0);
+
+    // Right handle (outgoing edge source)
+    nodeGroup
+      .append('circle')
+      .attr('class', 'im-handle im-handle-right')
+      .attr('cx', NODE_WIDTH)
+      .attr('cy', NODE_HEIGHT / 2)
+      .attr('r', HANDLE_RADIUS)
+      .attr('fill', 'var(--nav-color-node-fill)')
+      .attr('stroke', 'var(--nav-color-node-border)')
+      .attr('stroke-width', 1.5)
+      .style('opacity', 0);
   }, [tree]);
 
   // Sync expand state to the parent sidebar-bottom container so it can
