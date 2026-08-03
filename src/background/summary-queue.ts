@@ -23,6 +23,11 @@ interface QueueItem {
   turn: SummaryTurn;
 }
 
+// Cap the backlog: when the model is not ready yet the queue is kept (see
+// drain) rather than dropped, so it must not grow without bound. Oldest turns
+// are evicted first — the user is scrolling forward, so recent turns matter more.
+const MAX_PENDING_TURNS = 50;
+
 const pending: QueueItem[] = [];
 let draining = false;
 
@@ -31,6 +36,7 @@ let draining = false;
 // the next scan / reload.
 export function enqueueSummaryTurns(sessionId: string, turns: SummaryTurn[]): void {
   for (const turn of turns) pending.push({ sessionId, turn });
+  if (pending.length > MAX_PENDING_TURNS) pending.splice(0, pending.length - MAX_PENDING_TURNS);
   void drain();
 }
 
@@ -38,14 +44,21 @@ async function drain(): Promise<void> {
   if (draining) return; // a single drain loop owns the queue (re-entrancy guard)
   draining = true;
   try {
-    const availability = await LanguageModel.availability();
-    // Not ready (unavailable / still downloading): drop the backlog rather than
-    // spin. Content re-sends as the user keeps scrolling, or on reload once the
-    // model is available.
-    if (availability === 'unavailable') {
+    // Chrome without the Prompt API (pre-138 / unsupported build): the global
+    // does not exist at all. Permanent for this browser session — drop the
+    // backlog instead of keeping turns that can never be summarized.
+    if (typeof LanguageModel === 'undefined') {
       pending.length = 0;
       return;
     }
+
+    // Not ready yet ('unavailable' | 'downloadable' | 'downloading'): stop, but
+    // KEEP the backlog. The next completed turn calls enqueueSummaryTurns →
+    // drain again, which re-checks availability — so a finished download
+    // resumes this session instead of waiting for a reload. Calling create()
+    // per item here would only burn the backlog on errors.
+    const availability = await LanguageModel.availability();
+    if (availability !== 'available') return;
 
     while (pending.length > 0) {
       await processOne(pending.shift()!);
@@ -53,9 +66,11 @@ async function drain(): Promise<void> {
   } catch (err) {
     console.warn('[ChatTree] summary drain failed:', err);
   } finally {
+    // No re-drain here: the loop's `pending.length > 0` check and this
+    // assignment run in the same microtask (no await between them), so nothing
+    // can be enqueued in the gap. Any later push runs enqueueSummaryTurns'
+    // own drain() call. Re-draining here would spin forever on the error path.
     draining = false;
-    // Items enqueued after the loop's last check but before the flag cleared.
-    if (pending.length > 0) void drain();
   }
 }
 
@@ -63,12 +78,17 @@ async function processOne({ sessionId, turn }: QueueItem): Promise<void> {
   try {
     // Authoritative dedup: skip if already summarized. Survives reload / other
     // tabs, and covers content re-sends after the in-memory sent-set was lost.
+    // A truncated fallback entry IS re-summarized — but only on a later visit:
+    // the content script's per-session sent-set will not re-send this nodeId
+    // before then. That granularity is deliberate; retrying immediately would
+    // feed the same input to the same model and fail the same way.
     const cache = await getSessionNodeCache(sessionId);
     const entry = cache[turn.nodeId];
     if (entry?.summary && !entry.summaryFallback) return;
 
-    // A fresh session per turn (matches the verified eval pattern) — reusing one
-    // session triggers sporadic QuotaExceededError (spike #158).
+    // Base session per turn: never prompted directly. summarizeConversation
+    // clones it per attempt, because reusing one session ACROSS attempts
+    // triggers sporadic QuotaExceededError (spike #158, it#5).
     const session = await LanguageModel.create({
       initialPrompts: [{ role: 'system', content: SUMMARY_SYSTEM_PROMPT }],
     });

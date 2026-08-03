@@ -51,6 +51,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+// Per-session SEND throttle — not a dedup authority. Ownership split (#160):
+// content sends each node at most once per conversation visit (the scan runs
+// every ~100 ms, so without this every tick would re-send the whole tree); the
+// SW owns "summarize at most once, ever" via the node-cache. A consequence:
+// a turn that fell back to truncated text is only re-summarized on a later
+// visit, once this set is gone.
 const summarizedSent = new Set<string>();
 
 function enqueueSummaries(nodes: ChatboxNode[], sessionId: string): void {
