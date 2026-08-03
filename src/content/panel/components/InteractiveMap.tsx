@@ -112,6 +112,7 @@ export function InteractiveMap() {
   const isPointerInsideRef = useRef(false);
   const [zoomPercent, setZoomPercent] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
 
   // Zoom helpers wrapped in useCallback so the listener effect has stable refs.
   const zoomTo = useCallback((percent: number) => {
@@ -499,49 +500,118 @@ export function InteractiveMap() {
       .filter((d) => isOnBranch(d) && !!sessionMetadata[d.data.id]?.branchName)
       .append('g')
       .attr('class', 'im-branch-label')
-      .attr('transform', `translate(-4, -14)`)  // Above-left of the node.
+      .attr('transform', `translate(30, -6)`) // Above-left of the node.
       .each(function (d) {
         const name = sessionMetadata[d.data.id]!.branchName!;
-        const g = d3.select(this);
+        const isEditing = editingLabelId === d.data.id;
+        const sel = d3.select(this);
 
         // Measure text later — use fixed padding for now.
         const paddingX = 8;
         const paddingY = 3;
         const fontSize = 10;
-        const approxWidth = name.length * 6 + paddingX * 2;
         const height = fontSize + paddingY * 2;
 
-        g.append('rect')
-          .attr('x', -approxWidth)
-          .attr('y', -height)
-          .attr('width', approxWidth)
-          .attr('height', height)
-          .attr('rx', 4)
-          .attr('fill', 'var(--nav-color-accent-soft, #fbcf75)')
-          .attr('stroke', 'var(--nav-color-node-border)')
-          .attr('stroke-width', 0.5);
+        if (isEditing) {
+          // Editing mode: foreignObject with an HTML <input>.
+          const width = Math.max(80, name.length * 6 + paddingX * 2);
+          let savedByKeydown = false;
 
-        g.append('text')
-          .attr('x', -approxWidth + paddingX)
-          .attr('y', -paddingY - 1)
-          .attr('font-family', 'var(--nav-font-family)')
-          .attr('font-size', `${fontSize}px`)
-          .attr('fill', 'var(--nav-color-text)')
-          .attr('dominant-baseline', 'alphabetic')
-          .text(name);
+          const fo = sel
+            .append('foreignObject')
+            .attr('x', -width / 2)
+            .attr('y', -height)
+            .attr('width', width)
+            .attr('height', height);
+
+          fo.append('xhtml:input' as never)
+            .attr('type', 'text')
+            .attr('value', name)
+            .attr('class', 'im-branch-input')
+            .style('width', '100%')
+            .style('height', '100%')
+            .style('box-sizing', 'border-box')
+            .style('padding', `${paddingY}px ${paddingX}px`)
+            .style('font-family', 'var(--nav-font-family)')
+            .style('font-size', `${fontSize}px`)
+            .style('background', 'var(--nav-color-accent-soft, #fbcf75)')
+            .style('color', 'var(--nav-color-text)')
+            .style('border', '1px solid var(--nav-color-accent, #d4a017)')
+            .style('border-radius', '4px')
+            .style('outline', 'none')
+            .on('click', function (event: Event) {
+              event.stopPropagation();
+            })
+            .on('keydown', function (this: HTMLInputElement, event: KeyboardEvent) {
+              event.stopPropagation();
+              if (event.key === 'Enter') {
+                savedByKeydown = true;
+                const val = this.value.trim();
+                void patchNodeMetadata(d.data.id, { branchName: val || null });
+                setEditingLabelId(null);
+              } else if (event.key === 'Escape') {
+                savedByKeydown = true;
+                setEditingLabelId(null);
+              }
+            })
+            .on('blur', function (this: HTMLInputElement) {
+              if (savedByKeydown) return;
+              const val = this.value.trim();
+              void patchNodeMetadata(d.data.id, { branchName: val || null });
+              setEditingLabelId(null);
+            })
+            .each(function (this: HTMLInputElement) {
+              setTimeout(() => {
+                this.focus();
+                this.select();
+              }, 0);
+            });
+        } else {
+          // Display mode: click to enter editing mode.
+          const approxWidth = name.length * 6 + paddingX * 2;
+
+          sel
+            .append('rect')
+            .attr('x', -approxWidth / 2)
+            .attr('y', -height)
+            .attr('width', approxWidth)
+            .attr('height', height)
+            .attr('rx', 4)
+            .attr('fill', 'var(--nav-color-accent-soft, #fbcf75)')
+            .attr('stroke', 'var(--nav-color-node-border)')
+            .attr('stroke-width', 0.5)
+            .style('cursor', 'text')
+            .on('click', (event: MouseEvent) => {
+              event.stopPropagation();
+              setEditingLabelId(d.data.id);
+            });
+
+          sel
+            .append('text')
+            .attr('x', -approxWidth / 2 + paddingX)
+            .attr('y', -paddingY - 1)
+            .attr('font-family', 'var(--nav-font-family)')
+            .attr('font-size', `${fontSize}px`)
+            .attr('fill', 'var(--nav-color-text)')
+            .attr('dominant-baseline', 'alphabetic')
+            .attr('pointer-events', 'none')
+            .text(name);
+        }
       });
 
-      // "+ label" affordance — hover-only, only on branch nodes without a name.
+    // "+ label" affordance — hover-only, only on branch nodes without a name.
+    // Clicking it saves a default name and immediately enters editing mode.
     branchNodes
       .filter((d) => !sessionMetadata[d.data.id]?.branchName)
       .append('g')
       .attr('class', 'im-branch-add')
-      .attr('transform', `translate(-4, -14)`)
+      .attr('transform', `translate(30, -6)`)
       .style('opacity', 0)
       .style('cursor', 'pointer')
       .on('click', function (event, d) {
         event.stopPropagation();
         void patchNodeMetadata(d.data.id, { branchName: 'branch' });
+        setEditingLabelId(d.data.id);
       })
       .each(function () {
         const sel = d3.select(this);
@@ -553,7 +623,7 @@ export function InteractiveMap() {
         const height = fontSize + paddingY * 2;
 
         sel.append('rect')
-          .attr('x', -approxWidth)
+          .attr('x', -approxWidth / 2)
           .attr('y', -height)
           .attr('width', approxWidth)
           .attr('height', height)
@@ -564,7 +634,7 @@ export function InteractiveMap() {
           .attr('stroke-dasharray', '3 2');
 
         sel.append('text')
-          .attr('x', -approxWidth + paddingX)
+          .attr('x', -approxWidth / 2 + paddingX)
           .attr('y', -paddingY - 1)
           .attr('font-family', 'var(--nav-font-family)')
           .attr('font-size', `${fontSize}px`)
@@ -572,7 +642,7 @@ export function InteractiveMap() {
           .attr('dominant-baseline', 'alphabetic')
           .text(label);
       });
-  }, [tree, sessionMetadata]);
+  }, [tree, sessionMetadata, editingLabelId]);
 
   // Sync expand state to the parent sidebar-bottom container so it can
   // break out horizontally beyond the sidebar width.
