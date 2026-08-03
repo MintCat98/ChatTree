@@ -55,12 +55,12 @@ description: Claude.ai DOM structure, selectors, chatbox ID assignment, and Muta
 | Next branch button | `button[aria-label="Next edit"]` | `›` |
 | Current/total indicator | `span.branch-indicator` | `"2 / 3"` format |
 
-> **Note:** `branch-navigation` is only rendered when there are **2 or more branches**.
+> ⚠️ **Note:** `branch-navigation` is only rendered when there are **2 or more branches**.
 > It does not exist on initial messages (no branch).
 
 ### 2-4. AI Response (Assistant Turn)
 
-> **claude.ai removed the `assistant-turn` / `ai-response` testids** (verified 0
+> ⚠️ **claude.ai removed the `assistant-turn` / `ai-response` testids** (verified 0
 > matches, 2026-07, while building #160). There is **no data-testid for the response** —
 > anchor on the semantic class instead. This is the one sanctioned exception to the
 > "prefer `data-testid`, never hashed classes" rule: `.font-claude-response` /
@@ -76,7 +76,8 @@ description: Claude.ai DOM structure, selectors, chatbox ID assignment, and Muta
 **Pairing (summary pipeline, #160):** a user bubble carries no direct link to its
 answer. `scanMounted` collects `.font-claude-response` elements in mounted DOM order and
 pairs them to user bubbles by index (`answerTexts[domIndex]`). This is fragile at
-virtualization boundaries — see `docs/spikes/node-summarization.md` (known limitations).
+virtualization boundaries — see [messaging-and-storage](../messaging-and-storage/SKILL.md) §8
+for the pipeline and its known limitations.
 
 ### 2-5. Input Field (Composer)
 

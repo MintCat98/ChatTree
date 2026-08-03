@@ -76,7 +76,9 @@ Chrome Extension (Manifest V3) that injects a floating tree-map navigation panel
 into **Claude.ai only (beta)**, allowing users to track and jump between chat messages.
 
 - Branch detection: MutationObserver + DOM snapshot diff
-- AI summarization: **Future Work (not yet implemented)**
+- AI summarization: on-device pipeline implemented (#160, opt-in via
+  `summaryEnabled`, default off). **Rendering summaries on nodes is #165 — nothing
+  is displayed yet.** See `messaging-and-storage` skill §8.
 
 ### Tech Stack
 
@@ -179,7 +181,8 @@ changes go through normal PR review.
 | **Phase 2** | Branch detection + branch node visualization | ✅ Done |
 | **Phase 3** | Settings UI (position / direction / opacity / sort) | ✅ Done |
 | **Beta** | Public beta hardening (caching, tagging, search, bug fixes) | 🚧 In progress |
-| **Future** | AI summarization, other platform support | 🔮 Out of scope |
+| **Beta** | On-device node summarization pipeline (#159/#160) — opt-in, no UI yet | 🚧 In progress |
+| **Future** | Summary rendering (#165), relevance scoring (#161), other platforms | 🔮 Out of scope |
 
 ### Definition of Done
 
