@@ -8,7 +8,7 @@
 
 import { buildTreeLayout, runCenterY } from '@content/panel/components/tree-layout';
 import { NODE_STEP, RUN_PILL_HEIGHT, nodeCenterY } from '@content/panel/components/constants';
-import type { ChatboxNode, NodeMetadata } from '@shared/types';
+import { DEFAULT_NODE_METADATA, type ChatboxNode, type NodeMetadata } from '@shared/types';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -30,7 +30,7 @@ function node(i: number): ChatboxNode {
 function hide(...indices: number[]): Record<string, NodeMetadata> {
   const meta: Record<string, NodeMetadata> = {};
   for (const i of indices) {
-    meta[`chatbox-${i}`] = { bookmarked: false, tags: [], hidden: true };
+    meta[`chatbox-${i}`] = { ...DEFAULT_NODE_METADATA, hidden: true };
   }
   return meta;
 }
@@ -52,7 +52,7 @@ describe('buildTreeLayout', () => {
 
   it('treats a node with no metadata entry as visible', () => {
     const { visible } = buildTreeLayout(NODES, {
-      'chatbox-1': { bookmarked: true, tags: ['a'], hidden: false },
+      'chatbox-1': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['a'] },
     });
 
     expect(visible).toHaveLength(5);

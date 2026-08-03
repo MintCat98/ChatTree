@@ -75,11 +75,11 @@ describe('getSessionMetadata', () => {
   });
 
   it('returns only the requested session nodes', async () => {
-    seedSession('sess-1', { 'chatbox-0': { bookmarked: true, tags: ['important'], hidden: false } }, Date.now());
-    seedSession('sess-2', { 'chatbox-0': { bookmarked: false, tags: [], hidden: false } }, Date.now());
+    seedSession('sess-1', { 'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['important'] } }, Date.now());
+    seedSession('sess-2', { 'chatbox-0': { ...DEFAULT_NODE_METADATA } }, Date.now());
 
     const result = await getSessionMetadata('sess-1');
-    expect(result).toEqual({ 'chatbox-0': { bookmarked: true, tags: ['important'], hidden: false } });
+    expect(result).toEqual({ 'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['important'] } });
   });
 
   it('reads a legacy v1 entry (bare node map) and persists the migration', async () => {
@@ -123,7 +123,7 @@ describe('setNodeMetadata', () => {
     await setNodeMetadata('sess-1', 'chatbox-0', { bookmarked: true });
 
     expect(readSession('sess-1')?.nodes).toEqual({
-      'chatbox-0': { bookmarked: true, tags: [], hidden: false },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true },
     });
   });
 
@@ -135,14 +135,14 @@ describe('setNodeMetadata', () => {
   });
 
   it('patches an existing entry without overwriting unchanged fields', async () => {
-    seedSession('sess-1', { 'chatbox-0': { bookmarked: false, tags: ['a', 'b'], hidden: false } }, 0);
+    seedSession('sess-1', { 'chatbox-0': { ...DEFAULT_NODE_METADATA, tags: ['a', 'b'] } }, 0);
 
     await setNodeMetadata('sess-1', 'chatbox-0', { bookmarked: true });
 
     expect(readSession('sess-1')?.nodes['chatbox-0']).toEqual({
+      ...DEFAULT_NODE_METADATA,
       bookmarked: true,
       tags: ['a', 'b'],
-      hidden: false,
     });
   });
 
@@ -150,26 +150,26 @@ describe('setNodeMetadata', () => {
     seedSession(
       'sess-1',
       {
-        'chatbox-0': { bookmarked: false, tags: [], hidden: false },
-        'chatbox-1': { bookmarked: true, tags: ['x'], hidden: false },
+        'chatbox-0': { ...DEFAULT_NODE_METADATA },
+        'chatbox-1': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['x'] },
       },
       0,
     );
 
     await setNodeMetadata('sess-1', 'chatbox-0', { bookmarked: true });
 
-    expect(readSession('sess-1')?.nodes['chatbox-1']).toEqual({ bookmarked: true, tags: ['x'], hidden: false });
+    expect(readSession('sess-1')?.nodes['chatbox-1']).toEqual({ ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['x'] });
   });
 
   it('does not affect other sessions', async () => {
-    seedSession('sess-2', { 'chatbox-0': { bookmarked: true, tags: ['keep'], hidden: false } }, 0);
+    seedSession('sess-2', { 'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['keep'] } }, 0);
 
     await setNodeMetadata('sess-1', 'chatbox-0', { bookmarked: true });
 
     expect(readSession('sess-2')?.nodes['chatbox-0']).toEqual({
+      ...DEFAULT_NODE_METADATA,
       bookmarked: true,
       tags: ['keep'],
-      hidden: false,
     });
   });
 
@@ -188,7 +188,7 @@ describe('setNodeMetadata', () => {
 
     expect(readSession('sess-1')?.nodes).toEqual({
       'chatbox-0': { bookmarked: true, tags: ['legacy'] },
-      'chatbox-1': { bookmarked: true, tags: [], hidden: false },
+      'chatbox-1': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: [] },
     });
   });
 });
@@ -216,18 +216,19 @@ describe('hidden flag', () => {
     await setNodeMetadata('sess-1', 'chatbox-0', { bookmarked: false });
 
     expect(readSession('sess-1')?.nodes['chatbox-0']).toEqual({
+      ...DEFAULT_NODE_METADATA, 
       bookmarked: false,
       tags: ['a'],
-      hidden: false,
     });
   });
 
   it('does not clear bookmarks or tags when hiding', async () => {
-    seedSession('sess-1', { 'chatbox-0': { bookmarked: true, tags: ['keep'], hidden: false } }, 0);
+    seedSession('sess-1', { 'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['keep'] } }, 0);
 
     await setNodeMetadata('sess-1', 'chatbox-0', { hidden: true });
 
     expect(readSession('sess-1')?.nodes['chatbox-0']).toEqual({
+      ...DEFAULT_NODE_METADATA,
       bookmarked: true,
       tags: ['keep'],
       hidden: true,
@@ -257,8 +258,8 @@ describe('setNodeMetadataBatch', () => {
     seedSession(
       'sess-1',
       {
-        'chatbox-0': { bookmarked: true, tags: ['a'], hidden: true },
-        'chatbox-1': { bookmarked: false, tags: ['b'], hidden: true },
+        'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['a'], hidden: true },
+        'chatbox-1': { ...DEFAULT_NODE_METADATA, tags: ['b'], hidden: true },
       },
       0,
     );
@@ -266,8 +267,8 @@ describe('setNodeMetadataBatch', () => {
     await setNodeMetadataBatch('sess-1', ['chatbox-0', 'chatbox-1'], { hidden: false });
 
     expect(readSession('sess-1')?.nodes).toEqual({
-      'chatbox-0': { bookmarked: true, tags: ['a'], hidden: false },
-      'chatbox-1': { bookmarked: false, tags: ['b'], hidden: false },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['a'] },
+      'chatbox-1': { ...DEFAULT_NODE_METADATA,  tags: ['b'] },
     });
   });
 
@@ -275,9 +276,9 @@ describe('setNodeMetadataBatch', () => {
     seedSession(
       'sess-1',
       {
-        'chatbox-0': { bookmarked: false, tags: [], hidden: true },
-        'chatbox-1': { bookmarked: false, tags: [], hidden: true },
-        'chatbox-2': { bookmarked: false, tags: [], hidden: true },
+        'chatbox-0': { ...DEFAULT_NODE_METADATA, hidden: true },
+        'chatbox-1': { ...DEFAULT_NODE_METADATA, hidden: true },
+        'chatbox-2': { ...DEFAULT_NODE_METADATA, hidden: true },
       },
       0,
     );
@@ -291,8 +292,8 @@ describe('setNodeMetadataBatch', () => {
   });
 
   it('leaves untouched nodes and other sessions alone', async () => {
-    seedSession('sess-1', { 'chatbox-9': { bookmarked: true, tags: [], hidden: true } }, 0);
-    seedSession('sess-2', { 'chatbox-0': { bookmarked: true, tags: [], hidden: true } }, 0);
+    seedSession('sess-1', { 'chatbox-9': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: [], hidden: true } }, 0);
+    seedSession('sess-2', { 'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: [], hidden: true } }, 0);
 
     await setNodeMetadataBatch('sess-1', ['chatbox-0'], { hidden: false });
 
@@ -313,8 +314,8 @@ describe('setNodeMetadataBatch', () => {
 
 describe('clearSessionMetadata', () => {
   it('removes the session entry from the store', async () => {
-    seedSession('sess-1', { 'chatbox-0': { bookmarked: true, tags: [], hidden: false } }, 0);
-    seedSession('sess-2', { 'chatbox-0': { bookmarked: false, tags: [], hidden: false } }, 0);
+    seedSession('sess-1', { 'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true } }, 0);
+    seedSession('sess-2', { 'chatbox-0': { ...DEFAULT_NODE_METADATA } }, 0);
 
     await clearSessionMetadata('sess-1');
 
@@ -335,7 +336,7 @@ describe('purgeOrphanedMetadata', () => {
   const EXPIRED = Date.now() - (METADATA_RETENTION_DAYS + 1) * DAY;
 
   it('removes metadata with no cached tree that is past the retention horizon', async () => {
-    seedSession('orphan', { 'chatbox-0': { bookmarked: true, tags: [], hidden: false } }, EXPIRED);
+    seedSession('orphan', { 'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true } }, EXPIRED);
 
     await purgeOrphanedMetadata();
 
@@ -343,7 +344,7 @@ describe('purgeOrphanedMetadata', () => {
   });
 
   it('keeps expired metadata when a cached tree still exists', async () => {
-    seedSession('kept', { 'chatbox-0': { bookmarked: true, tags: [], hidden: false } }, EXPIRED);
+    seedSession('kept', { 'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true } }, EXPIRED);
     mockStorage.set('tree_kept', { sessionId: 'kept', nodes: [], activeBranchPath: [], lastUpdated: 0 });
 
     await purgeOrphanedMetadata();
@@ -354,7 +355,7 @@ describe('purgeOrphanedMetadata', () => {
   it('keeps orphaned metadata that is within the retention horizon', async () => {
     seedSession(
       'recent-orphan',
-      { 'chatbox-0': { bookmarked: true, tags: [], hidden: false } },
+      { 'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true } },
       Date.now() - DAY,
     );
 
