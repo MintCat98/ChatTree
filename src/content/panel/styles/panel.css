@@ -1154,3 +1154,19 @@
 .im-node:hover .im-branch-add {
   opacity: 1 !important;
 }
+
+.im-node .im-disconnect {
+  transition: opacity 120ms ease;
+}
+.im-node:hover .im-disconnect {
+  opacity: 1 !important;
+}
+
+/* Disconnect "x" on edge midpoints — hover-only */
+.zoom-viewport:hover .im-disconnect,
+.im-disconnect:hover {
+  opacity: 1 !important;
+}
+.im-disconnect {
+  transition: opacity 120ms ease;
+}

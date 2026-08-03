@@ -227,15 +227,15 @@ export function InteractiveMap() {
       ? d3.zoomTransform(svgRef.current)
       : d3.zoomIdentity;
     
-      svg.selectAll('*').remove();
+    svg.selectAll('*').remove();
 
-      if(!tree || tree.nodes.length === 0) {
-        zoomBehaviorRef.current = null;
-        return;
-      }
+    if(!tree || tree.nodes.length === 0) {
+      zoomBehaviorRef.current = null;
+      return;
+    }
 
-      const root = d3.hierarchy(buildHierarchy(tree?.nodes, sessionMetadata));
-      const layout = d3.tree<TreeDatum>().nodeSize([
+    const root = d3.hierarchy(buildHierarchy(tree?.nodes, sessionMetadata));
+    const layout = d3.tree<TreeDatum>().nodeSize([
       NODE_HEIGHT + V_GAP,
       NODE_WIDTH + H_GAP,
     ]);
@@ -274,6 +274,35 @@ export function InteractiveMap() {
     // Restore the previous pan/zoom so tree updates don't jump the view.
     svg.call(zoomBehavior.transform, preservedTransform);
 
+    // Hover handles
+    const previewLayer = g.append('g').attr('class', 'im-preview-layer');
+    
+    const dropTargets = drawable.map((node) => ({
+      id: node.data.id,
+      x: (node.y ?? 0) - minY + NODE_WIDTH, // target: right node
+      y: (node.x ?? 0) - minX + NODE_HEIGHT / 2,
+    }));
+
+    // Count siblings per parent so we know which children live on a branch point.
+    const siblingCount = new Map<string, number>();
+    for (const node of drawable) {
+      const parent = node.parent;
+      if (!parent) continue;
+      const parentId = parent.data.id;
+      siblingCount.set(parentId, (siblingCount.get(parentId) ?? 0) + 1);
+    }
+    // A node "lives on a branch" if its parent has more than one child.
+    const isOnBranch = (node: d3.HierarchyPointNode<TreeDatum>) => {
+      const parent = node.parent;
+      if (!parent) return false;
+      return (siblingCount.get(parent.data.id) ?? 0) > 1;
+    };
+
+    // A node is "connected" when it has an incoming edge in the current tree.
+    // Roots (no parent) and explicitly disconnected nodes both fall into "not connected".
+    const hasIncomingEdge = (node: d3.HierarchyPointNode<TreeDatum>) =>
+      node.depth > 0 && node.parent !== null;
+
     const linkGenerator = d3
       .linkHorizontal<d3.HierarchyPointLink<TreeDatum>, d3.HierarchyPointNode<TreeDatum>>()
       .source((d) => ({
@@ -298,21 +327,52 @@ export function InteractiveMap() {
       .attr('fill', 'none')
       .attr('stroke', EDGE_COLOR)
       .attr('stroke-width', EDGE_STROKE_WIDTH);
-    
-    // Count siblings per parent so we know which children live on a branch point.
-    const siblingCount = new Map<string, number>();
-    for (const node of drawable) {
-      const parent = node.parent;
-      if (!parent) continue;
-      const parentId = parent.data.id;
-      siblingCount.set(parentId, (siblingCount.get(parentId) ?? 0) + 1);
-    }
-    // A node "lives on a branch" if its parent has more than one child.
-    const isOnBranch = (node: d3.HierarchyPointNode<TreeDatum>) => {
-      const parent = node.parent;
-      if (!parent) return false;
-      return (siblingCount.get(parent.data.id) ?? 0) > 1;
-    };
+
+    // Disconnect "x" — sits on the midpoint of each edge, hover-only.
+    // Clicking removes the incoming edge of the child node (target).
+    g.selectAll('g.im-disconnect')
+      .data(root.links().filter((l) => l.source.depth > 0) as d3.HierarchyPointLink<TreeDatum>[])
+      .enter()
+      .append('g')
+      .attr('class', 'im-disconnect')
+      .attr('transform', (l) => {
+        const sx = (l.source.y ?? 0) - minY + NODE_WIDTH;
+        const sy = (l.source.x ?? 0) - minX + NODE_HEIGHT / 2;
+        const tx = (l.target.y ?? 0) - minY;
+        const ty = (l.target.x ?? 0) - minX + NODE_HEIGHT / 2;
+        return `translate(${(sx + tx) / 2}, ${(sy + ty) / 2})`;
+      })
+      .style('opacity', 0)
+      .style('cursor', 'pointer')
+      .on('click', function (event: MouseEvent, l) {
+        event.stopPropagation();
+        void patchNodeMetadata(l.target.data.id, {
+          parentOverride: null,
+          parentDisconnected: true,
+        });
+      })
+      .each(function () {
+        const sel = d3.select(this);
+        sel
+          .append('circle')
+          .attr('r', 7)
+          .attr('fill', 'var(--nav-color-bg)')
+          .attr('stroke', 'var(--nav-color-node-border)')
+          .attr('stroke-width', 1);
+        const s = 3;
+        sel
+          .append('line')
+          .attr('x1', -s).attr('y1', -s).attr('x2', s).attr('y2', s)
+          .attr('stroke', 'var(--nav-color-text)')
+          .attr('stroke-width', 1.2)
+          .attr('stroke-linecap', 'round');
+        sel
+          .append('line')
+          .attr('x1', -s).attr('y1', s).attr('x2', s).attr('y2', -s)
+          .attr('stroke', 'var(--nav-color-text)')
+          .attr('stroke-width', 1.2)
+          .attr('stroke-linecap', 'round');
+      });
 
     const nodeGroup = g
       .selectAll<SVGGElement, d3.HierarchyPointNode<TreeDatum>>('g.im-node')
@@ -347,16 +407,11 @@ export function InteractiveMap() {
         return t.length > 18 ? t.slice(0, 17) + '…' : t;
       });
 
-    // Hover handles
-    const previewLayer = g.append('g').attr('class', 'im-preview-layer');
     
-    const dropTargets = drawable.map((node) => ({
-      id: node.data.id,
-      x: (node.y ?? 0) - minY + NODE_WIDTH, // target: right node
-      y: (node.x ?? 0) - minX + NODE_HEIGHT / 2,
-    }));
 
     // Left handle (incoming edge target)
+    // Connected node: "x" control, click to disconect the incoming edge
+    // Unconnected node: dot, drag to rewire (connect to a parent).
     nodeGroup
       .append('circle')
       .attr('class', 'im-handle im-handle-left')
@@ -368,117 +423,107 @@ export function InteractiveMap() {
       .attr('stroke-width', 1.5)
       .style('opacity', 0)
       .on('pointerdown', function (event: PointerEvent, d) {
-          // Don't let d3.zoom start a pan when a handle is grabbed.
-          event.stopPropagation();
-          event.preventDefault();
+        event.stopPropagation();
+        event.preventDefault();
 
-          // Source point: this handle's position in the g coord system.
-          const srcX = (d.y ?? 0) - minY;
-          const srcY = (d.x ?? 0) - minX + NODE_HEIGHT / 2;
+        const srcX = (d.y ?? 0) - minY;
+        const srcY = (d.x ?? 0) - minX + NODE_HEIGHT / 2;
 
-          // Preview path — starts as a zero-length curve at the source.
-          const previewPath = previewLayer
-            .append('path')
-            .attr('class', 'im-preview-edge')
-            .attr('fill', 'none')
-            .attr('stroke', 'var(--nav-color-edge)')
-            .attr('stroke-width', EDGE_STROKE_WIDTH)
-            .attr('stroke-dasharray', '4 3')
-            .attr('pointer-events', 'none');
+        const previewPath = previewLayer
+          .append('path')
+          .attr('class', 'im-preview-edge')
+          .attr('fill', 'none')
+          .attr('stroke', EDGE_COLOR)
+          .attr('stroke-width', EDGE_STROKE_WIDTH)
+          .attr('stroke-dasharray', '4 3')
+          .attr('pointer-events', 'none');
 
-          // Capture the pointer so we get moves even off the handle circle.
-          (event.target as Element).setPointerCapture?.(event.pointerId);
+        (event.target as Element).setPointerCapture?.(event.pointerId);
 
-          function pointToSvgCoords(clientX: number, clientY: number) {
-            // Convert client (viewport) coords → svg → viewport-group coords.
-            if (!svgRef.current) return { x: 0, y: 0 };
-            const pt = svgRef.current.createSVGPoint();
-            pt.x = clientX;
-            pt.y = clientY;
-            const ctm = (g.node() as SVGGraphicsElement).getScreenCTM();
-            if (!ctm) return { x: 0, y: 0 };
-            const local = pt.matrixTransform(ctm.inverse());
-            return { x: local.x, y: local.y };
+        function pointToLocal(clientX: number, clientY: number) {
+          if (!svgRef.current) return { x: 0, y: 0 };
+          const pt = svgRef.current.createSVGPoint();
+          pt.x = clientX;
+          pt.y = clientY;
+          const ctm = (g.node() as SVGGraphicsElement).getScreenCTM();
+          if (!ctm) return { x: 0, y: 0 };
+          const local = pt.matrixTransform(ctm.inverse());
+          return { x: local.x, y: local.y };
+        }
+
+        function bezier(x1: number, y1: number, x2: number, y2: number): string {
+          const midX = (x1 + x2) / 2;
+          return `M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}`;
+        }
+
+        let snappedTargetId: string | null = null;
+
+        const clearHighlight = (id: string | null) => {
+          if (id === null) return;
+          g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-right')
+            .filter((nd) => nd.data.id === id)
+            .attr('fill', 'var(--nav-color-node-fill)')
+            .attr('stroke', 'var(--nav-color-node-border)')
+            .style('opacity', 0);
+        };
+
+        const applyHighlight = (id: string) => {
+          g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-right')
+            .filter((nd) => nd.data.id === id)
+            .attr('fill', 'var(--nav-color-accent)')
+            .attr('stroke', 'var(--nav-color-accent)')
+            .style('opacity', 1);
+        };
+
+        const onPointerMove = (moveEvent: PointerEvent) => {
+          const { x, y } = pointToLocal(moveEvent.clientX, moveEvent.clientY);
+
+          let bestId: string | null = null;
+          let bestDist = SNAP_RADIUS;
+          for (const t of dropTargets) {
+            if (t.id === d.data.id) continue;
+            const dx = t.x - x;
+            const dy = t.y - y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestId = t.id;
+            }
           }
 
-          // Snap tracking + highlight helpers.
-          let snappedTargetId: string | null = null;
+          if (bestId !== null) {
+            const target = dropTargets.find((t) => t.id === bestId)!;
+            previewPath.attr('d', bezier(srcX, srcY, target.x, target.y));
+          } else {
+            previewPath.attr('d', bezier(srcX, srcY, x, y));
+          }
 
-          const clearHighlight = (id: string | null) => {
-            if (id === null) return;
-            g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-right')
-              .filter((nd) => nd.data.id === id)
-              .attr('fill', 'var(--nav-color-node-fill)')
-              .attr('stroke', 'var(--nav-color-node-border)')
-              .style('opacity', 0);
-          };
-
-          const applyHighlight = (id: string) => {
-            g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-right')
-              .filter((nd) => nd.data.id === id)
-              .attr('fill', 'var(--nav-color-accent)')
-              .attr('stroke', 'var(--nav-color-accent)')
-              .style('opacity', 1);
-          };
-
-          const onPointerMove = (moveEvent: PointerEvent) => {
-            const { x, y } = pointToSvgCoords(moveEvent.clientX, moveEvent.clientY);
-            // Find nearest valid target inside snap radius.
-            // Excludes the source node itself so it can't reconnect to its own outgoing edge.
-            let bestId: string | null = null;
-            let bestDist = SNAP_RADIUS;
-            for (const t of dropTargets) {
-              if (t.id === d.data.id) continue;
-              const dx = t.x - x;
-              const dy = t.y - y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist < bestDist) {
-                bestDist = dist;
-                bestId = t.id;
-              }
-            }
-
-            // Preview snaps to target if any, otherwise follows the cursor.
-            if (bestId !== null) {
-              const target = dropTargets.find((t) => t.id === bestId)!;
-              previewPath.attr('d', bezier(srcX, srcY, target.x, target.y));
-            } else {
-              previewPath.attr('d', bezier(srcX, srcY, x, y));
-            }
-
-            // Update highlight when snapped target changes.
-            if (bestId !== snappedTargetId) {
-              clearHighlight(snappedTargetId);
-              if (bestId !== null) applyHighlight(bestId);
-              snappedTargetId = bestId;
-            }
-          };
-
-          const onPointerUp = () => {
-            previewPath.remove();
+          if (bestId !== snappedTargetId) {
             clearHighlight(snappedTargetId);
-            if (snappedTargetId !== null) {
-              // TODO next step — persist edge override: d.data.id → snappedTargetId.
-              void patchNodeMetadata(d.data.id, { 
-                parentOverride: snappedTargetId,
-                parentDisconnected: false,
-               });
-            } else {
-              // No snap - user dropped in empty space, meaning disconnect from parent
-              void patchNodeMetadata(d.data.id, {
-                parentOverride: null,
-                parentDisconnected: true,
-              })
-            }
-            snappedTargetId = null
-            window.removeEventListener('pointermove', onPointerMove);
-            window.removeEventListener('pointerup', onPointerUp);
-          };
+            if (bestId !== null) applyHighlight(bestId);
+            snappedTargetId = bestId;
+          }
+        };
 
-          window.addEventListener('pointermove', onPointerMove);
-          window.addEventListener('pointerup', onPointerUp);
-        });
+        const onPointerUp = () => {
+          previewPath.remove();
+          clearHighlight(snappedTargetId);
+          if (snappedTargetId !== null) {
+            void patchNodeMetadata(d.data.id, {
+              parentOverride: snappedTargetId,
+              parentDisconnected: false,
+            });
+          }
+          // Dropping in empty space simply cancels the gesture — never a disconnect.
+          snappedTargetId = null;
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+        };
 
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+      });
+      
     // Right handle (outgoing edge source)
     nodeGroup
       .append('circle')
