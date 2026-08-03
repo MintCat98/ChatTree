@@ -40,7 +40,12 @@ function pickParent(
   metadata: Record<string, NodeMetadata>,
 ): string | null {
   const node = nodes[i];
-  // User edit wins over the mock relevance.
+  const meta = metadata[node.id];
+
+  // Explicit disconnect overrides everyhthing - user made this a root !
+  if (meta?.parentDisconnected) return null;
+
+  // User chose parent.
   const override = metadata[node.id]?.parentOverride;
   if (override !== undefined && override !== null) return override;
 
@@ -438,7 +443,16 @@ export function InteractiveMap() {
             clearHighlight(snappedTargetId);
             if (snappedTargetId !== null) {
               // TODO next step — persist edge override: d.data.id → snappedTargetId.
-              void patchNodeMetadata(d.data.id, { parentOverride: snappedTargetId });
+              void patchNodeMetadata(d.data.id, { 
+                parentOverride: snappedTargetId,
+                parentDisconnected: false,
+               });
+            } else {
+              // No snap - user dropped in empty space, meaning disconnect from parent
+              void patchNodeMetadata(d.data.id, {
+                parentOverride: null,
+                parentDisconnected: true,
+              })
             }
             snappedTargetId = null
             window.removeEventListener('pointermove', onPointerMove);
