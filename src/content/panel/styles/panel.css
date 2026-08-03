@@ -1146,3 +1146,11 @@
 .im-node:hover .im-handle {
   opacity: 1 !important;
 }
+
+/* + label affordance — hover-only like other rewire handles */
+.im-node .im-branch-add {
+  transition: opacity 120ms ease;
+}
+.im-node:hover .im-branch-add {
+  opacity: 1 !important;
+}

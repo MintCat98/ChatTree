@@ -297,6 +297,21 @@ export function InteractiveMap() {
       .attr('fill', 'none')
       .attr('stroke', EDGE_COLOR)
       .attr('stroke-width', EDGE_STROKE_WIDTH);
+    
+    // Count siblings per parent so we know which children live on a branch point.
+    const siblingCount = new Map<string, number>();
+    for (const node of drawable) {
+      const parent = node.parent;
+      if (!parent) continue;
+      const parentId = parent.data.id;
+      siblingCount.set(parentId, (siblingCount.get(parentId) ?? 0) + 1);
+    }
+    // A node "lives on a branch" if its parent has more than one child.
+    const isOnBranch = (node: d3.HierarchyPointNode<TreeDatum>) => {
+      const parent = node.parent;
+      if (!parent) return false;
+      return (siblingCount.get(parent.data.id) ?? 0) > 1;
+    };
 
     const nodeGroup = g
       .selectAll<SVGGElement, d3.HierarchyPointNode<TreeDatum>>('g.im-node')
@@ -474,6 +489,89 @@ export function InteractiveMap() {
       .attr('stroke', 'var(--nav-color-node-border)')
       .attr('stroke-width', 1.5)
       .style('opacity', 0);
+
+    
+    const branchNodes = nodeGroup.filter((d) => isOnBranch(d));
+    // Branch label — sticky-style tag, only shown for nodes that live on a
+    // branch point AND have a saved name. The "+ label" affordance and inline
+    // editing are added in the next step.
+    branchNodes
+      .filter((d) => isOnBranch(d) && !!sessionMetadata[d.data.id]?.branchName)
+      .append('g')
+      .attr('class', 'im-branch-label')
+      .attr('transform', `translate(-4, -14)`)  // Above-left of the node.
+      .each(function (d) {
+        const name = sessionMetadata[d.data.id]!.branchName!;
+        const g = d3.select(this);
+
+        // Measure text later — use fixed padding for now.
+        const paddingX = 8;
+        const paddingY = 3;
+        const fontSize = 10;
+        const approxWidth = name.length * 6 + paddingX * 2;
+        const height = fontSize + paddingY * 2;
+
+        g.append('rect')
+          .attr('x', -approxWidth)
+          .attr('y', -height)
+          .attr('width', approxWidth)
+          .attr('height', height)
+          .attr('rx', 4)
+          .attr('fill', 'var(--nav-color-accent-soft, #fbcf75)')
+          .attr('stroke', 'var(--nav-color-node-border)')
+          .attr('stroke-width', 0.5);
+
+        g.append('text')
+          .attr('x', -approxWidth + paddingX)
+          .attr('y', -paddingY - 1)
+          .attr('font-family', 'var(--nav-font-family)')
+          .attr('font-size', `${fontSize}px`)
+          .attr('fill', 'var(--nav-color-text)')
+          .attr('dominant-baseline', 'alphabetic')
+          .text(name);
+      });
+
+      // "+ label" affordance — hover-only, only on branch nodes without a name.
+    branchNodes
+      .filter((d) => !sessionMetadata[d.data.id]?.branchName)
+      .append('g')
+      .attr('class', 'im-branch-add')
+      .attr('transform', `translate(-4, -14)`)
+      .style('opacity', 0)
+      .style('cursor', 'pointer')
+      .on('click', function (event, d) {
+        event.stopPropagation();
+        void patchNodeMetadata(d.data.id, { branchName: 'branch' });
+      })
+      .each(function () {
+        const sel = d3.select(this);
+        const label = '+ label';
+        const paddingX = 6;
+        const paddingY = 3;
+        const fontSize = 10;
+        const approxWidth = label.length * 5.5 + paddingX * 2;
+        const height = fontSize + paddingY * 2;
+
+        sel.append('rect')
+          .attr('x', -approxWidth)
+          .attr('y', -height)
+          .attr('width', approxWidth)
+          .attr('height', height)
+          .attr('rx', 4)
+          .attr('fill', 'var(--nav-color-bg)')
+          .attr('stroke', 'var(--nav-color-node-border)')
+          .attr('stroke-width', 0.5)
+          .attr('stroke-dasharray', '3 2');
+
+        sel.append('text')
+          .attr('x', -approxWidth + paddingX)
+          .attr('y', -paddingY - 1)
+          .attr('font-family', 'var(--nav-font-family)')
+          .attr('font-size', `${fontSize}px`)
+          .attr('fill', 'var(--nav-color-text-muted)')
+          .attr('dominant-baseline', 'alphabetic')
+          .text(label);
+      });
   }, [tree, sessionMetadata]);
 
   // Sync expand state to the parent sidebar-bottom container so it can
