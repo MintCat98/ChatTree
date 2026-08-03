@@ -331,7 +331,7 @@ export function InteractiveMap() {
     
     const dropTargets = drawable.map((node) => ({
       id: node.data.id,
-      x: (node.y ?? 0) - minY,
+      x: (node.y ?? 0) - minY + NODE_WIDTH, // target: right node
       y: (node.x ?? 0) - minX + NODE_HEIGHT / 2,
     }));
 
@@ -345,18 +345,6 @@ export function InteractiveMap() {
       .attr('fill', 'var(--nav-color-node-fill)')
       .attr('stroke', 'var(--nav-color-node-border)')
       .attr('stroke-width', 1.5)
-      .style('opacity', 0);
-
-    // Right handle (outgoing edge source)
-    nodeGroup
-      .append('circle')
-      .attr('class', 'im-handle im-handle-right')
-      .attr('cx', NODE_WIDTH)
-      .attr('cy', NODE_HEIGHT / 2)
-      .attr('r', HANDLE_RADIUS)
-      .attr('fill', 'var(--nav-color-node-fill)')
-      .attr('stroke', 'var(--nav-color-node-border)')
-      .attr('stroke-width', 1.5)
       .style('opacity', 0)
       .on('pointerdown', function (event: PointerEvent, d) {
           // Don't let d3.zoom start a pan when a handle is grabbed.
@@ -364,7 +352,7 @@ export function InteractiveMap() {
           event.preventDefault();
 
           // Source point: this handle's position in the g coord system.
-          const srcX = (d.y ?? 0) - minY + NODE_WIDTH;
+          const srcX = (d.y ?? 0) - minY;
           const srcY = (d.x ?? 0) - minX + NODE_HEIGHT / 2;
 
           // Preview path — starts as a zero-length curve at the source.
@@ -397,7 +385,7 @@ export function InteractiveMap() {
 
           const clearHighlight = (id: string | null) => {
             if (id === null) return;
-            g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-left')
+            g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-right')
               .filter((nd) => nd.data.id === id)
               .attr('fill', 'var(--nav-color-node-fill)')
               .attr('stroke', 'var(--nav-color-node-border)')
@@ -405,7 +393,7 @@ export function InteractiveMap() {
           };
 
           const applyHighlight = (id: string) => {
-            g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-left')
+            g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-right')
               .filter((nd) => nd.data.id === id)
               .attr('fill', 'var(--nav-color-accent)')
               .attr('stroke', 'var(--nav-color-accent)')
@@ -460,6 +448,18 @@ export function InteractiveMap() {
           window.addEventListener('pointermove', onPointerMove);
           window.addEventListener('pointerup', onPointerUp);
         });
+
+    // Right handle (outgoing edge source)
+    nodeGroup
+      .append('circle')
+      .attr('class', 'im-handle im-handle-right')
+      .attr('cx', NODE_WIDTH)
+      .attr('cy', NODE_HEIGHT / 2)
+      .attr('r', HANDLE_RADIUS)
+      .attr('fill', 'var(--nav-color-node-fill)')
+      .attr('stroke', 'var(--nav-color-node-border)')
+      .attr('stroke-width', 1.5)
+      .style('opacity', 0);
   }, [tree, sessionMetadata]);
 
   // Sync expand state to the parent sidebar-bottom container so it can
