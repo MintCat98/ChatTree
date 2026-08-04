@@ -17,7 +17,7 @@
 //   6. tree NOT persisted across re-init
 
 import { usePanelStore } from '../../src/content/panel/store/panel-store';
-import { DEFAULT_SETTINGS } from '@shared/types';
+import { DEFAULT_SETTINGS, DEFAULT_NODE_METADATA } from '@shared/types';
 import type { TreeData } from '@shared/types';
 
 const SAMPLE_TREE: TreeData = {
@@ -155,54 +155,54 @@ describe('usePanelStore — sessionMetadata (issue #96)', () => {
 
   it('setSessionMetadata replaces the full metadata map', () => {
     usePanelStore.getState().setSessionMetadata({
-      'chatbox-0': { bookmarked: true, tags: ['a'], hidden: false },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['a'] },
     });
     expect(usePanelStore.getState().sessionMetadata).toEqual({
-      'chatbox-0': { bookmarked: true, tags: ['a'], hidden: false },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['a'] },
     });
   });
 
   it('patchNodeMetadata merges defaults with existing entry', () => {
     usePanelStore.getState().setSessionMetadata({
-      'chatbox-0': { bookmarked: false, tags: ['x'], hidden: false },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: false, tags: ['x'] },
     });
     usePanelStore.getState().patchNodeMetadata('chatbox-0', { bookmarked: true });
     expect(usePanelStore.getState().sessionMetadata['chatbox-0']).toEqual({
+      ...DEFAULT_NODE_METADATA, 
       bookmarked: true,
       tags: ['x'],
-      hidden: false,
     });
   });
 
   it('patchNodeMetadata creates a new entry using defaults when node has no prior metadata', () => {
     usePanelStore.getState().patchNodeMetadata('chatbox-1', { bookmarked: true });
     expect(usePanelStore.getState().sessionMetadata['chatbox-1']).toEqual({
+      ...DEFAULT_NODE_METADATA, 
       bookmarked: true,
-      tags: [],
-      hidden: false,
     });
   });
 
   it('patchNodeMetadata does not affect other nodes', () => {
     usePanelStore.getState().setSessionMetadata({
-      'chatbox-0': { bookmarked: false, tags: [], hidden: false },
-      'chatbox-1': { bookmarked: true, tags: ['y'], hidden: false },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA },
+      'chatbox-1': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['y'] },
     });
     usePanelStore.getState().patchNodeMetadata('chatbox-0', { bookmarked: true });
     expect(usePanelStore.getState().sessionMetadata['chatbox-1']).toEqual({
+      ...DEFAULT_NODE_METADATA, 
       bookmarked: true,
       tags: ['y'],
-      hidden: false,
     });
   });
 
   // Issue #167 — the hide control patches the same metadata layer.
   it('patchNodeMetadata sets hidden without clearing bookmarks or tags', () => {
     usePanelStore.getState().setSessionMetadata({
-      'chatbox-0': { bookmarked: true, tags: ['x'], hidden: false },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['x'] },
     });
     usePanelStore.getState().patchNodeMetadata('chatbox-0', { hidden: true });
     expect(usePanelStore.getState().sessionMetadata['chatbox-0']).toEqual({
+      ...DEFAULT_NODE_METADATA, 
       bookmarked: true,
       tags: ['x'],
       hidden: true,

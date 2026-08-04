@@ -72,6 +72,16 @@
 | `--nav-color-accent-hover` | `#c8643f` | `#ec9a7e` | Accent hover |
 | `--nav-color-accent-soft` | `rgba(217,119,87,.12)` | `rgba(224,138,110,.16)` | Soft accent fill |
 
+## Sticky note (Interactive Map branch labels)
+| Token | Light | Dark | Purpose |
+|---|---|---|---|
+| `--nav-color-sticky-bg` | `#fbcf75` | `#8a6a1a` | Branch label sticky fill |
+| `--nav-color-sticky-border` | `#d4a017` | `#b88a20` | Branch label sticky border |
+
+> Deliberately outside the clay family: `--nav-color-accent-soft` is a ~12%
+> translucent overlay and renders almost invisible as a label fill. Use these
+> for the sticky-note affordance, not the accent tokens.
+
 ## Nodes
 | Token | Light | Dark | Purpose |
 |---|---|---|---|
