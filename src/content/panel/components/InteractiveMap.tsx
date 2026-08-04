@@ -502,12 +502,14 @@ export function InteractiveMap() {
     // branch point AND have a saved name. The "+ label" affordance and inline
     // editing are added in the next step.
     branchNodes
-      .filter((d) => isOnBranch(d) && !!sessionMetadata[d.data.id]?.branchName)
+      .filter((d) => 
+        isOnBranch(d) && (!!sessionMetadata[d.data.id]?.branchName || editingLabelId === d.data.id)
+    )
       .append('g')
       .attr('class', 'im-branch-label')
       .attr('transform', `translate(30, -6)`) // Above-left of the node.
       .each(function (d) {
-        const name = sessionMetadata[d.data.id]!.branchName!;
+        const name = sessionMetadata[d.data.id]?.branchName ?? '';
         const isEditing = editingLabelId === d.data.id;
         const sel = d3.select(this);
 
@@ -541,20 +543,33 @@ export function InteractiveMap() {
               if (event.key === 'Enter') {
                 savedByKeydown = true;
                 const val = this.value.trim();
-                const patch = { branchName: val || null };
-                patchNodeMetadata(d.data.id, patch);
-                const sessionId = tree?.sessionId;
-                if (sessionId) void setNodeMetadata(sessionId, d.data.id, patch);
+                const current = sessionMetadata[d.data.id]?.branchName ?? null;
+                const next = val || null;
+                if (current !== next) {
+                  const patch = { branchName: next };
+                  patchNodeMetadata(d.data.id, patch);
+                  const sessionId = tree?.sessionId;
+                  if (sessionId) void setNodeMetadata(sessionId, d.data.id, patch);
+                }
+                setEditingLabelId(null);
+              } else if (event.key === 'Escape') {
+                // Cancel without saving. savedByKeydown prevents blur from
+                // committing the pending value.
+                savedByKeydown = true;
                 setEditingLabelId(null);
               }
             })
             .on('blur', function (this: HTMLInputElement) {
               if (savedByKeydown) return;
               const val = this.value.trim();
-              const patch = { branchName: val || null };
-              patchNodeMetadata(d.data.id, patch);
-              const sessionId = tree?.sessionId;
-              if (sessionId) void setNodeMetadata(sessionId, d.data.id, patch);
+              const current = sessionMetadata[d.data.id]?.branchName ?? null;
+              const next = val || null;
+              if (current !== next) {
+                const patch = { branchName: next };
+                patchNodeMetadata(d.data.id, patch);
+                const sessionId = tree?.sessionId;
+                if (sessionId) void setNodeMetadata(sessionId, d.data.id, patch);
+              }
               setEditingLabelId(null);
             })
             .each(function (this: HTMLInputElement) {
@@ -591,16 +606,15 @@ export function InteractiveMap() {
     // "+ label" affordance — hover-only, only on branch nodes without a name.
     // Clicking it saves a default name and immediately enters editing mode.
     branchNodes
-      .filter((d) => !sessionMetadata[d.data.id]?.branchName)
+      .filter((d) => 
+        !sessionMetadata[d.data.id]?.branchName &&
+        editingLabelId !== d.data.id
+      )
       .append('g')
       .attr('class', 'im-branch-add')
       .attr('transform', `translate(30, -6)`)
       .on('click', function (event, d) {
         event.stopPropagation();
-        const patch = { branchName: 'branch' };
-        patchNodeMetadata(d.data.id, patch);
-        const sessionId = tree?.sessionId;
-        if (sessionId) void setNodeMetadata(sessionId, d.data.id, patch);
         setEditingLabelId(d.data.id);
       })
       .each(function () {
