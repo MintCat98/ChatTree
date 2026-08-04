@@ -340,7 +340,7 @@ export function InteractiveMap() {
           .attr('x1', -s).attr('y1', -s).attr('x2', s).attr('y2', s);
         sel
           .append('line')
-          .attr('x1', -s).attr('y1', s).attr('x2', s).attr('y2', -s)
+          .attr('x1', -s).attr('y1', s).attr('x2', s).attr('y2', -s);
       });
 
     const nodeGroup = g
@@ -356,7 +356,7 @@ export function InteractiveMap() {
       .append('rect')
       .attr('width', NODE_WIDTH)
       .attr('height', NODE_HEIGHT)
-      .attr('rx', 8)
+      .attr('rx', 8);
 
     nodeGroup
       .append('text')
@@ -404,6 +404,19 @@ export function InteractiveMap() {
           return { x: local.x, y: local.y };
         }
 
+        // Targets that would close a cycle are resolved once per gesture.
+        // The layout can't change mid-drag, so this set is stable — computing
+        // it here keeps pointermove O(targets) instead of O(targets × nodes).
+        const forbiddenTargets = new Set(
+          dropTargets
+            .filter(
+              (t) =>
+                t.id !== d.data.id &&
+                wouldCreateCycle(d.data.id, t.id, tree.nodes, sessionMetadata),
+            )
+            .map((t) => t.id),
+        );
+
         let snappedTargetId: string | null = null;
 
         const clearHighlight = (id: string | null) => {
@@ -416,7 +429,7 @@ export function InteractiveMap() {
         const applyHighlight = (id: string) => {
           g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-right')
             .filter((nd) => nd.data.id === id)
-            .classed('is-snap-target',true);
+            .classed('is-snap-target', true);
         };
 
         const onPointerMove = (moveEvent: PointerEvent) => {
@@ -426,7 +439,7 @@ export function InteractiveMap() {
           let bestDist = SNAP_RADIUS;
           for (const t of dropTargets) {
             if (t.id === d.data.id) continue;
-            if (wouldCreateCycle(d.data.id, t.id, tree!.nodes, sessionMetadata)) continue;
+            if (forbiddenTargets.has(t.id)) continue;
             const dx = t.x - x;
             const dy = t.y - y;
             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -477,8 +490,8 @@ export function InteractiveMap() {
       .attr('class', 'im-handle im-handle-right')
       .attr('cx', NODE_WIDTH)
       .attr('cy', NODE_HEIGHT / 2)
-      .attr('r', HANDLE_RADIUS)
-    
+      .attr('r', HANDLE_RADIUS);
+
     const branchNodes = nodeGroup.filter((d) => isOnBranch(d));
     // Branch label — sticky-style tag, only shown for nodes that live on a
     // branch point AND have a saved name. The "+ label" affordance and inline
