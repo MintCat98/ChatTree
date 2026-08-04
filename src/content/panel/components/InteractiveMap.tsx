@@ -18,8 +18,6 @@ const NODE_HEIGHT = 40;
 const H_GAP = 60;       // extra horizontal spacing between depth levels
 const V_GAP = 12;       // extra vertical spacing betwen siblings
 const PADDING = 16;
-const EDGE_COLOR = 'var(--nav-color-edge)';
-const EDGE_STROKE_WIDTH = 1.5;
 
 // Zoom-related constants
 const ZOOM_LADDER = [25, 50, 75, 100, 125, 150, 200];
@@ -312,9 +310,6 @@ export function InteractiveMap() {
       .append('path')
       .attr('class', 'im-edge')
       .attr('d', linkGenerator)
-      .attr('fill', 'none')
-      .attr('stroke', EDGE_COLOR)
-      .attr('stroke-width', EDGE_STROKE_WIDTH);
 
     // Disconnect "x" (inside the same group)
     edgeGroup
@@ -327,7 +322,6 @@ export function InteractiveMap() {
         const ty = (l.target.x ?? 0) - minX + NODE_HEIGHT / 2;
         return `translate(${(sx + tx) / 2}, ${(sy + ty) / 2})`;
       })
-      .style('cursor', 'pointer')
       .on('click', function (event: MouseEvent, l) {
         event.stopPropagation();
         const patch = { parentOverride: null, parentDisconnected: true };
@@ -339,23 +333,14 @@ export function InteractiveMap() {
         const sel = d3.select(this);
         sel
           .append('circle')
-          .attr('r', 7)
-          .attr('fill', 'var(--nav-color-bg)')
-          .attr('stroke', 'var(--nav-color-node-border)')
-          .attr('stroke-width', 1);
+          .attr('r', 7);
         const s = 3;
         sel
           .append('line')
-          .attr('x1', -s).attr('y1', -s).attr('x2', s).attr('y2', s)
-          .attr('stroke', 'var(--nav-color-text)')
-          .attr('stroke-width', 1.2)
-          .attr('stroke-linecap', 'round');
+          .attr('x1', -s).attr('y1', -s).attr('x2', s).attr('y2', s);
         sel
           .append('line')
           .attr('x1', -s).attr('y1', s).attr('x2', s).attr('y2', -s)
-          .attr('stroke', 'var(--nav-color-text)')
-          .attr('stroke-width', 1.2)
-          .attr('stroke-linecap', 'round');
       });
 
     const nodeGroup = g
@@ -365,7 +350,6 @@ export function InteractiveMap() {
       .append('g')
       .attr('class', 'im-node')
       .attr('transform', (d) => `translate(${(d.y ?? 0) - minY}, ${(d.x ?? 0) - minX})`)
-      .style('cursor', 'pointer')
       .on('click', (_event, d) => scrollToNode(d.data.id));
 
     nodeGroup
@@ -373,9 +357,6 @@ export function InteractiveMap() {
       .attr('width', NODE_WIDTH)
       .attr('height', NODE_HEIGHT)
       .attr('rx', 8)
-      .attr('fill', 'var(--nav-color-node-fill)')
-      .attr('stroke', 'var(--nav-color-node-border)')
-      .attr('stroke-width', 1.5);
 
     nodeGroup
       .append('text')
@@ -383,9 +364,6 @@ export function InteractiveMap() {
       .attr('y', NODE_HEIGHT / 2)
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'central')
-      .attr('fill', 'var(--nav-color-text)')
-      .attr('font-size', '12px')
-      .attr('font-family', 'var(--nav-font-family)')
       .text((d) => {
         const t = d.data.text.trim();
         return t.length > 18 ? t.slice(0, 17) + '…' : t;
@@ -635,18 +613,11 @@ export function InteractiveMap() {
           .attr('y', -height)
           .attr('width', approxWidth)
           .attr('height', height)
-          .attr('rx', 4)
-          .attr('fill', 'var(--nav-color-bg)')
-          .attr('stroke', 'var(--nav-color-node-border)')
-          .attr('stroke-width', 0.5)
-          .attr('stroke-dasharray', '3 2');
+          .attr('rx', 4);
 
         sel.append('text')
           .attr('x', -approxWidth / 2 + paddingX)
           .attr('y', -paddingY - 1)
-          .attr('font-family', 'var(--nav-font-family)')
-          .attr('font-size', `${fontSize}px`)
-          .attr('fill', 'var(--nav-color-text-muted)')
           .attr('dominant-baseline', 'alphabetic')
           .text(label);
       });

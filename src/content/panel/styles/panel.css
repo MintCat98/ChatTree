@@ -1219,8 +1219,62 @@
 /* Disconnect "x" on edge midpoints — hidden by default, shown only when
    hovering the specific edge group (not the whole viewport). */
 .im-disconnect {
+  cursor: pointer;
   opacity: 0;
   transition: opacity 120ms ease;
+}
+
+/* ─── Interactive Map — node, edge, disconnect shape styling ────────── */
+
+/* Nodes */
+.im-node {
+  cursor: pointer;
+}
+
+.im-node > rect {
+  fill: var(--nav-color-node-fill);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1.5;
+}
+
+.im-node > text {
+  fill: var(--nav-color-text);
+  font-size: 12px;
+  font-family: var(--nav-font-family);
+}
+
+/* Edges */
+.im-edge {
+  fill: none;
+  stroke: var(--nav-color-edge);
+  stroke-width: 1.5;
+}
+
+/* Disconnect "x" — inner shapes */
+.im-disconnect circle {
+  fill: var(--nav-color-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1;
+}
+
+.im-disconnect line {
+  stroke: var(--nav-color-text);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+/* + label affordance — dashed placeholder box */
+.im-branch-add rect {
+  fill: var(--nav-color-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 0.5;
+  stroke-dasharray: 3 2;
+}
+
+.im-branch-add text {
+  fill: var(--nav-color-text-muted);
+  font-family: var(--nav-font-family);
+  font-size: 10px;
 }
 
 .im-edge-group:hover .im-disconnect,
