@@ -91,7 +91,7 @@ export function InteractiveMap() {
     move: ((e: PointerEvent) => void) | null;
     up: (() => void) | null;
   }>({ move: null, up: null });
-  
+
   const [zoomPercent, setZoomPercent] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
@@ -241,7 +241,7 @@ export function InteractiveMap() {
         if (isSpacePressedRef.current && event.button === 0) return true;
         if (event.button === 0) {
           const target = event.target as Element;
-          return !target.closest('g.im-node') && !target.closest('im-handle');
+          return !target.closest('g.im-node') && !target.closest('.im-handle');
         }
         return false;
       })
@@ -279,11 +279,6 @@ export function InteractiveMap() {
       if (!parent) return false;
       return (siblingCount.get(parent.data.id) ?? 0) > 1;
     };
-
-    // A node is "connected" when it has an incoming edge in the current tree.
-    // Roots (no parent) and explicitly disconnected nodes both fall into "not connected".
-    const hasIncomingEdge = (node: d3.HierarchyPointNode<TreeDatum>) =>
-      node.depth > 0 && node.parent !== null;
 
     const linkGenerator = d3
       .linkHorizontal<d3.HierarchyPointLink<TreeDatum>, d3.HierarchyPointNode<TreeDatum>>()
