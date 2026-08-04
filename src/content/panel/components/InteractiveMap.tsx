@@ -400,10 +400,6 @@ export function InteractiveMap() {
       .attr('cx', 0)
       .attr('cy', NODE_HEIGHT / 2)
       .attr('r', HANDLE_RADIUS)
-      .attr('fill', 'var(--nav-color-node-fill)')
-      .attr('stroke', 'var(--nav-color-node-border)')
-      .attr('stroke-width', 1.5)
-      .style('opacity', 0)
       .on('pointerdown', function (event: PointerEvent, d) {
         event.stopPropagation();
         event.preventDefault();
@@ -413,12 +409,7 @@ export function InteractiveMap() {
 
         const previewPath = previewLayer
           .append('path')
-          .attr('class', 'im-preview-edge')
-          .attr('fill', 'none')
-          .attr('stroke', EDGE_COLOR)
-          .attr('stroke-width', EDGE_STROKE_WIDTH)
-          .attr('stroke-dasharray', '4 3')
-          .attr('pointer-events', 'none');
+          .attr('class', 'im-preview-edge');
 
         (event.target as Element).setPointerCapture?.(event.pointerId);
 
@@ -439,17 +430,13 @@ export function InteractiveMap() {
           if (id === null) return;
           g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-right')
             .filter((nd) => nd.data.id === id)
-            .attr('fill', 'var(--nav-color-node-fill)')
-            .attr('stroke', 'var(--nav-color-node-border)')
-            .style('opacity', 0);
+            .classed('is-snap-target', false);
         };
 
         const applyHighlight = (id: string) => {
           g.selectAll<SVGCircleElement, d3.HierarchyPointNode<TreeDatum>>('.im-handle-right')
             .filter((nd) => nd.data.id === id)
-            .attr('fill', 'var(--nav-color-accent)')
-            .attr('stroke', 'var(--nav-color-accent)')
-            .style('opacity', 1);
+            .classed('is-snap-target',true);
         };
 
         const onPointerMove = (moveEvent: PointerEvent) => {
@@ -509,11 +496,6 @@ export function InteractiveMap() {
       .attr('cx', NODE_WIDTH)
       .attr('cy', NODE_HEIGHT / 2)
       .attr('r', HANDLE_RADIUS)
-      .attr('fill', 'var(--nav-color-node-fill)')
-      .attr('stroke', 'var(--nav-color-node-border)')
-      .attr('stroke-width', 1.5)
-      .style('opacity', 0);
-
     
     const branchNodes = nodeGroup.filter((d) => isOnBranch(d));
     // Branch label — sticky-style tag, only shown for nodes that live on a
@@ -632,8 +614,6 @@ export function InteractiveMap() {
       .append('g')
       .attr('class', 'im-branch-add')
       .attr('transform', `translate(30, -6)`)
-      .style('opacity', 0)
-      .style('cursor', 'pointer')
       .on('click', function (event, d) {
         event.stopPropagation();
         const patch = { branchName: 'branch' };

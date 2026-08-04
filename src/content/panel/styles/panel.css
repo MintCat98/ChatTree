@@ -1138,21 +1138,45 @@
 }
 
 /* Interactive Map — hover-only rewiring handles */
-.im-node .im-handle {
-  transition: opacity 120ms ease;
+.im-handle {
+  fill: var(--nav-color-node-fill);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1.5;
   cursor: crosshair;
+  opacity: 0;
+  transition: opacity 120ms ease, fill 120ms ease, stroke 120ms ease;
 }
 
 .im-node:hover .im-handle {
-  opacity: 1 !important;
+  opacity: 1;
 }
 
-/* + label affordance — hover-only like other rewire handles */
-.im-node .im-branch-add {
+/* Snap target — drag preview highlights the candidate parent's right
+   handle. Toggled via .classed('is-snap-target', ...) from the drag code. */
+.im-handle.is-snap-target {
+  fill: var(--nav-color-accent);
+  stroke: var(--nav-color-accent);
+  opacity: 1;
+}
+
+/* Drag preview edge — dashed bezier that follows the cursor. */
+.im-preview-edge {
+  fill: none;
+  stroke: var(--nav-color-edge);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+/* + label affordance — hover-only, only on branch nodes without a name. */
+.im-branch-add {
+  opacity: 0;
+  cursor: pointer;
   transition: opacity 120ms ease;
 }
+
 .im-node:hover .im-branch-add {
-  opacity: 1 !important;
+  opacity: 1;
 }
 
 /* Disconnect "x" on edge midpoints — hidden by default, shown only when
