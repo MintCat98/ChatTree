@@ -1,9 +1,23 @@
-// parent-resolver.ts 상단
+// Parent resolution for the Interactive Map (issue #164): the mock relevance
+// chain, user overrides from node metadata, and the cycle guard that keeps a
+// corrupt override from stranding nodes outside the rendered forest.
+
 import type { ChatboxNode, NodeMetadata } from '@shared/types';
 
 // Dev flag: relevance scoring mock strategy.
 // TODO: Remove when real relevance scoring lands.
 const MOCK_RELEVANCE_MODE: 'chain' | 'random' = 'chain';
+
+// pickParent runs on every render (the map effect re-runs on tree, metadata
+// and label-edit changes), so an unguarded warn would repeat for the lifetime
+// of the panel. Warn once per offending edge instead.
+const warnedCycles = new Set<string>();
+
+// Test seam: the dedupe above is module state, so suites that assert on the
+// warning must clear it between cases.
+export function resetCycleWarnings(): void {
+  warnedCycles.clear();
+}
 
 // Would setting `newParentId` as `nodeId`'s parent create a cycle?
 // Walks up from newParentId via the resolved parent chain (override wins
@@ -56,14 +70,18 @@ export function pickParent(
   const override = metadata[node.id]?.parentOverride;
   if (override !== undefined && override !== null) {
     if (wouldCreateCycle(node.id, override, nodes, metadata)) {
-      console.warn(
-        `[InteractiveMap] Cycle detected via ${node.id} → ${override}; ` +
-        `falling back to root. Persisted parentOverride left intact.`,
-      );
+      const key = `${node.id}->${override}`;
+      if (!warnedCycles.has(key)) {
+        warnedCycles.add(key);
+        console.warn(
+          `[InteractiveMap] Cycle detected via ${node.id} → ${override}; ` +
+          `falling back to root. Persisted parentOverride left intact.`,
+        );
+      }
       return null;
     }
     return override;
-  } 
+  }
 
   if (i === 0) return null;
   if (MOCK_RELEVANCE_MODE === 'chain') return nodes[i - 1].id;

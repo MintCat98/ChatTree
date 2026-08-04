@@ -6,10 +6,14 @@
 //   3. cycle handling          — pickParent falls back to root instead of
 //                                emitting a cycle that would strand nodes
 //
-// pickParent and wouldCreateCycle must be exported from InteractiveMap.tsx
-// for these tests to reach them.
+// pickParent and wouldCreateCycle live in parent-resolver.ts, split out of
+// InteractiveMap.tsx so they can be exercised without a DOM.
 
-import { pickParent, wouldCreateCycle } from '@content/panel/components/parent-resolver';
+import {
+  pickParent,
+  wouldCreateCycle,
+  resetCycleWarnings,
+} from '@content/panel/components/parent-resolver';
 import { DEFAULT_NODE_METADATA } from '@shared/types';
 import type { ChatboxNode, NodeMetadata } from '@shared/types';
 
@@ -46,8 +50,13 @@ function meta(
 // Silence the "Cycle detected" console.warn from pickParent's safety-net
 // so the test output stays readable. Cycle tests below still assert the
 // safety-net fires by checking the returned parent.
+//
+// pickParent warns once per offending edge (module-level dedupe), so the
+// dedupe set has to be cleared too — otherwise an earlier case consumes the
+// single warning the assertion below is waiting for.
 let warnSpy: jest.SpyInstance;
 beforeEach(() => {
+  resetCycleWarnings();
   warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
@@ -162,6 +171,18 @@ describe('pickParent — cycle safety-net', () => {
     const message = String(warnSpy.mock.calls[0]?.[0] ?? '');
     expect(message).toContain('chatbox-1');
     expect(message).toContain('chatbox-2');
+  });
+
+  it('warns only once per offending edge across repeated renders', () => {
+    // The map effect re-runs on every tree/metadata/label-edit change, so an
+    // unguarded warn would spam the console for the life of the panel.
+    const m = meta({ 'chatbox-1': { parentOverride: 'chatbox-2' } });
+
+    pickParent(CHAIN, 1, m);
+    pickParent(CHAIN, 1, m);
+    pickParent(CHAIN, 1, m);
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 
   it('does not mutate the metadata object when falling back', () => {
