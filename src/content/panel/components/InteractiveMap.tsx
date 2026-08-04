@@ -85,6 +85,13 @@ export function InteractiveMap() {
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const isSpacePressedRef = useRef(false);
   const isPointerInsideRef = useRef(false);
+  // Track window listeners registered during an active drag so the effect
+  // cleanup can detach them if the component unmounts mid-drag.
+  const dragListenersRef = useRef<{
+    move: ((e: PointerEvent) => void) | null;
+    up: (() => void) | null;
+  }>({ move: null, up: null });
+  
   const [zoomPercent, setZoomPercent] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
@@ -483,10 +490,12 @@ export function InteractiveMap() {
           snappedTargetId = null;
           window.removeEventListener('pointermove', onPointerMove);
           window.removeEventListener('pointerup', onPointerUp);
+          dragListenersRef.current = { move: null, up: null };
         };
 
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
+        dragListenersRef.current = { move: onPointerMove, up: onPointerUp };
       });
 
     // Right handle (outgoing edge source)
@@ -646,6 +655,16 @@ export function InteractiveMap() {
           .attr('dominant-baseline', 'alphabetic')
           .text(label);
       });
+
+      // Detach any drag listeners still attached to window on unmount /
+      // before the next effect run. Guards against the component being
+      // torn down mid-drag (panel close, session switch).
+      return () => {
+        const { move, up } = dragListenersRef.current;
+        if (move) window.removeEventListener('pointermove', move);
+        if (up) window.removeEventListener('pointerup', up);
+        dragListenersRef.current = { move: null, up: null };
+      };
   }, [tree, sessionMetadata, editingLabelId]);
 
   // Sync expand state to the parent sidebar-bottom container so it can
