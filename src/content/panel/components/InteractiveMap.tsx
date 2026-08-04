@@ -533,17 +533,6 @@ export function InteractiveMap() {
             .attr('type', 'text')
             .attr('value', name)
             .attr('class', 'im-branch-input')
-            .style('width', '100%')
-            .style('height', '100%')
-            .style('box-sizing', 'border-box')
-            .style('padding', `${paddingY}px ${paddingX}px`)
-            .style('font-family', 'var(--nav-font-family)')
-            .style('font-size', `${fontSize}px`)
-            .style('background', 'var(--nav-color-accent-soft, #fbcf75)')
-            .style('color', 'var(--nav-color-text)')
-            .style('border', '1px solid var(--nav-color-accent, #d4a017)')
-            .style('border-radius', '4px')
-            .style('outline', 'none')
             .on('click', function (event: Event) {
               event.stopPropagation();
             })
@@ -585,10 +574,6 @@ export function InteractiveMap() {
             .attr('width', approxWidth)
             .attr('height', height)
             .attr('rx', 4)
-            .attr('fill', 'var(--nav-color-accent-soft, #fbcf75)')
-            .attr('stroke', 'var(--nav-color-node-border)')
-            .attr('stroke-width', 0.5)
-            .style('cursor', 'text')
             .on('click', (event: MouseEvent) => {
               event.stopPropagation();
               setEditingLabelId(d.data.id);
@@ -598,11 +583,7 @@ export function InteractiveMap() {
             .append('text')
             .attr('x', -approxWidth / 2 + paddingX)
             .attr('y', -paddingY - 1)
-            .attr('font-family', 'var(--nav-font-family)')
-            .attr('font-size', `${fontSize}px`)
-            .attr('fill', 'var(--nav-color-text)')
             .attr('dominant-baseline', 'alphabetic')
-            .attr('pointer-events', 'none')
             .text(name);
         }
       });
