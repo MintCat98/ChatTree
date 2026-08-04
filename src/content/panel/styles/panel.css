@@ -1025,7 +1025,7 @@
 
 @keyframes nav-slide-in-sidebar {
   from  { transform: translateX(20px);  opacity: 0; }
-  to    { transform: translateX(0);     opcaity: 1; }
+  to    { transform: translateX(0);     opacity: 1; }
 }
 
 /* Top: Tree map region: */
@@ -1155,18 +1155,14 @@
   opacity: 1 !important;
 }
 
-.im-node .im-disconnect {
+/* Disconnect "x" on edge midpoints — hidden by default, shown only when
+   hovering the specific edge group (not the whole viewport). */
+.im-disconnect {
+  opacity: 0;
   transition: opacity 120ms ease;
-}
-.im-node:hover .im-disconnect {
-  opacity: 1 !important;
 }
 
-/* Disconnect "x" on edge midpoints — hover-only */
-.zoom-viewport:hover .im-disconnect,
+.im-edge-group:hover .im-disconnect,
 .im-disconnect:hover {
-  opacity: 1 !important;
-}
-.im-disconnect {
-  transition: opacity 120ms ease;
+  opacity: 1;
 }

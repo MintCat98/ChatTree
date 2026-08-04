@@ -293,9 +293,20 @@ export function InteractiveMap() {
       .x((d) => d.y ?? 0)
       .y((d) => d.x ?? 0);
 
-    g.selectAll('path.im-edge')
-      .data(root.links().filter((l) => l.source.depth > 0) as d3.HierarchyPointLink<TreeDatum>[])
+    // Edge group: contains both the edge path and the disconnect "x".
+    // Hovering the group (not the whole viewport) toggles the x visibility,
+    // so the map stays clean with many edges.
+    const edgeLinks = root.links().filter((l) => l.source.depth > 0) as d3.HierarchyPointLink<TreeDatum>[];
+
+    const edgeGroup = g
+      .selectAll('g.im-edge-group')
+      .data(edgeLinks)
       .enter()
+      .append('g')
+      .attr('class', 'im-edge-group');
+
+    // Edge path (inside the group)
+    edgeGroup
       .append('path')
       .attr('class', 'im-edge')
       .attr('d', linkGenerator)
@@ -303,11 +314,8 @@ export function InteractiveMap() {
       .attr('stroke', EDGE_COLOR)
       .attr('stroke-width', EDGE_STROKE_WIDTH);
 
-    // Disconnect "x" — sits on the midpoint of each edge, hover-only.
-    // Clicking removes the incoming edge of the child node (target).
-    g.selectAll('g.im-disconnect')
-      .data(root.links().filter((l) => l.source.depth > 0) as d3.HierarchyPointLink<TreeDatum>[])
-      .enter()
+    // Disconnect "x" (inside the same group)
+    edgeGroup
       .append('g')
       .attr('class', 'im-disconnect')
       .attr('transform', (l) => {
@@ -317,7 +325,6 @@ export function InteractiveMap() {
         const ty = (l.target.x ?? 0) - minX + NODE_HEIGHT / 2;
         return `translate(${(sx + tx) / 2}, ${(sy + ty) / 2})`;
       })
-      .style('opacity', 0)
       .style('cursor', 'pointer')
       .on('click', function (event: MouseEvent, l) {
         event.stopPropagation();
