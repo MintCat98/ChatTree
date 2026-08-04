@@ -7,7 +7,6 @@ import { create } from 'zustand';
 import type { TreeData, UserSettings, NodeMetadata } from '@shared/types';
 import { DEFAULT_SETTINGS, DEFAULT_NODE_METADATA } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
-import { getSessionMetadata, setNodeMetadata } from '@shared/metadata-storage';
 
 // Cursor position used to anchor the hover tooltip. Stored here because the
 // nodes live inside a closed Shadow DOM and can't be located from document.
@@ -67,11 +66,11 @@ interface PanelState {
   // Replace the entire session metadata map (called when tree/session changes).
   setSessionMetadata:   (meta: Record<string, NodeMetadata>) => void;
   // Optimistic local update for a single node (caller writes to chrome.storage).
-  patchNodeMetadata:    (nodeId: string, patch: Partial<NodeMetadata>) => Promise<void>;
+  patchNodeMetadata:    (nodeId: string, patch: Partial<NodeMetadata>) => void;
 }
 
 export const usePanelStore = create<PanelState>()(
-  (set, get) => ({
+  (set) => ({
     tree:                null,
     settings:            DEFAULT_SETTINGS,
     activeNodeId:        null,
@@ -160,22 +159,12 @@ export const usePanelStore = create<PanelState>()(
 
     setSessionMetadata: (meta) => set({ sessionMetadata: meta }),
 
-    patchNodeMetadata: async (nodeId, patch) => {
-      const state = get();
-      const sessionId = state.tree?.sessionId;
-      const current = state.sessionMetadata[nodeId] ?? DEFAULT_NODE_METADATA;
-      const next: NodeMetadata = { ...current, ...patch };
-
-      set({
+    patchNodeMetadata: (nodeId, patch) =>
+      set((s) => ({
         sessionMetadata: {
-          ...state.sessionMetadata,
-          [nodeId]: next,
+          ...s.sessionMetadata,
+          [nodeId]: { ...DEFAULT_NODE_METADATA, ...s.sessionMetadata[nodeId], ...patch },
         },
-      });
-
-      if (sessionId) {
-        await setNodeMetadata(sessionId, nodeId, next);
-      }
-    },
+      })),
   }),
 );

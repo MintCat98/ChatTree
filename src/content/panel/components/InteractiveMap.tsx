@@ -11,6 +11,7 @@ import type { ChatboxNode, NodeMetadata } from '@shared/types';
 import { usePanelStore } from '../store/panel-store';
 import { scrollToNode } from '../../scroll-navigator';
 import { pickParent, wouldCreateCycle } from './parent-resolver';
+import { setNodeMetadata } from '@shared/metadata-storage';
 
 const NODE_WIDTH = 140;
 const NODE_HEIGHT = 40;
@@ -320,10 +321,10 @@ export function InteractiveMap() {
       .style('cursor', 'pointer')
       .on('click', function (event: MouseEvent, l) {
         event.stopPropagation();
-        void patchNodeMetadata(l.target.data.id, {
-          parentOverride: null,
-          parentDisconnected: true,
-        });
+        const patch = { parentOverride: null, parentDisconnected: true };
+        patchNodeMetadata(l.target.data.id, patch);
+        const sessionId = tree?.sessionId;
+        if (sessionId) void setNodeMetadata(sessionId, l.target.data.id, patch);
       })
       .each(function () {
         const sel = d3.select(this);
@@ -425,11 +426,6 @@ export function InteractiveMap() {
           return { x: local.x, y: local.y };
         }
 
-        function bezier(x1: number, y1: number, x2: number, y2: number): string {
-          const midX = (x1 + x2) / 2;
-          return `M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}`;
-        }
-
         let snappedTargetId: string | null = null;
 
         const clearHighlight = (id: string | null) => {
@@ -484,10 +480,10 @@ export function InteractiveMap() {
           previewPath.remove();
           clearHighlight(snappedTargetId);
           if (snappedTargetId !== null) {
-            void patchNodeMetadata(d.data.id, {
-              parentOverride: snappedTargetId,
-              parentDisconnected: false,
-            });
+            const patch = { parentOverride: snappedTargetId, parentDisconnected: false };
+            patchNodeMetadata(d.data.id, patch);
+            const sessionId = tree?.sessionId;
+            if (sessionId) void setNodeMetadata(sessionId, d.data.id, patch);
           }
           // Dropping in empty space simply cancels the gesture — never a disconnect.
           snappedTargetId = null;
@@ -567,17 +563,20 @@ export function InteractiveMap() {
               if (event.key === 'Enter') {
                 savedByKeydown = true;
                 const val = this.value.trim();
-                void patchNodeMetadata(d.data.id, { branchName: val || null });
-                setEditingLabelId(null);
-              } else if (event.key === 'Escape') {
-                savedByKeydown = true;
+                const patch = { branchName: val || null };
+                patchNodeMetadata(d.data.id, patch);
+                const sessionId = tree?.sessionId;
+                if (sessionId) void setNodeMetadata(sessionId, d.data.id, patch);
                 setEditingLabelId(null);
               }
             })
             .on('blur', function (this: HTMLInputElement) {
               if (savedByKeydown) return;
               const val = this.value.trim();
-              void patchNodeMetadata(d.data.id, { branchName: val || null });
+              const patch = { branchName: val || null };
+              patchNodeMetadata(d.data.id, patch);
+              const sessionId = tree?.sessionId;
+              if (sessionId) void setNodeMetadata(sessionId, d.data.id, patch);
               setEditingLabelId(null);
             })
             .each(function (this: HTMLInputElement) {
@@ -630,7 +629,10 @@ export function InteractiveMap() {
       .style('cursor', 'pointer')
       .on('click', function (event, d) {
         event.stopPropagation();
-        void patchNodeMetadata(d.data.id, { branchName: 'branch' });
+        const patch = { branchName: 'branch' };
+        patchNodeMetadata(d.data.id, patch);
+        const sessionId = tree?.sessionId;
+        if (sessionId) void setNodeMetadata(sessionId, d.data.id, patch);
         setEditingLabelId(d.data.id);
       })
       .each(function () {
