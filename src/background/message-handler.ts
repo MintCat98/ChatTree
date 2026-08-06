@@ -7,6 +7,7 @@ import { DEFAULT_SETTINGS } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
 import { getTree, updateTree, clearAllTrees } from '@background/session-store';
 import { type SummaryTurn, enqueueSummaryTurns } from '@background/summary-queue';
+import { getRelevance } from '@background/relevance';
 import { clearAllNodeCache } from '@shared/node-cache';
 
 export function onMessage(
@@ -25,6 +26,19 @@ export function onMessage(
     getTree(sessionId)
       .then((tree) => sendResponse({ tree }))
       .catch(() => sendResponse({ tree: null }));
+    return true;
+  }
+
+  if (message.type === MessageType.GET_RELEVANCE) {
+    const { sessionId, nodeIdA, nodeIdB } = (message.payload ?? {}) as { sessionId?: string; nodeIdA?: string; nodeIdB?: string };
+    if (!sessionId || !nodeIdA || !nodeIdB) {
+      sendResponse({ relevance: null });
+      return;
+    }
+
+    getRelevance(sessionId, nodeIdA, nodeIdB)
+      .then((relevance) => sendResponse({ relevance }))
+      .catch(() => sendResponse({ relevance: null }));
     return true;
   }
 
