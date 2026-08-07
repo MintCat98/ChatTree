@@ -64,6 +64,10 @@
   --nav-color-accent-hover: #c8643f;
   --nav-color-accent-soft: rgba(217, 119, 87, 0.12);
 
+  /* Sticky-note yellow for branch labels — Figma reference. */
+  --nav-color-sticky-bg: #fbcf75;
+  --nav-color-sticky-border: #d4a017;
+
   /* Nodes */
   --nav-color-node-fill:    #ffffff;    /* previous node fill (outlined) */
   --nav-color-node-border:  #d9d4cb;    /* previous node ring */
@@ -98,6 +102,10 @@
   --nav-color-accent: #e08a6e;
   --nav-color-accent-hover: #ec9a7e;
   --nav-color-accent-soft: rgba(224, 138, 110, 0.16);
+
+  /* Dimmer sticky note for dark mode — same hue, less punch. */
+  --nav-color-sticky-bg: #8a6a1a;
+  --nav-color-sticky-border: #b88a20;
 
   --nav-color-node-fill: rgba(255, 255, 255, 0.05);
   --nav-color-node-border: rgba(255, 255, 255, 0.2);
@@ -1025,7 +1033,7 @@
 
 @keyframes nav-slide-in-sidebar {
   from  { transform: translateX(20px);  opacity: 0; }
-  to    { transform: translateX(0);     opcaity: 1; }
+  to    { transform: translateX(0);     opacity: 1; }
 }
 
 /* Top: Tree map region: */
@@ -1135,4 +1143,141 @@
   font-size: 14px;
   line-height: 1;
   border-radius: 4px;
+}
+
+/* Interactive Map — hover-only rewiring handles */
+.im-handle {
+  fill: var(--nav-color-node-fill);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1.5;
+  cursor: crosshair;
+  opacity: 0;
+  transition: opacity 120ms ease, fill 120ms ease, stroke 120ms ease;
+}
+
+.im-node:hover .im-handle {
+  opacity: 1;
+}
+
+/* Branch label — sticky-note style tag on branch-point nodes. */
+.im-branch-label rect {
+  fill: var(--nav-color-sticky-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 0.5;
+  cursor: text;
+}
+
+.im-branch-label text {
+  fill: var(--nav-color-text);
+  font-family: var(--nav-font-family);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.im-branch-input {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 3px 8px;
+  font-family: var(--nav-font-family);
+  font-size: 10px;
+  background: var(--nav-color-sticky-bg);
+  color: var(--nav-color-text);
+  border: 1px solid var(--nav-color-sticky-border);
+  border-radius: 4px;
+  outline: none;
+}
+
+/* Snap target — drag preview highlights the candidate parent's right
+   handle. Toggled via .classed('is-snap-target', ...) from the drag code. */
+.im-handle.is-snap-target {
+  fill: var(--nav-color-accent);
+  stroke: var(--nav-color-accent);
+  opacity: 1;
+}
+
+/* Drag preview edge — dashed bezier that follows the cursor. */
+.im-preview-edge {
+  fill: none;
+  stroke: var(--nav-color-edge);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+/* + label affordance — hover-only, only on branch nodes without a name. */
+.im-branch-add {
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.im-node:hover .im-branch-add {
+  opacity: 1;
+}
+
+/* Disconnect "x" on edge midpoints — hidden by default, shown only when
+   hovering the specific edge group (not the whole viewport). */
+.im-disconnect {
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+/* ─── Interactive Map — node, edge, disconnect shape styling ────────── */
+
+/* Nodes */
+.im-node {
+  cursor: pointer;
+}
+
+.im-node > rect {
+  fill: var(--nav-color-node-fill);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1.5;
+}
+
+.im-node > text {
+  fill: var(--nav-color-text);
+  font-size: 12px;
+  font-family: var(--nav-font-family);
+}
+
+/* Edges */
+.im-edge {
+  fill: none;
+  stroke: var(--nav-color-edge);
+  stroke-width: 1.5;
+}
+
+/* Disconnect "x" — inner shapes */
+.im-disconnect circle {
+  fill: var(--nav-color-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1;
+}
+
+.im-disconnect line {
+  stroke: var(--nav-color-text);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+/* + label affordance — dashed placeholder box */
+.im-branch-add rect {
+  fill: var(--nav-color-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 0.5;
+  stroke-dasharray: 3 2;
+}
+
+.im-branch-add text {
+  fill: var(--nav-color-text-muted);
+  font-family: var(--nav-font-family);
+  font-size: 10px;
+}
+
+.im-edge-group:hover .im-disconnect,
+.im-disconnect:hover {
+  opacity: 1;
 }
