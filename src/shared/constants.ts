@@ -18,8 +18,8 @@ export const SELECTORS = {
   SCROLL_CONTAINER:       '[data-autoscroll-container="true"]',
   STREAMING_ATTR:         'data-is-streaming',
   STREAMING_INDICATOR:    '[data-testid="streaming-indicator"]',
-  AI_TURN:                '[data-testid="assistant-turn"]',
-  AI_RESPONSE:            '[data-testid="ai-response"]',
+  CLAUDE_RESPONSE:        '.font-claude-response',
+  RESPONSE_MARKDOWN:      '.standard-markdown',
   NAV_ID_ATTR:            'data-nav-id',
 } as const;
 
@@ -52,6 +52,8 @@ export const TIMING = {
   VIRTUAL_SCROLL_SETTLE: 700,
   // How long the header message count blinks after generation completes (issue #166)
   NOTIFY_BLINK_DURATION: 3000,
+
+  SUMMARY_TIMEOUT_MS: 30_000,
 } as const;
 
 export const CHAT_URL_PATTERN = /\/chat\/([0-9a-f-]{36})/;

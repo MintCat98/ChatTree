@@ -6,6 +6,7 @@ import type { ChatboxNode, UserSettings } from '@shared/types';
 import { DEFAULT_SETTINGS } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
 import { getTree, updateTree, clearAllTrees } from '@background/session-store';
+import { type SummaryTurn, enqueueSummaryTurns } from '@background/summary-queue';
 import { clearAllNodeCache } from '@shared/node-cache';
 
 export function onMessage(
@@ -111,6 +112,13 @@ async function handleAsync(
       const current = (result[STORAGE_KEYS.USER_SETTINGS] as UserSettings | undefined) ?? DEFAULT_SETTINGS;
       const next: UserSettings = { ...current, ...patch };
       await chrome.storage.local.set({ [STORAGE_KEYS.USER_SETTINGS]: next });
+      break;
+    }
+
+    case MessageType.SUMMARIZE_TURNS: {
+      const { sessionId, turns } = message.payload as { sessionId: string; turns: SummaryTurn[] };
+      if (!sessionId || !turns?.length) return;
+      enqueueSummaryTurns(sessionId, turns);
       break;
     }
 

@@ -48,13 +48,22 @@ function detectLanguage(text: string): 'Korean' | 'English' {
   return hangul > latin ? 'Korean' : 'English';
 }
 
+// Prompt-input budget. Gemini Nano's context window is small, so a long turn
+// blows the quota, throws, and lands every such node on the truncated fallback.
+// Clamping the input keeps long turns summarizable — the tail of an answer
+// rarely carries the topic, which is all the node label needs.
+export const QUESTION_MAX_CHARS = 1_000;
+export const ANSWER_MAX_CHARS = 4_000;
+
 // Built-in AI user conversation input format
 export function buildConversationInput(question: string, answer: string): string {
+  // Language detection runs on the full text — clamping first could drop the
+  // only Hangul in a long answer and flip the target language.
   const basis = /[가-힣A-Za-z]/.test(question) ? question : answer;
   const language = detectLanguage(basis);
   return `Target language: ${language}. Write "keyword", "question", and "answer" only in ${language}.
-[User] ${question}
-[Assistant] ${answer}`;
+[User] ${truncate(question, QUESTION_MAX_CHARS)}
+[Assistant] ${truncate(answer, ANSWER_MAX_CHARS)}`;
 }
 
 function extractJson(raw: string): unknown {
@@ -96,13 +105,19 @@ function fallbackSummary(question: string, answer: string): NodeSummary {
 export async function summarizeConversation(
   session: LanguageModelSession,
   question: string,
-  answer: string
+  answer: string,
+  signal?: AbortSignal
 ): Promise<SummaryResult> {
   const input = buildConversationInput(question, answer);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     let raw: string | undefined;
+    // Each attempt gets its own clone; `session` is never prompted directly.
+    // Retrying on the session that just produced a runaway generation throws
+    // QuotaExceededError — per-attempt isolation is what fixed it (spike #158, it#5).
+    let attemptSession: LanguageModelSession | undefined;
     try {
-      raw = await session.prompt(input, { responseConstraint: NODE_SUMMARY_SCHEMA });
+      attemptSession = await session.clone({ signal });
+      raw = await attemptSession.prompt(input, { responseConstraint: NODE_SUMMARY_SCHEMA, signal });
       const parsed = extractJson(raw);
       if (isNodeSummary(parsed)) {
         return {
@@ -119,6 +134,8 @@ export async function summarizeConversation(
       // Malformed or non-JSON output - ignore, let the loop retry
       // fall through to the truncated fallback below
       console.warn('[summary] prompt/parse failed, will retry of fall back:', err, '\nRAW>>>', raw, '<<<');
+    } finally {
+      attemptSession?.destroy();
     }
   }
 

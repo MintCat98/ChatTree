@@ -63,6 +63,10 @@ export function ControlBar() {
   };
   const handleNotifyToggle = () =>
     updateSettings({ notifyOnComplete: !settings.notifyOnComplete });
+  // The control itself lands with the Interactive Map (#165) — the pipeline
+  // (#160) ships behind `summaryEnabled` with no UI to flip it yet.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleSummaryToggle = () => updateSettings({ summaryEnabled: !settings.summaryEnabled });
   const handlePanelMode = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ panelMode: e.target.value as UserSettings['panelMode'] });
   const handleReset = () => updateSettings(DEFAULT_SETTINGS);

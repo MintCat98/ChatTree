@@ -20,6 +20,7 @@ interface MountedBubble {
   top: number | null; // absolute scroll offset of the turn wrapper, if exposed
   text: string;
   branch: BranchInfo;
+  answer: string | null; // AI response text, if mounted and not streaming
 }
 
 // ---------------------------------------------------------------------------
@@ -60,6 +61,16 @@ function scanMounted(): MountedBubble[] {
 
   const bubbles = container.querySelectorAll(SELECTORS.USER_MESSAGE_BUBBLE);
   const mounted: MountedBubble[] = [];
+  const answers = [...container.querySelectorAll(SELECTORS.CLAUDE_RESPONSE)];
+  const answerTexts = answers.map((el) => {
+    // Skip streaming responses
+    if (el.closest(`[${SELECTORS.STREAMING_ATTR}="true"]`)) return null;
+
+    return [...el.querySelectorAll(SELECTORS.RESPONSE_MARKDOWN)]
+      .map((m) => m.textContent?.trim() ?? null)
+      .filter(Boolean)
+      .join('\n\n');
+  });
 
   bubbles.forEach((el, domIndex) => {
     const { absIndex, top } = getAbsolutePosition(el as HTMLElement);
@@ -73,6 +84,7 @@ function scanMounted(): MountedBubble[] {
       top,
       text: el.querySelector(SELECTORS.USER_MESSAGE)?.textContent ?? '',
       branch: detectBranch(el as HTMLElement),
+      answer: answerTexts[domIndex] ?? null,
     });
   });
 
@@ -97,7 +109,7 @@ export function assignChatboxIds(): ChatboxNode[] {
 
 // Per-session accumulator: absIndex → last known state of that turn.
 // Survives virtualization unmounts; reset on conversation change.
-const nodeCache = new Map<number, { node: ChatboxNode; top: number | null }>();
+const nodeCache = new Map<number, { node: ChatboxNode; top: number | null; answer: string | null }>();
 
 export function resetNodeCache(): void {
   nodeCache.clear();
@@ -117,6 +129,13 @@ export function getCachedTop(navId: string): number | null {
   return nodeCache.get(absIndex)?.top ?? null;
 }
 
+// Fetch cached answer by navId (pipeline #160)
+export function getCachedAnswer(navId: string): string | null {
+  const absIndex = absIndexFromNavId(navId);
+  if (absIndex === null) return null;
+  return nodeCache.get(absIndex)?.answer ?? null;
+}
+
 /**
  * Seeds the cache from a tree persisted in chrome.storage.local (issues #152, #153)
  * so the full accumulated tree survives new windows / tab reloads / browser restarts. Optimistic:
@@ -130,7 +149,7 @@ export function seedNodeCache(nodes: ChatboxNode[]): void {
     if (absIndex === null || nodeCache.has(absIndex)) continue;
     // top: null — offsets come from the live DOM only; scroll-navigator
     // falls back to a proportional estimate for seeded nodes.
-    nodeCache.set(absIndex, { top: null, node: { ...node, parentId: null } });
+    nodeCache.set(absIndex, { top: null, node: { ...node, parentId: null }, answer: null });
   }
 }
 
@@ -189,6 +208,7 @@ export function mergeMountedNodes(): ChatboxNode[] {
         branchTotal: m.branch.total,
         parentId: null,
       },
+      answer: m.answer ?? cached?.answer ?? null,
     });
   }
 

@@ -20,8 +20,8 @@ description: Claude.ai DOM structure, selectors, chatbox ID assignment, and Muta
                  ├── div[data-testid="human-turn"]          ← user chatbox (N)
                  │    ├── div[data-testid="user-message"]   ← prompt text
                  │    └── div.branch-controls               ← branch navigator (on edit)
-                 └── div[data-testid="assistant-turn"]      ← AI response (N)
-                      └── div[data-testid="ai-response"]
+                 └── div.font-claude-response               ← AI response (N) — no testid
+                      └── div.standard-markdown             ← rendered answer text
 ```
 
 ---
@@ -60,11 +60,24 @@ description: Claude.ai DOM structure, selectors, chatbox ID assignment, and Muta
 
 ### 2-4. AI Response (Assistant Turn)
 
+> ⚠️ **claude.ai removed the `assistant-turn` / `ai-response` testids** (verified 0
+> matches, 2026-07, while building #160). There is **no data-testid for the response** —
+> anchor on the semantic class instead. This is the one sanctioned exception to the
+> "prefer `data-testid`, never hashed classes" rule: `.font-claude-response` /
+> `.standard-markdown` are semantic class names, not hashed Tailwind.
+
 | Role | Selector | Notes |
 |------|----------|-------|
-| AI turn wrapper | `[data-testid="assistant-turn"]` | Adjacent sibling immediately after human-turn |
-| Response body | `[data-testid="ai-response"]` | Markdown rendering container |
+| Response body (code: `SELECTORS.CLAUDE_RESPONSE`) | `.font-claude-response` | One per turn — the answer container |
+| Answer text (code: `SELECTORS.RESPONSE_MARKDOWN`) | `.standard-markdown` | Rendered markdown; a turn may contain several — concatenate their `textContent` |
 | Response loading | `[data-testid="streaming-indicator"]` | Presence indicates streaming |
+| Streaming flag (code: `SELECTORS.STREAMING_ATTR`) | `[data-is-streaming="true"]` | On an ancestor of the response; gate reads via `el.closest(...)` until it clears |
+
+**Pairing (summary pipeline, #160):** a user bubble carries no direct link to its
+answer. `scanMounted` collects `.font-claude-response` elements in mounted DOM order and
+pairs them to user bubbles by index (`answerTexts[domIndex]`). This is fragile at
+virtualization boundaries — see [messaging-and-storage](../messaging-and-storage/SKILL.md) §8
+for the pipeline and its known limitations.
 
 ### 2-5. Input Field (Composer)
 

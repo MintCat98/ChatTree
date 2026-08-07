@@ -55,6 +55,7 @@ description: Extension message contracts and flow between Content Script, Backgr
 | `CHAT_PAGE_ENTERED` | Content → BG | `{ url }` | Entered a new conversation URL |
 | `ACTIVE_NODE_CHANGED` | Content → BG | `{ navId }` | Active node in viewport changed |
 | `TREE_UPDATE` | Content → BG | `{ nodes, sessionId }` | Request full tree recalculation |
+| `SUMMARIZE_TURNS` | Content → BG | `{ sessionId, turns: [{ nodeId, question, answer }] }` | Enqueue completed turns for on-device summarization — fire-and-forget (§8) |
 | `GET_STORED_TREE` | Content → BG | `{ sessionId }` | Look up stored tree — request/response, for hydration (#152) |
 | `TREE_READY` | BG → Content/Panel | `{ tree }` | Push after tree data is ready |
 | `SCROLL_TO_NODE` | Panel → Content | `{ navId }` | Scroll request — relayed, but **no sender today**: the panel runs in the content-script context and calls `scrollToNode()` directly |
@@ -149,6 +150,7 @@ hydration source.
 | Key | Owner | Contents |
 |-----|-------|----------|
 | `tree_<sessionId>` | Background (`session-store.ts`) | Cached `TreeData` per conversation — subject to retention purge |
+| `nodeCache_<sessionId>` | `src/shared/node-cache.ts` | Computed per-node data — `summary` (#160), `relevance` (#161). Rebuildable; purged as soon as its `tree_` key is gone |
 | `nodeMetadata` | `src/shared/metadata-storage.ts` | User data, **not** a rebuildable cache — 180-day orphan GC only |
 | `userSettings` | Panel store `mirrorToChromeStorage` | `UserSettings` — `chrome.storage.local`, no localStorage fallback |
 
@@ -182,6 +184,100 @@ set (expanding a collapsed run of hidden nodes is the case that needs it).
 
 There is no debouncing anywhere in this layer, so avoid attaching large
 per-node payloads: each keystroke-level change rewrites the entire store.
+
+---
+
+## 8. Summary Pipeline (issue #160)
+
+On-device turn summarization (Gemini Nano via the Prompt API). Opt-in behind
+`UserSettings.summaryEnabled` (default `false`). Rendering summaries on nodes is
+**#165** — nothing is displayed yet.
+
+```
+scan a mounted turn (content)
+     │  read { question, answer } off the DOM — see ../analyzing-claude-dom/SKILL.md §2-4
+     ▼
+Content → Background: { type: 'SUMMARIZE_TURNS', payload: { sessionId, turns } }
+     │
+     ▼
+Background: summary-queue.ts — serial drain, ONE turn at a time
+     │  LanguageModel.create() → summarizeConversation() → clone per attempt
+     ▼
+setNodeCache(sessionId, nodeId, { summary, summaryFallback })
+```
+
+### The answer is never persisted
+
+The tree caches only the user prompt (`ChatboxNode.text`). The assistant answer
+is read from the DOM at scan time, passed into the queue, and discarded — only
+the derived `NodeSummary` is stored. Two reasons:
+
+- Raw answers would bloat `chrome.storage.local` with text that is redundant
+  once the summary exists.
+- `session-store.updateTree` rebuilds the tree from the DOM on every update, so
+  anything hung on `ChatboxNode` is wiped. Same reason summaries live in the
+  separate node-cache (#159) rather than on the node.
+
+**Accepted consequence:** a turn the user has never scrolled into view cannot be
+summarized, because its answer was never mounted. Turns are summarized lazily as
+they come into view; there is no backfill. By design, not a gap.
+
+### Why the queue is serial and lives in the SW
+
+Reading the answer is cheap and synchronous; summarizing is not (~2–7 s per
+call, runaway up to ~5 min — spike `docs/spikes/node-summarization.md`). So it
+must never run inside the DOM scan. Draining one at a time spreads the cost
+instead of spiking on page load. It runs in the Background SW because that is
+where the Prompt API and the node-cache live, and content scripts must not do
+heavy work.
+
+Each turn gets an `AbortSignal` timeout (`TIMING.SUMMARY_TIMEOUT_MS`). A failed
+or timed-out turn still writes an entry — the truncated fallback — flagged with
+`summaryFallback: true`.
+
+### Dedup: two layers, one authority
+
+| Layer | Scope | Purpose |
+|-------|-------|---------|
+| Content `summarizedSent` (`Set<nodeId>`) | one conversation visit; cleared on conversation change | **Send** throttle. The scan runs every ~100 ms; without it every tick re-sends the whole tree |
+| SW node-cache lookup in `processOne` | permanent, cross-tab, survives reload | **Compute** authority — skip a node that already has a real summary |
+
+A `summaryFallback` entry *is* eligible for re-summarization, but the content
+throttle means that only happens on a **later visit**. Deliberate: retrying
+inside the same visit feeds identical input to the same model.
+
+### Availability gating
+
+`drain()` checks `typeof LanguageModel` first (the global is absent on pre-138 /
+unsupported Chrome — permanent, so the backlog is dropped), then
+`LanguageModel.availability()`.
+
+Anything other than `'available'` stops the drain but **keeps the backlog**: the
+next completed turn re-enters `drain()` and re-checks, so a finished model
+download resumes in the same visit rather than waiting for a reload. The backlog
+is capped (`MAX_PENDING_TURNS`), evicting oldest first.
+
+> `drain()` must never re-enter itself from its own `finally`. The loop's
+> `pending.length > 0` check and `draining = false` run in the same microtask, so
+> there is no gap to cover — and on an error path that re-entry is an infinite
+> loop. Regression test: `tests/unit/summary-queue.test.ts`.
+
+No model **download** is triggered: `create()` cannot start one from the SW
+without a user gesture. That belongs with the toggle UI (#165).
+
+### Known limitations (follow-ups)
+
+- **Order-based pairing.** `scanMounted` pairs user bubbles to
+  `.font-claude-response` elements by mounted DOM index. At virtualization
+  boundaries (a bubble mounted while its answer is not, or vice versa) the
+  alignment shifts and the wrong answer can attach to a node. A sibling-walk
+  (bubble → adjacent answer) would fix it.
+- **Edited / regenerated turns keep a stale summary.** Dedup is keyed on
+  `nodeId` alone, and `chatbox-<absIndex>` is stable across an edit. Detecting
+  the change needs a source signature (hash of question + answer) stored with
+  the summary.
+- **SW termination** drops the in-memory queue mid-drain. Self-heals on the next
+  visit via node-cache dedup + content re-send.
 
 ---
 
