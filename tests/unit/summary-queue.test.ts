@@ -173,14 +173,14 @@ describe('dedup against the node-cache', () => {
   });
 
   it('keeps a sibling field written by another pipeline (#161)', async () => {
-    seedCache('sess-1', { 'chatbox-0': { relevance: 0.42 } });
+    seedCache('sess-1', { 'chatbox-0': { embedding: [0.42, 0.1] } });
     installModel('available');
     const queue = await loadQueue();
 
     queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
     await settle();
 
-    expect(readCache('sess-1')['chatbox-0'].relevance).toBe(0.42);
+    expect(readCache('sess-1')['chatbox-0'].embedding).toEqual([0.42, 0.1]);
   });
 });
 
