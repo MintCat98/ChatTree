@@ -11,6 +11,7 @@ export const MessageType = {
   TREE_UPDATE:          'TREE_UPDATE',          // payload: { nodes: ChatboxNode[], sessionId: string }
   SUMMARIZE_TURNS:      'SUMMARIZE_TURNS',      // payload: { sessionId: string, turns: Array<{ nodeId: string, question: string, answer: string }> }
   GET_STORED_TREE:      'GET_STORED_TREE',      // payload: { sessionId } — request/response; responds { tree: TreeData | null } (issue #152)
+  GET_RELEVANCE:        'GET_RELEVANCE',        // payload: { sessionId, nodeIdA, nodeIdB } — request/response; responds { relevance: number | null } (issue #189)
 
   // Background → Content / Panel
   TREE_READY:           'TREE_READY',

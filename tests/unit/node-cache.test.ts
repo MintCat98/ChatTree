@@ -63,10 +63,10 @@ describe('getSessionNodeCache', () => {
   });
 
   it('returns only the requested session nodes', async () => {
-    seedSession('sess-1', { 'chatbox-0': { relevance: 0.9 } });
-    seedSession('sess-2', { 'chatbox-0': { relevance: 0.1 } });
+    seedSession('sess-1', { 'chatbox-0': { embedding: [0.9, 0.1] } });
+    seedSession('sess-2', { 'chatbox-0': { embedding: [0.1, 0.9] } });
 
-    expect(await getSessionNodeCache('sess-1')).toEqual({ 'chatbox-0': { relevance: 0.9 } });
+    expect(await getSessionNodeCache('sess-1')).toEqual({ 'chatbox-0': { embedding: [0.9, 0.1] } });
   });
 });
 
@@ -81,38 +81,38 @@ describe('setNodeCache', () => {
     expect(readSession('sess-1')).toEqual({ 'chatbox-0': { summary: SUMMARY } });
   });
 
-  it('merges summary and relevance written in separate calls', async () => {
+  it('merges summary and embedding written in separate calls', async () => {
     await setNodeCache('sess-1', 'chatbox-0', { summary: SUMMARY });
-    await setNodeCache('sess-1', 'chatbox-0', { relevance: 0.42 });
+    await setNodeCache('sess-1', 'chatbox-0', { embedding: [0.42, 0.1] });
 
     expect(readSession('sess-1')?.['chatbox-0']).toEqual({
       summary: SUMMARY,
-      relevance: 0.42,
+      embedding: [0.42, 0.1],
     });
   });
 
   it('writes only the target session key', async () => {
-    await setNodeCache('sess-1', 'chatbox-0', { relevance: 0.9 });
+    await setNodeCache('sess-1', 'chatbox-0', { embedding: [0.9, 0.1] });
 
     expect(mockLocalStorage.set).toHaveBeenCalledWith({
-      [cacheKey('sess-1')]: { 'chatbox-0': { relevance: 0.9 } },
+      [cacheKey('sess-1')]: { 'chatbox-0': { embedding: [0.9, 0.1] } },
     });
   });
 
   it('does not affect other nodes in the same session', async () => {
-    seedSession('sess-1', { 'chatbox-1': { relevance: 0.5 } });
+    seedSession('sess-1', { 'chatbox-1': { embedding: [0.5, 0.5] } });
 
-    await setNodeCache('sess-1', 'chatbox-0', { relevance: 0.9 });
+    await setNodeCache('sess-1', 'chatbox-0', { embedding: [0.9, 0.1] });
 
-    expect(readSession('sess-1')?.['chatbox-1']).toEqual({ relevance: 0.5 });
+    expect(readSession('sess-1')?.['chatbox-1']).toEqual({ embedding: [0.5, 0.5] });
   });
 
   it('does not affect other sessions', async () => {
-    seedSession('sess-2', { 'chatbox-0': { relevance: 0.5 } });
+    seedSession('sess-2', { 'chatbox-0': { embedding: [0.5, 0.5] } });
 
-    await setNodeCache('sess-1', 'chatbox-0', { relevance: 0.9 });
+    await setNodeCache('sess-1', 'chatbox-0', { embedding: [0.9, 0.1] });
 
-    expect(readSession('sess-2')?.['chatbox-0']).toEqual({ relevance: 0.5 });
+    expect(readSession('sess-2')?.['chatbox-0']).toEqual({ embedding: [0.5, 0.5] });
   });
 });
 
@@ -122,8 +122,8 @@ describe('setNodeCache', () => {
 
 describe('clearSessionNodeCache', () => {
   it('removes the session entry from the store', async () => {
-    seedSession('sess-1', { 'chatbox-0': { relevance: 1 } });
-    seedSession('sess-2', { 'chatbox-0': { relevance: 1 } });
+    seedSession('sess-1', { 'chatbox-0': { embedding: [1, 0] } });
+    seedSession('sess-2', { 'chatbox-0': { embedding: [1, 0] } });
 
     await clearSessionNodeCache('sess-1');
 
@@ -142,8 +142,8 @@ describe('clearSessionNodeCache', () => {
 
 describe('clearAllNodeCache', () => {
   it('removes every node-cache key but leaves other storage untouched', async () => {
-    seedSession('sess-1', { 'chatbox-0': { relevance: 1 } });
-    seedSession('sess-2', { 'chatbox-0': { relevance: 1 } });
+    seedSession('sess-1', { 'chatbox-0': { embedding: [1, 0] } });
+    seedSession('sess-2', { 'chatbox-0': { embedding: [1, 0] } });
     mockStorage.set(`${TREE_KEY_PREFIX}sess-1`, { sessionId: 'sess-1' });
     mockStorage.set('userSettings', { cacheRetentionDays: 30 });
 
