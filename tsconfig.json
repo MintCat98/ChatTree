@@ -12,7 +12,8 @@
       "@content/*": ["./src/content/*"],
       "@background/*": ["./src/background/*"]
     },
-    "types": ["chrome"]
+    "types": ["chrome"],
+    "skipLibCheck": true,
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
