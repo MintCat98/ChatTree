@@ -6,7 +6,7 @@ offscreen document, bundled (no CDN), and validate embedding + cosine relevance.
 
 ## Decisions
 - Model: Xenova/paraphrase-multilingual-MiniLM-L12-v2, dtype q8 (384-dim). Chosen for ko/en over English-only MiniLM.
-- Delivery: bundled weights + onnxruntime wasm (no CDN → no host permission).
+- Delivery: model + onnxruntime wasm ship inside the built `dist/` (no runtime CDN → no host permission). The 113MB q8 model exceeds GitHub's 100MB limit, so it is **git-ignored and fetched at build time** by `scripts/fetch-model.mjs` (npm `prebuild`/`predev` hook), not committed. This is build-time only — the shipped extension stays fully offline. wasm/mjs loaders are copied from `node_modules/onnxruntime-web` by CopyPlugin.
 - Runs in an offscreen document (SW has no DOM/WebGPU + short lifetime).
 
 ## Architecture
@@ -39,6 +39,6 @@ Pipeline works end-to-end; multilingual model justified; cosine relevance sane.
 Ready for #161 integration: SUMMARIZE_TURNS piggyback (write embedding) + wire map's parent-resolver to GET_RELEVANCE.
 
 ## Open items
-- Model bundle size / LFS.
+- Model size (113MB q8): resolved with build-time download (git-ignored). LFS deferred — revisit with team if git-versioned/reproducible model is needed. A smaller quantization (q4) could roughly halve it.
 - Message robustness (Port vs one-shot).
 - Relevance threshold tuning (related≈0.4+, same≈0.9).
