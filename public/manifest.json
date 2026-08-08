@@ -4,7 +4,7 @@
   "version": "1.0.2",
   "version_name": "1.0.2-beta",
   "description": "Conversation Map for Claude — visualize every branch and jump to any message instantly.",
-  "permissions": ["storage", "activeTab", "alarms"],
+  "permissions": ["storage", "activeTab", "alarms", "offscreen"],
   "host_permissions": ["https://claude.ai/*"],
   "background": {
     "service_worker": "background.js"
