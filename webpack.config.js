@@ -18,6 +18,7 @@ module.exports = {
     background: './src/background/index.ts',
     content:    './src/content/index.ts',
     popup:      './src/popup/Popup.tsx',
+    offscreen:  './src/offscreen/offscreen.ts',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -25,6 +26,9 @@ module.exports = {
     clean: true,
   },
   module: {
+    parser: {
+      javascript: { importMeta: false },
+    },
     rules: [
       {
         test: /\.tsx?$/,
@@ -58,11 +62,20 @@ module.exports = {
       filename: 'popup.html',
       chunks: ['popup'],
     }),
+    new HtmlWebpackPlugin({
+      template: './src/offscreen/offscreen.html',
+      filename: 'offscreen.html',
+      chunks: ['offscreen'],
+      scriptLoading: 'module',
+    }),
     new CopyPlugin({
       patterns: [
         { from: 'public/manifest.json', to: '.' },
         { from: 'src/assets', to: 'assets' },
         { from: 'src/content/content_styles.css', to: '.' },
+        { from: 'public/models', to: 'models' },
+        { from: 'node_modules/onnxruntime-web/dist/*.wasm', to: 'wasm/[name][ext]' },
+        { from: 'node_modules/onnxruntime-web/dist/ort-wasm-*.mjs', to: 'wasm/[name][ext]' },
       ],
     }),
   ],
