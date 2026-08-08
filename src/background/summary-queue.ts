@@ -8,6 +8,7 @@
 
 import { getSessionNodeCache, setNodeCache } from '@shared/node-cache';
 import { summarizeConversation, SUMMARY_SYSTEM_PROMPT } from '@shared/summary';
+import { embedViaOffscreen } from '@background/embed';
 import { TIMING } from '@shared/constants';
 
 // One completed turn to summarize. `answer` is guaranteed non-empty by the
@@ -85,6 +86,18 @@ async function processOne({ sessionId, turn }: QueueItem): Promise<void> {
     const cache = await getSessionNodeCache(sessionId);
     const entry = cache[turn.nodeId];
     if (entry?.summary && !entry.summaryFallback) return;
+
+    // Embed the turn text for relevance scoring (#161).
+    // The offscreen embedder is a separate worker with its own model instance
+    const turnText = `User Question: ${turn.question}\n\nLLM Answer: ${turn.answer}`;
+    if (!entry?.embedding) {
+      try {
+        const embedding = await embedViaOffscreen(turnText);
+        await setNodeCache(sessionId, turn.nodeId, { embedding });
+      } catch (err) {
+        console.warn('[ChatTree] embed failed:', turn.nodeId, err);
+      }
+    }
 
     // Base session per turn: never prompted directly. summarizeConversation
     // clones it per attempt, because reusing one session ACROSS attempts
