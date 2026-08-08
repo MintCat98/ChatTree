@@ -8,6 +8,10 @@ import type { NodeCacheEntry } from '@shared/types';
 import type { NodeSummary } from '@shared/summary';
 import { NODE_CACHE_KEY_PREFIX } from '@shared/constants';
 
+jest.mock('@background/embed');
+import { embedViaOffscreen } from '@background/embed';
+const mockEmbed = embedViaOffscreen as jest.MockedFunction<typeof embedViaOffscreen>;
+
 type Queue = typeof import('@background/summary-queue');
 
 const SUMMARY: NodeSummary = { keyword: 'kw', question: 'q?', answer: 'a.' };
@@ -102,6 +106,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   (globalThis as Record<string, unknown>).chrome = { storage: { local: mockLocalStorage } };
   jest.spyOn(console, 'warn').mockImplementation(() => {});
+  mockEmbed.mockReset();
+  mockEmbed.mockResolvedValue([0.1, 0.2, 0.3]);
 });
 
 afterEach(() => {
@@ -121,6 +127,7 @@ describe('enqueueSummaryTurns — happy path', () => {
     expect(readCache('sess-1')['chatbox-0']).toEqual({
       summary: SUMMARY,
       summaryFallback: false,
+      embedding: [0.1, 0.2, 0.3],
     });
   });
 
@@ -284,6 +291,33 @@ describe('drain termination', () => {
     queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0'), turn('chatbox-2')]);
     await settle();
 
-    expect(Object.keys(readCache('sess-1'))).toEqual(['chatbox-2']);
+    expect(Object.keys(readCache('sess-1'))).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(readCache('sess-1')['chatbox-0'].summary).toBeUndefined();
+    expect(readCache('sess-1')['chatbox-2'].summary).toEqual(SUMMARY);
+  });
+});
+
+describe('embedding (#161)', () => {
+  it('computes and stores an embedding for a fresh turn', async () => {
+    installModel('available');
+    const queue = await loadQueue();
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(mockEmbed).toHaveBeenCalledWith(
+      expect.stringContaining('User Question:')   // question+answer 결합 텍스트
+    );
+    expect(readCache('sess-1')['chatbox-0'].embedding).toEqual([0.1, 0.2, 0.3]);
+  });
+
+  it('does not recompute when an embedding already exists (dedup)', async () => {
+    seedCache('sess-1', { 'chatbox-0': { embedding: [0.42, 0.1] } });
+    installModel('available');
+    const queue = await loadQueue();
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(mockEmbed).not.toHaveBeenCalled();
+    expect(readCache('sess-1')['chatbox-0'].embedding).toEqual([0.42, 0.1]);
   });
 });
