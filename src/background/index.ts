@@ -4,9 +4,6 @@ import { onMessage } from './message-handler';
 import { purgeExpiredTrees } from './session-store';
 import { purgeOrphanedMetadata } from '@shared/metadata-storage';
 import { purgeOrphanedNodeCache } from '@shared/node-cache';
-import { runEmbedEval } from '@background/embed.eval';
-
-Object.assign(globalThis, { runEmbedEval });
 
 chrome.runtime.onMessage.addListener(onMessage);
 
