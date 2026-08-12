@@ -8,3 +8,12 @@
 		transition: none;
 	}
 }
+
+/* Hidden turns (#168): reflects the panel-side hidden metadata flag onto
+   the conversation DOM. hidden-sync.ts toggles data-nav-hidden on turn
+   wrappers keyed by data-nav-id.
+   CSS-only collapse — never DOM removal — so claude.ai's virtualization
+   anchors and scroll math still work when the turn unhides. */
+[data-nav-hidden="true"] {
+	display: none;
+}
