@@ -51,3 +51,33 @@
 .nav-hide-control:hover {
 	background: var(--nav-color-node-hover, rgba(0, 0, 0, 0.05));
 }
+
+/* Expander strip (#168 phase 2): rendered before a hidden run so users
+   can expand the collapsed turns from the chat side. Kept visually
+   understated — a thin divider with a small counter, not a full turn. */
+.nav-expander-strip {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 8px 0;
+	margin: 4px 0;
+	width: 100%;
+}
+
+.nav-expander-strip button {
+	padding: 4px 12px;
+	border: 1px dashed var(--nav-color-node-border, rgba(0, 0, 0, 0.2));
+	border-radius: 999px;
+	background: transparent;
+	color: var(--nav-color-text-muted, rgba(0, 0, 0, 0.6));
+	font-size: 12px;
+	font-family: inherit;
+	cursor: pointer;
+	transition: background 120ms ease, color 120ms ease;
+}
+
+.nav-expander-strip button:hover,
+.nav-expander-strip button:focus-visible {
+	background: var(--nav-color-node-hover, rgba(0, 0, 0, 0.05));
+	color: var(--nav-color-text, currentColor);
+}

@@ -15,7 +15,7 @@ import { DEFAULT_SETTINGS, UserSettings, type ChatboxNode, type TreeData } from 
 import { startTracking, stopTracking, observeNode } from './active-node-tracker';
 import { usePanelStore } from './panel/store/panel-store';
 import { startHiddenSync, applyHiddenState } from './hidden-sync';
-import { applyHideControls } from './hide-affordance';
+import { refreshHideAffordances } from './hide-affordance';
 
 export const TREE_READY_EVENT = 'chattree:ready';
 
@@ -108,7 +108,7 @@ function handleDOMChange(): void {
     // console.log('[ChatTree DBG] DOM change → tree built, nodeCount=', currentNodes.length);
     dispatchTree(buildTree(currentNodes));
     applyHiddenState();
-    applyHideControls();
+    refreshHideAffordances();
     document
       .querySelectorAll(`[${SELECTORS.NAV_ID_ATTR}]`)
       .forEach((el) => observeNode(el));
@@ -255,7 +255,7 @@ export function startObserving(options?: { trustExistingDom?: boolean }): void {
   // Wire up metadata → DOM sync so the hidden flag from the panel collapses
   // the corresponding turn in the actual conversation.
   hiddenSyncCleanup = startHiddenSync(); 
-  applyHideControls();
+  refreshHideAffordances();
 }
 
 export function stopObserving(): void {
