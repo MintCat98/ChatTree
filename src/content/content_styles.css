@@ -15,5 +15,5 @@
    CSS-only collapse — never DOM removal — so claude.ai's virtualization
    anchors and scroll math still work when the turn unhides. */
 [data-nav-hidden="true"] {
-	display: none;
+	display: none !important;
 }
