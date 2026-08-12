@@ -17,3 +17,37 @@
 [data-nav-hidden="true"] {
 	display: none !important;
 }
+
+/* Hide control (#168 phase 2): a small "−" button injected into each
+   user message bubble on claude.ai. Hover-only so it doesn't crowd the
+   conversation UI. Click writes metadata.hidden = true; Phase 1 sync
+   picks it up and collapses the turn. */
+.nav-hide-control {
+	position: absolute;
+	top: 4px;
+	right: -30px;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 1px solid var(--nav-color-node-border, rgba(0, 0, 0, 0.15));
+	border-radius: 50%;
+	background: var(--nav-color-bg, rgba(255, 255, 255, 0.9));
+	color: var(--nav-color-text, currentColor);
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 120ms ease;
+	z-index: 10;
+}
+
+[data-cds="UserMessage"]:hover .nav-hide-control,
+.nav-hide-control:hover,
+.nav-hide-control:focus-visible {
+	opacity: 1;
+}
+
+.nav-hide-control:hover {
+	background: var(--nav-color-node-hover, rgba(0, 0, 0, 0.05));
+}
