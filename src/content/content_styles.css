@@ -66,18 +66,18 @@
 
 .nav-expander-strip button {
 	padding: 4px 12px;
-	border: 1px dashed var(--nav-color-node-border, rgba(0, 0, 0, 0.2));
+	border: 1px dashed rgba(128, 128, 128, 0.5);
 	border-radius: 999px;
-	background: transparent;
-	color: var(--nav-color-text-muted, rgba(0, 0, 0, 0.6));
+	background: rgba(128, 128, 128, 0.1);
+	color: rgba(128, 128, 128, 1);
 	font-size: 12px;
 	font-family: inherit;
 	cursor: pointer;
-	transition: background 120ms ease, color 120ms ease;
+	transition: background 120ms ease, border-color 120ms ease;
 }
 
 .nav-expander-strip button:hover,
 .nav-expander-strip button:focus-visible {
-	background: var(--nav-color-node-hover, rgba(0, 0, 0, 0.05));
-	color: var(--nav-color-text, currentColor);
+	background: rgba(128, 128, 128, 0.2);
+	border-color: rgba(128, 128, 128, 0.7);
 }
