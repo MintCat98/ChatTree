@@ -14,6 +14,8 @@ import { MessageType } from '@shared/message-types';
 import { DEFAULT_SETTINGS, UserSettings, type ChatboxNode, type TreeData } from '@shared/types';
 import { startTracking, stopTracking, observeNode } from './active-node-tracker';
 import { usePanelStore } from './panel/store/panel-store';
+import { startHiddenSync, applyHiddenState } from './hidden-sync';
+import { refreshHideAffordances } from './hide-affordance';
 
 export const TREE_READY_EVENT = 'chattree:ready';
 
@@ -21,6 +23,7 @@ let observer: MutationObserver | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let currentNodes: ChatboxNode[] = [];
 let branchCleanup: (() => void) | null = null;
+let hiddenSyncCleanup: (() => void) | null = null;
 // Conversation this observer was started for. buildTree stamps sessionId from
 // the URL *at dispatch time*, and on SPA navigation the URL flips before the
 // DOM swaps — so a scan can carry the previous conversation's nodes under the
@@ -104,6 +107,8 @@ function handleDOMChange(): void {
     currentNodes = mergeMountedNodes();
     // console.log('[ChatTree DBG] DOM change → tree built, nodeCount=', currentNodes.length);
     dispatchTree(buildTree(currentNodes));
+    applyHiddenState();
+    refreshHideAffordances();
     document
       .querySelectorAll(`[${SELECTORS.NAV_ID_ATTR}]`)
       .forEach((el) => observeNode(el));
@@ -246,6 +251,11 @@ export function startObserving(options?: { trustExistingDom?: boolean }): void {
     currentNodes = mergeMountedNodes();
     dispatchTree(buildTree(currentNodes));
   });
+
+  // Wire up metadata → DOM sync so the hidden flag from the panel collapses
+  // the corresponding turn in the actual conversation.
+  hiddenSyncCleanup = startHiddenSync(); 
+  refreshHideAffordances();
 }
 
 export function stopObserving(): void {
@@ -263,5 +273,7 @@ export function stopObserving(): void {
   persistReady = false;
   branchCleanup?.();
   branchCleanup = null;
+  hiddenSyncCleanup?.();
+  hiddenSyncCleanup = null;
   stopTracking();
 }

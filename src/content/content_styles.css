@@ -8,3 +8,76 @@
 		transition: none;
 	}
 }
+
+/* Hidden turns (#168): reflects the panel-side hidden metadata flag onto
+   the conversation DOM. hidden-sync.ts toggles data-nav-hidden on turn
+   wrappers keyed by data-nav-id.
+   CSS-only collapse — never DOM removal — so claude.ai's virtualization
+   anchors and scroll math still work when the turn unhides. */
+[data-nav-hidden="true"] {
+	display: none !important;
+}
+
+/* Hide control (#168 phase 2): a small "−" button injected into each
+   user message bubble on claude.ai. Hover-only so it doesn't crowd the
+   conversation UI. Click writes metadata.hidden = true; Phase 1 sync
+   picks it up and collapses the turn. */
+.nav-hide-control {
+	position: absolute;
+	top: 4px;
+	right: -30px;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 1px solid var(--nav-color-node-border, rgba(0, 0, 0, 0.15));
+	border-radius: 50%;
+	background: var(--nav-color-bg, rgba(255, 255, 255, 0.9));
+	color: var(--nav-color-text, currentColor);
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 120ms ease;
+	z-index: 10;
+}
+
+[data-cds="UserMessage"]:hover .nav-hide-control,
+.nav-hide-control:hover,
+.nav-hide-control:focus-visible {
+	opacity: 1;
+}
+
+.nav-hide-control:hover {
+	background: var(--nav-color-node-hover, rgba(0, 0, 0, 0.05));
+}
+
+/* Expander strip (#168 phase 2): rendered before a hidden run so users
+   can expand the collapsed turns from the chat side. Kept visually
+   understated — a thin divider with a small counter, not a full turn. */
+.nav-expander-strip {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 8px 0;
+	margin: 4px 0;
+	width: 100%;
+}
+
+.nav-expander-strip button {
+	padding: 4px 12px;
+	border: 1px dashed rgba(128, 128, 128, 0.5);
+	border-radius: 999px;
+	background: rgba(128, 128, 128, 0.1);
+	color: rgba(128, 128, 128, 1);
+	font-size: 12px;
+	font-family: inherit;
+	cursor: pointer;
+	transition: background 120ms ease, border-color 120ms ease;
+}
+
+.nav-expander-strip button:hover,
+.nav-expander-strip button:focus-visible {
+	background: rgba(128, 128, 128, 0.2);
+	border-color: rgba(128, 128, 128, 0.7);
+}
