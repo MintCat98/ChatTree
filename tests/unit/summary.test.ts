@@ -60,7 +60,7 @@ describe('summarizeConversation — session isolation', () => {
 
   it('gives the retry a fresh clone and destroys each one', async () => {
     // Reusing the session that just produced a runaway generation is what
-    // triggered the sporadic QuotaExceededError (spike #158, it#5).
+    // triggered the sporadic QuotaExceededError (spike #158 — running-on-device-ai skill §2).
     const { base, spy, children } = makeSession([new Error('QuotaExceededError'), VALID]);
 
     const result = await summarizeConversation(base, 'q', 'a');

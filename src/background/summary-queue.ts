@@ -133,7 +133,7 @@ async function summarizeOne({ sessionId, turn }: QueueItem): Promise<void> {
 
     // Base session per turn: never prompted directly. summarizeConversation
     // clones it per attempt, because reusing one session ACROSS attempts
-    // triggers sporadic QuotaExceededError (spike #158, it#5).
+    // triggers sporadic QuotaExceededError (spike #158 — running-on-device-ai skill §2).
     const session = await LanguageModel.create({
       initialPrompts: [{ role: 'system', content: SUMMARY_SYSTEM_PROMPT }],
     });
