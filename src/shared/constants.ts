@@ -65,6 +65,11 @@ export const TIMING = {
   // also pays for loading the bundled model (~113 MB) and initializing the
   // onnxruntime wasm backend, which a warm call does not (issue #161).
   EMBED_TIMEOUT_MS: 60_000,
+  // How long the offscreen document stays open with no embedding work before
+  // closing itself, releasing the loaded model (issue #161). Long enough to
+  // span the gaps between turns of one conversation, so an active chat never
+  // pays to reload the model.
+  OFFSCREEN_IDLE_MS: 300_000,
 } as const;
 
 export const CHAT_URL_PATTERN = /\/chat\/([0-9a-f-]{36})/;
