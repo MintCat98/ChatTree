@@ -131,7 +131,11 @@ describe('setNodeCache', () => {
   });
 
   it('keeps serving later writes after one write fails', async () => {
-    mockLocalStorage.set.mockRejectedValueOnce(new Error('QUOTA_BYTES exceeded'));
+    // Exhausts the whole quota ladder: commit, purge, commit, evict, commit.
+    mockLocalStorage.set
+      .mockRejectedValueOnce(new Error('QUOTA_BYTES exceeded'))
+      .mockRejectedValueOnce(new Error('QUOTA_BYTES exceeded'))
+      .mockRejectedValueOnce(new Error('QUOTA_BYTES exceeded'));
 
     await expect(setNodeCache('sess-1', 'chatbox-0', { embedding: [0.9, 0.1] })).rejects.toThrow(
       'QUOTA_BYTES exceeded',
@@ -139,6 +143,92 @@ describe('setNodeCache', () => {
     await setNodeCache('sess-1', 'chatbox-1', { summary: SUMMARY });
 
     expect(readSession('sess-1')?.['chatbox-1']).toEqual({ summary: SUMMARY });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setNodeCache — quota safety net (issue #161)
+// ---------------------------------------------------------------------------
+
+describe('setNodeCache — quota eviction', () => {
+  // Gives session `id` a cached tree with the given lastUpdated, so eviction
+  // has an age to sort by.
+  function seedTree(id: string, lastUpdated: number): void {
+    mockStorage.set(`${TREE_KEY_PREFIX}${id}`, { sessionId: id, lastUpdated });
+  }
+
+  // Each rejection consumes one attempt of the escalation ladder:
+  // commit → purge orphans → commit → evict oldest → commit.
+  const failAttempts = (n: number) => {
+    for (let i = 0; i < n; i++) {
+      mockLocalStorage.set.mockRejectedValueOnce(new Error('QUOTA_BYTES exceeded'));
+    }
+  };
+
+  it('purges orphaned caches first and stops there if that frees enough', async () => {
+    seedSession('orphan', { 'chatbox-0': { summary: SUMMARY } }); // no tree
+    seedSession('live', { 'chatbox-0': { summary: SUMMARY } });
+    seedTree('live', 1_000);
+    seedTree('sess-1', 9_000);
+    failAttempts(1);
+
+    await setNodeCache('sess-1', 'chatbox-0', { embedding: [0.9, 0.1] });
+
+    expect(readSession('orphan')).toBeUndefined();
+    // Rebuilding a live cache costs a full model re-run, so it survives while
+    // the free remedy is still working.
+    expect(readSession('live')).toBeDefined();
+    expect(readSession('sess-1')?.['chatbox-0']).toEqual({ embedding: [0.9, 0.1] });
+  });
+
+  it('evicts the oldest live cache once purging orphans was not enough', async () => {
+    seedSession('old', { 'chatbox-0': { summary: SUMMARY } });
+    seedTree('old', 1_000);
+    seedTree('sess-1', 9_000);
+    failAttempts(2);
+
+    await setNodeCache('sess-1', 'chatbox-0', { embedding: [0.9, 0.1] });
+
+    expect(readSession('old')).toBeUndefined();
+    expect(readSession('sess-1')?.['chatbox-0']).toEqual({ embedding: [0.9, 0.1] });
+  });
+
+  it('never evicts the session being written', async () => {
+    seedSession('sess-1', { 'chatbox-0': { summary: SUMMARY } });
+    seedTree('sess-1', 1); // oldest of all, but it is the write target
+    seedSession('other', { 'chatbox-0': { summary: SUMMARY } });
+    seedTree('other', 9_000);
+    failAttempts(2);
+
+    await setNodeCache('sess-1', 'chatbox-1', { embedding: [0.9, 0.1] });
+
+    expect(readSession('sess-1')?.['chatbox-0']).toEqual({ summary: SUMMARY }); // merged, kept
+    expect(readSession('sess-1')?.['chatbox-1']).toEqual({ embedding: [0.9, 0.1] });
+    expect(readSession('other')).toBeUndefined();
+  });
+
+  it('evicts the oldest quarter, not everything', async () => {
+    for (let i = 0; i < 8; i++) {
+      seedSession(`s${i}`, { 'chatbox-0': { summary: SUMMARY } });
+      seedTree(`s${i}`, i * 1_000);
+    }
+    seedTree('sess-1', 99_000);
+    failAttempts(2);
+
+    await setNodeCache('sess-1', 'chatbox-0', { embedding: [0.9, 0.1] });
+
+    expect(readSession('s0')).toBeUndefined(); // oldest two of eight
+    expect(readSession('s1')).toBeUndefined();
+    expect(readSession('s2')).toBeDefined();
+    expect(readSession('s7')).toBeDefined();
+  });
+
+  it('propagates when even the post-eviction attempt fails', async () => {
+    failAttempts(3);
+
+    await expect(setNodeCache('sess-1', 'chatbox-0', { embedding: [0.9, 0.1] })).rejects.toThrow(
+      'QUOTA_BYTES exceeded',
+    );
   });
 });
 

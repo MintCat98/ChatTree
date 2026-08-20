@@ -8,7 +8,7 @@
 // Unlike node metadata (user data), this is a rebuildable cache: an entry is
 // purged as soon as its conversation's cached tree is gone — no age-based GC.
 
-import type { NodeCacheEntry } from './types';
+import type { NodeCacheEntry, TreeData } from './types';
 import { NODE_CACHE_KEY_PREFIX, TREE_KEY_PREFIX } from './constants';
 
 type SessionNodeCache = Record<string, NodeCacheEntry>;
@@ -41,12 +41,55 @@ export async function setNodeCache(
   const write = writeChain.then(async () => {
     const nodes = await getSessionNodeCache(sessionId);
     nodes[nodeId] = { ...nodes[nodeId], ...patch }; // merge, not overwrite
-    await chrome.storage.local.set({ [cacheKey(sessionId)]: nodes });
+    const commit = () => chrome.storage.local.set({ [cacheKey(sessionId)]: nodes });
+
+    try {
+      await commit();
+    } catch {
+      // Quota safety net. Embeddings (#161) made this the largest writer in
+      // storage.local, and it shares the 10 MB area with the tree cache —
+      // without this, a full area surfaces as trees silently failing to
+      // persist, far from the cause.
+      //
+      // Escalate cheapest-first, retrying in between, rather than evicting in
+      // one shot like session-store does for trees: an orphaned cache costs
+      // nothing to lose, but a live one costs a full re-run of the model to
+      // rebuild, so it is only sacrificed once the free option has failed.
+      await purgeOrphanedNodeCache();
+      try {
+        await commit();
+      } catch {
+        await evictOldestNodeCaches(sessionId);
+        await commit(); // last attempt — a throw here reaches the caller
+      }
+    }
   });
   // Swallow on the chain only — a failed write must not block later writes.
   // The caller still sees the rejection through the returned promise.
   writeChain = write.catch(() => {});
   return write;
+}
+
+// Last-resort space for a quota retry, mirroring session-store's
+// evictOldestTrees: drop the oldest quarter of the OTHER sessions' caches (at
+// least one), ordered by their tree's lastUpdated — the cache carries no
+// timestamp of its own, and a stale tree means a stale cache. A proportional
+// cut beats one-at-a-time when only one retry follows.
+//
+// Never touches the session being written; the caller is about to rewrite it.
+async function evictOldestNodeCaches(keepSessionId: string): Promise<void> {
+  const all = await chrome.storage.local.get(null);
+  const caches = Object.keys(all)
+    .filter((key) => key.startsWith(NODE_CACHE_KEY_PREFIX) && key !== cacheKey(keepSessionId))
+    .map((key) => {
+      const tree = all[`${TREE_KEY_PREFIX}${key.slice(NODE_CACHE_KEY_PREFIX.length)}`];
+      return { key, lastUpdated: (tree as TreeData | undefined)?.lastUpdated ?? 0 };
+    })
+    .sort((a, b) => a.lastUpdated - b.lastUpdated);
+  if (caches.length === 0) return;
+
+  const evictCount = Math.max(1, Math.ceil(caches.length / 4));
+  await chrome.storage.local.remove(caches.slice(0, evictCount).map(({ key }) => key));
 }
 
 export async function clearSessionNodeCache(sessionId: string): Promise<void> {
