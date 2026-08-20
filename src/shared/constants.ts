@@ -54,6 +54,10 @@ export const TIMING = {
   NOTIFY_BLINK_DURATION: 3000,
 
   SUMMARY_TIMEOUT_MS: 30_000,
+  // Longer than SUMMARY_TIMEOUT_MS on purpose: the first embed of a session
+  // also pays for loading the bundled model (~113 MB) and initializing the
+  // onnxruntime wasm backend, which a warm call does not (issue #161).
+  EMBED_TIMEOUT_MS: 60_000,
 } as const;
 
 export const CHAT_URL_PATTERN = /\/chat\/([0-9a-f-]{36})/;
