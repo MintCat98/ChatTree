@@ -23,6 +23,14 @@ export async function getSessionNodeCache(sessionId: string): Promise<SessionNod
   return (result[key] as SessionNodeCache | undefined) ?? {};
 }
 
+// Serializes every write. The read-modify-write below awaits between reading
+// and writing, so two concurrent callers would both read the pre-write state
+// and the second `set` would drop the first one's field. That is not
+// hypothetical: the summary queue and the embedding queue (#160/#161) drain in
+// parallel and patch different fields of the SAME entry, so an unserialized
+// write loses whichever of summary/embedding finished first.
+let writeChain: Promise<unknown> = Promise.resolve();
+
 // Merges the patch into the existing node entry so summary (#160) and relevance
 // (#161) can be written independently — one may be computed before the other.
 export async function setNodeCache(
@@ -30,9 +38,15 @@ export async function setNodeCache(
   nodeId: string,
   patch: Partial<NodeCacheEntry>,
 ): Promise<void> {
-  const nodes = await getSessionNodeCache(sessionId);
-  nodes[nodeId] = { ...nodes[nodeId], ...patch }; // merge, not overwrite
-  await chrome.storage.local.set({ [cacheKey(sessionId)]: nodes });
+  const write = writeChain.then(async () => {
+    const nodes = await getSessionNodeCache(sessionId);
+    nodes[nodeId] = { ...nodes[nodeId], ...patch }; // merge, not overwrite
+    await chrome.storage.local.set({ [cacheKey(sessionId)]: nodes });
+  });
+  // Swallow on the chain only — a failed write must not block later writes.
+  // The caller still sees the rejection through the returned promise.
+  writeChain = write.catch(() => {});
+  return write;
 }
 
 export async function clearSessionNodeCache(sessionId: string): Promise<void> {

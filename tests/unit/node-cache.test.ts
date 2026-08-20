@@ -114,6 +114,32 @@ describe('setNodeCache', () => {
 
     expect(readSession('sess-2')?.['chatbox-0']).toEqual({ embedding: [0.5, 0.5] });
   });
+
+  it('does not lose a field when two writers patch the same entry concurrently', async () => {
+    // The summary queue and the embedding queue (#160/#161) drain in parallel
+    // and patch different fields of one entry. Unserialized, both would read the
+    // same pre-write state and the second set() would drop the first's field.
+    await Promise.all([
+      setNodeCache('sess-1', 'chatbox-0', { summary: SUMMARY }),
+      setNodeCache('sess-1', 'chatbox-0', { embedding: [0.9, 0.1] }),
+    ]);
+
+    expect(readSession('sess-1')?.['chatbox-0']).toEqual({
+      summary: SUMMARY,
+      embedding: [0.9, 0.1],
+    });
+  });
+
+  it('keeps serving later writes after one write fails', async () => {
+    mockLocalStorage.set.mockRejectedValueOnce(new Error('QUOTA_BYTES exceeded'));
+
+    await expect(setNodeCache('sess-1', 'chatbox-0', { embedding: [0.9, 0.1] })).rejects.toThrow(
+      'QUOTA_BYTES exceeded',
+    );
+    await setNodeCache('sess-1', 'chatbox-1', { summary: SUMMARY });
+
+    expect(readSession('sess-1')?.['chatbox-1']).toEqual({ summary: SUMMARY });
+  });
 });
 
 // ---------------------------------------------------------------------------
