@@ -76,9 +76,11 @@ Chrome Extension (Manifest V3) that injects a floating tree-map navigation panel
 into **Claude.ai only (beta)**, allowing users to track and jump between chat messages.
 
 - Branch detection: MutationObserver + DOM snapshot diff
-- AI summarization: on-device pipeline implemented (#160, opt-in via
-  `summaryEnabled`, default off). **Rendering summaries on nodes is #165 — nothing
-  is displayed yet.** See `messaging-and-storage` skill §8.
+- On-device AI, both opt-in via `summaryEnabled` (default off) and both fed by
+  the same `SUMMARIZE_TURNS` message: summarization via Gemini Nano (#160) and
+  per-turn embeddings via a bundled model in an offscreen document (#161).
+  **Neither is surfaced yet** — summary rendering is #165, relevance-driven
+  layout is #162/#164. See the `running-on-device-ai` skill.
 
 ### Tech Stack
 
@@ -95,12 +97,17 @@ into **Claude.ai only (beta)**, allowing users to track and jump between chat me
 ### Key Commands
 
 ```bash
-npm run dev          # watch build → dist/
-npm run build        # production build
+npm run dev          # watch build → dist/   (runs fetch-model first)
+npm run build        # production build      (runs fetch-model first)
+npm run fetch-model  # download the embedding model into public/models/ (git-ignored)
 npm run typecheck    # tsc --noEmit
 npm run test         # jest
 npm run lint         # eslint src/**
 ```
+
+`dev` / `build` need network on a clean checkout: the ~113 MB embedding model is
+not committed and is fetched by the `predev` / `prebuild` hooks. See the
+`running-on-device-ai` skill §4.
 
 Load locally: `chrome://extensions/` → Developer mode → Load unpacked → `dist/`
 
@@ -111,10 +118,12 @@ src/
 ├── background/      # Service Worker — message relay + tree cache (session-store)
 ├── content/         # DOM observation, chatbox tracking, branch detection, scroll nav
 │   └── panel/       # React Tree Map in Shadow DOM (components/, store/, styles/)
+├── offscreen/       # Offscreen document — embedding inference (#161)
 ├── popup/           # Extension popup (panel toggle, settings entry)
 └── shared/          # types.ts, constants.ts, message-types.ts, storage utils
 public/manifest.json
-docs/spikes/         # spike & handoff records (e.g., node summarization #158)
+public/models/       # embedding model — git-ignored, fetched by predev/prebuild
+scripts/fetch-model.mjs
 tests/unit/
 .claude/skills/      # domain knowledge & workflows for Claude (see below)
 ```
@@ -131,6 +140,7 @@ changes go through normal PR review.
 | `detecting-branches` | branch detection, tree building, reload strategy, edge cases |
 | `building-panel-ui` | panel components, SVG layout, Zustand store, `--nav-*` design tokens |
 | `messaging-and-storage` | message contracts/flow, tree cache, hydration, retention |
+| `running-on-device-ai` | summary + embedding queues, offscreen document, model delivery, bundling & storage budget |
 | `verifying-extension` | definition-of-done verification workflow |
 
 ### Core Types & Message Contracts
@@ -145,8 +155,9 @@ changes go through normal PR review.
   #159), keyed by session + node. Relevance is derived on demand (cosine sim
   between two nodes' embeddings), not stored. **Do not put `summary`/`embedding` on
   `ChatboxNode`:** `session-store.updateTree` rebuilds the tree from the DOM on
-  every update and would wipe them. Summary spike:
-  `docs/spikes/node-summarization.md`.
+  every update and would wipe them. Embeddings are stored at reduced precision
+  and `setNodeCache` serializes its writes — see the `running-on-device-ai`
+  skill §6 before changing either.
 
 ### Coding Conventions
 
@@ -160,7 +171,8 @@ changes go through normal PR review.
 
 ### Core Constraints
 
-- **Minimum permissions** — `storage`, `activeTab`, `alarms` only. Ask before adding any new permission.
+- **Minimum permissions** — `storage`, `activeTab`, `alarms`, `offscreen` only. Ask before adding any new permission.
+- **CSP** — `extension_pages` allows `'wasm-unsafe-eval'` (required by onnxruntime for the #161 embedding model). Do not widen it further.
 - **Shadow DOM required** — all UI injected into claude.ai must use `mode: 'closed'`.
 - **No external calls from Content Script** — route through Background SW via `chrome.runtime.sendMessage`.
 - **Storage** — `chrome.storage.local` for the tree cache + user prefs; the cache is bounded by a retention policy (issue #153).
@@ -183,7 +195,8 @@ changes go through normal PR review.
 | **Phase 3** | Settings UI (position / direction / opacity / sort) | ✅ Done |
 | **Beta** | Public beta hardening (caching, tagging, search, bug fixes) | 🚧 In progress |
 | **Beta** | On-device node summarization pipeline (#159/#160) — opt-in, no UI yet | 🚧 In progress |
-| **Future** | Summary rendering (#165), relevance scoring (#161), other platforms | 🔮 Out of scope |
+| **Beta** | Per-turn embeddings + on-demand relevance (#189/#161) — no consumer yet | 🚧 In progress |
+| **Future** | Summary rendering (#165), relevance-driven map layout (#162/#164), other platforms | 🔮 Out of scope |
 
 ### Definition of Done
 
