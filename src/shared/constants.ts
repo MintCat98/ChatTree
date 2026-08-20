@@ -33,6 +33,13 @@ export const TREE_KEY_PREFIX = 'tree_';
 // blob, and orphan GC / cache-clear can scan by prefix.
 export const NODE_CACHE_KEY_PREFIX = 'nodeCache_';
 
+// Embeddings (#161) are stored as JSON, where a full-precision component costs
+// ~21 characters, making them by far the largest writer in storage.local.
+// Rounding to 4 decimals holds a 384-dim vector at ~2.8 KB instead of ~8 KB
+// while moving cosine similarity by <2e-4 — orders of magnitude below the
+// relevance thresholds it feeds (related ≈ 0.4, same ≈ 0.9).
+export const EMBEDDING_STORED_DECIMALS = 4;
+
 export const STORAGE_KEYS = {
   TREE_DATA: 'chatTreeData',
   USER_SETTINGS: 'userSettings',

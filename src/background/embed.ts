@@ -3,7 +3,7 @@
 // runs in an offscreen document and this module owns its lifecycle.
 
 import { MessageType } from '@shared/message-types';
-import { TIMING } from '@shared/constants';
+import { EMBEDDING_STORED_DECIMALS, TIMING } from '@shared/constants';
 
 async function ensureOffscreen() {
     if (await chrome.offscreen.hasDocument?.()) return;
@@ -25,6 +25,15 @@ async function closeOffscreen(): Promise<void> {
     }
 }
 
+// Rounded here rather than at the cache so no producer can forget: a vector
+// only ever leaves this module on its way to storage, and one representation
+// beats two. See EMBEDDING_STORED_DECIMALS for the size/accuracy tradeoff.
+function toStoredPrecision(vector: number[]): number[] {
+    const scale = 10 ** EMBEDDING_STORED_DECIMALS;
+    return vector.map((x) => Math.round(x * scale) / scale);
+}
+
+// Resolves with a storage-precision vector (see toStoredPrecision).
 export async function embedViaOffscreen(text: string): Promise<number[]> {
     await ensureOffscreen();
 
@@ -52,7 +61,7 @@ export async function embedViaOffscreen(text: string): Promise<number[]> {
         ]);
 
         if (!res || res.error) throw new Error(res?.error ?? 'no response');
-        return res.vector;
+        return toStoredPrecision(res.vector);
     } finally {
         // Always clear: a pending timer keeps the service worker awake.
         clearTimeout(timer);

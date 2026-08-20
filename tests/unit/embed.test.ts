@@ -3,6 +3,7 @@
 // offscreen document from stalling the embedding drain for the whole session.
 
 import { embedViaOffscreen } from '@background/embed';
+import { cosineSimilarity } from '@background/relevance';
 import { TIMING } from '@shared/constants';
 import { MessageType } from '@shared/message-types';
 
@@ -49,6 +50,35 @@ describe('embedViaOffscreen — document lifecycle', () => {
     await embedViaOffscreen('hello');
 
     expect(createDocument).not.toHaveBeenCalled();
+  });
+});
+
+describe('embedViaOffscreen — stored precision (issue #161)', () => {
+  it('rounds the vector to the stored precision', async () => {
+    sendMessage.mockResolvedValue({ vector: [0.05123456789, -0.98765432101, 0] });
+
+    await expect(embedViaOffscreen('hello')).resolves.toEqual([0.0512, -0.9877, 0]);
+  });
+
+  it('keeps cosine similarity within 1e-3 of the full-precision vectors', async () => {
+    const random = () => Array.from({ length: 384 }, () => Math.random() * 2 - 1);
+    const [rawA, rawB] = [random(), random()];
+
+    sendMessage.mockResolvedValueOnce({ vector: rawA }).mockResolvedValueOnce({ vector: rawB });
+    const storedA = await embedViaOffscreen('a');
+    const storedB = await embedViaOffscreen('b');
+
+    const exact = cosineSimilarity(rawA, rawB)!;
+    expect(cosineSimilarity(storedA, storedB)!).toBeCloseTo(exact, 3);
+  });
+
+  it('shrinks the JSON footprint of a 384-dim vector by more than half', async () => {
+    const raw = Array.from({ length: 384 }, () => Math.random() * 2 - 1);
+    sendMessage.mockResolvedValue({ vector: raw });
+
+    const stored = await embedViaOffscreen('hello');
+
+    expect(JSON.stringify(stored).length).toBeLessThan(JSON.stringify(raw).length / 2);
   });
 });
 
