@@ -4,6 +4,9 @@
   "description": "Tree-map navigation for Claude.ai chat sessions",
   "private": true,
   "scripts": {
+    "fetch-model": "node scripts/fetch-model.mjs",
+    "prebuild": "node scripts/fetch-model.mjs",
+    "predev": "node scripts/fetch-model.mjs",
     "dev": "webpack --mode development --watch",
     "build": "webpack --mode production",
     "typecheck": "tsc --noEmit",
@@ -54,6 +57,7 @@
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "d3": "^7.9.0",
     "lucide-react": "^1.21.0",
     "react": "^19.2.6",

@@ -55,8 +55,10 @@ description: Extension message contracts and flow between Content Script, Backgr
 | `CHAT_PAGE_ENTERED` | Content → BG | `{ url }` | Entered a new conversation URL |
 | `ACTIVE_NODE_CHANGED` | Content → BG | `{ navId }` | Active node in viewport changed |
 | `TREE_UPDATE` | Content → BG | `{ nodes, sessionId }` | Request full tree recalculation |
-| `SUMMARIZE_TURNS` | Content → BG | `{ sessionId, turns: [{ nodeId, question, answer }] }` | Enqueue completed turns for on-device summarization — fire-and-forget (§8) |
+| `SUMMARIZE_TURNS` | Content → BG | `{ sessionId, turns: [{ nodeId, question, answer }] }` | Enqueue completed turns for summarization **and** embedding — fire-and-forget (§8) |
 | `GET_STORED_TREE` | Content → BG | `{ sessionId }` | Look up stored tree — request/response, for hydration (#152) |
+| `GET_RELEVANCE` | Content/Panel → BG | `{ sessionId, nodeIdA, nodeIdB }` | Cosine similarity of two turns' embeddings — request/response, responds `{ relevance: number \| null }`; `null` when either embedding is missing (#189) |
+| `OFFSCREEN_EMBED` | BG → offscreen | `{ target: 'offscreen', text }` | Embed one turn — request/response, responds `{ vector }` or `{ error }` (#161). Addressed by `target`, not routed through `message-handler` |
 | `TREE_READY` | BG → Content/Panel | `{ tree }` | Push after tree data is ready |
 | `SCROLL_TO_NODE` | Panel → Content | `{ navId }` | Scroll request — relayed, but **no sender today**: the panel runs in the content-script context and calls `scrollToNode()` directly |
 | `CLEAR_TREE_CACHE` | Panel → BG | — | Remove all cached trees — request/response, responds `{ ok }` (#153) |
@@ -90,8 +92,8 @@ Background → Content Script: { type: 'TREE_READY', tree: TreeData }
 UI Panel: TreeMapCanvas re-renders
 ```
 
-> AI summarization is **Future Work** — no summarize step exists in this flow.
-> Spike record: `docs/spikes/node-summarization.md` (#158).
+> No summarize or embed step exists in **this** flow. Derived content travels on
+> its own message (`SUMMARIZE_TURNS`) and lands in a different store — see §8.
 
 ---
 
@@ -150,9 +152,22 @@ hydration source.
 | Key | Owner | Contents |
 |-----|-------|----------|
 | `tree_<sessionId>` | Background (`session-store.ts`) | Cached `TreeData` per conversation — subject to retention purge |
-| `nodeCache_<sessionId>` | `src/shared/node-cache.ts` | Computed per-node data — `summary` (#160), `relevance` (#161). Rebuildable; purged as soon as its `tree_` key is gone |
+| `nodeCache_<sessionId>` | `src/shared/node-cache.ts` | Computed per-node data — `summary` (#160), `embedding` (#161). Rebuildable; purged as soon as its `tree_` key is gone |
 | `nodeMetadata` | `src/shared/metadata-storage.ts` | User data, **not** a rebuildable cache — 180-day orphan GC only |
 | `userSettings` | Panel store `mirrorToChromeStorage` | `UserSettings` — `chrome.storage.local`, no localStorage fallback |
+
+**`setNodeCache` writes are serialized** through a module-level promise chain.
+It reads the session map, merges the patch, and writes it back — with an `await`
+in between, so two concurrent callers would both read the pre-write state and
+the second write would drop the first one's field. The summary and embedding
+drains (§8) do exactly that to the same entry.
+
+**It also defends the 10 MB quota**, which this cache shares with `tree_` keys:
+on a failed write it purges orphaned node caches, retries, then evicts the
+oldest quarter of *other* sessions' caches and retries once more before
+throwing. Orphans go first because a live cache costs a full model re-run to
+rebuild. See [running-on-device-ai](../running-on-device-ai/SKILL.md) §6 for the
+size budget that makes this necessary.
 
 ---
 
@@ -187,11 +202,16 @@ per-node payloads: each keystroke-level change rewrites the entire store.
 
 ---
 
-## 8. Summary Pipeline (issue #160)
+## 8. Derived-Content Pipeline (issues #160, #161)
 
-On-device turn summarization (Gemini Nano via the Prompt API). Opt-in behind
-`UserSettings.summaryEnabled` (default `false`). Rendering summaries on nodes is
-**#165** — nothing is displayed yet.
+On-device summarization (Gemini Nano) **and** embedding (bundled MiniLM in an
+offscreen document). Opt-in behind `UserSettings.summaryEnabled` (default
+`false`) — one message feeds both. Rendering summaries on nodes is **#165**;
+consuming relevance is **#162/#164**. Nothing is displayed yet.
+
+> Model behavior, offscreen lifecycle, bundling, and the storage budget live in
+> [running-on-device-ai](../running-on-device-ai/SKILL.md). This section covers
+> only the message and storage contract.
 
 ```
 scan a mounted turn (content)
@@ -200,11 +220,16 @@ scan a mounted turn (content)
 Content → Background: { type: 'SUMMARIZE_TURNS', payload: { sessionId, turns } }
      │
      ▼
-Background: summary-queue.ts — serial drain, ONE turn at a time
-     │  LanguageModel.create() → summarizeConversation() → clone per attempt
-     ▼
-setNodeCache(sessionId, nodeId, { summary, summaryFallback })
+Background: summary-queue.ts — TWO independent serial drains
+     ├─ drainSummary → summarizeOne → setNodeCache({ summary, summaryFallback })
+     └─ drainEmbed   → embedOne     → setNodeCache({ embedding })
+                          │  Background → offscreen: OFFSCREEN_EMBED
 ```
+
+The queues are separate on purpose: embeddings must not depend on Gemini Nano
+availability or on whether a turn was already summarized. Because both drains
+run in parallel and patch the same entry, `setNodeCache` serializes its
+read-modify-write through a promise chain — see §6.
 
 ### The answer is never persisted
 
@@ -225,7 +250,7 @@ they come into view; there is no backfill. By design, not a gap.
 ### Why the queue is serial and lives in the SW
 
 Reading the answer is cheap and synchronous; summarizing is not (~2–7 s per
-call, runaway up to ~5 min — spike `docs/spikes/node-summarization.md`). So it
+call, runaway up to ~5 min — see [running-on-device-ai](../running-on-device-ai/SKILL.md) §2). So it
 must never run inside the DOM scan. Draining one at a time spreads the cost
 instead of spiking on page load. It runs in the Background SW because that is
 where the Prompt API and the node-cache live, and content scripts must not do
@@ -240,27 +265,32 @@ or timed-out turn still writes an entry — the truncated fallback — flagged w
 | Layer | Scope | Purpose |
 |-------|-------|---------|
 | Content `summarizedSent` (`Set<nodeId>`) | one conversation visit; cleared on conversation change | **Send** throttle. The scan runs every ~100 ms; without it every tick re-sends the whole tree |
-| SW node-cache lookup in `processOne` | permanent, cross-tab, survives reload | **Compute** authority — skip a node that already has a real summary |
+| SW node-cache lookup in `summarizeOne` / `embedOne` | permanent, cross-tab, survives reload | **Compute** authority — skip a node that already has the field this drain writes |
+
+The two compute authorities are independent: `summarizeOne` keys on `summary`,
+`embedOne` on `embedding`. A turn that already has a summary but no embedding
+still gets embedded.
 
 A `summaryFallback` entry *is* eligible for re-summarization, but the content
 throttle means that only happens on a **later visit**. Deliberate: retrying
 inside the same visit feeds identical input to the same model.
 
-### Availability gating
+### Availability gating (summary queue only)
 
-`drain()` checks `typeof LanguageModel` first (the global is absent on pre-138 /
-unsupported Chrome — permanent, so the backlog is dropped), then
-`LanguageModel.availability()`.
+`drainSummary()` checks `typeof LanguageModel` first (the global is absent on
+pre-138 / unsupported Chrome — permanent, so the summary backlog is dropped),
+then `LanguageModel.availability()`. `drainEmbed()` has **no** such gate: its
+model ships with the extension.
 
 Anything other than `'available'` stops the drain but **keeps the backlog**: the
-next completed turn re-enters `drain()` and re-checks, so a finished model
-download resumes in the same visit rather than waiting for a reload. The backlog
-is capped (`MAX_PENDING_TURNS`), evicting oldest first.
+next completed turn re-enters `drainSummary()` and re-checks, so a finished model
+download resumes in the same visit rather than waiting for a reload. Each backlog
+is capped separately (`MAX_PENDING_TURNS`), evicting oldest first.
 
-> `drain()` must never re-enter itself from its own `finally`. The loop's
-> `pending.length > 0` check and `draining = false` run in the same microtask, so
-> there is no gap to cover — and on an error path that re-entry is an infinite
-> loop. Regression test: `tests/unit/summary-queue.test.ts`.
+> Neither drain may re-enter itself from its own `finally`. The loop's
+> `pending*.length > 0` check and `draining* = false` run in the same microtask,
+> so there is no gap to cover — and on an error path that re-entry is an
+> infinite loop. Regression test: `tests/unit/summary-queue.test.ts`.
 
 No model **download** is triggered: `create()` cannot start one from the SW
 without a user gesture. That belongs with the toggle UI (#165).
@@ -286,3 +316,4 @@ without a user gesture. That belongs with the toggle UI (#165).
 - [analyzing-claude-dom](../analyzing-claude-dom/SKILL.md) — how DOM changes are detected and identified
 - [detecting-branches](../detecting-branches/SKILL.md) — how the node list is built before `TREE_UPDATE`
 - [building-panel-ui](../building-panel-ui/SKILL.md) — how `TREE_READY` is consumed
+- [running-on-device-ai](../running-on-device-ai/SKILL.md) — the models behind `SUMMARIZE_TURNS` / `OFFSCREEN_EMBED`

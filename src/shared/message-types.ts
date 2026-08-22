@@ -16,6 +16,9 @@ export const MessageType = {
   // Background → Content / Panel
   TREE_READY:           'TREE_READY',
 
+  // Background → offscreen
+  OFFSCREEN_EMBED:      'OFFSCREEN_EMBED',      // payload: { text: string } — request/response; responds { vector: number[] } | { error: string } (issue #161)
+
   // Panel → Content (via Background)
   SCROLL_TO_NODE:       'SCROLL_TO_NODE',
 

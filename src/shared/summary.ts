@@ -113,7 +113,7 @@ export async function summarizeConversation(
     let raw: string | undefined;
     // Each attempt gets its own clone; `session` is never prompted directly.
     // Retrying on the session that just produced a runaway generation throws
-    // QuotaExceededError — per-attempt isolation is what fixed it (spike #158, it#5).
+    // QuotaExceededError — per-attempt isolation is what fixed it (spike #158 — running-on-device-ai skill §2).
     let attemptSession: LanguageModelSession | undefined;
     try {
       attemptSession = await session.clone({ signal });

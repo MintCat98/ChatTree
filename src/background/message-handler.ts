@@ -15,6 +15,8 @@ export function onMessage(
   sender: chrome.runtime.MessageSender,
   sendResponse: (response?: unknown) => void,
 ): boolean | void {
+  if ((message as {target?: string}).target === 'offscreen') return; // offscreen message guard (handled in embed.ts)
+
   // Request/response path — must return true to keep sendResponse alive
   // across the async storage read (MV3 contract).
   if (message.type === MessageType.GET_STORED_TREE) {

@@ -8,6 +8,10 @@ import type { NodeCacheEntry } from '@shared/types';
 import type { NodeSummary } from '@shared/summary';
 import { NODE_CACHE_KEY_PREFIX } from '@shared/constants';
 
+jest.mock('@background/embed');
+import { embedViaOffscreen } from '@background/embed';
+const mockEmbed = embedViaOffscreen as jest.MockedFunction<typeof embedViaOffscreen>;
+
 type Queue = typeof import('@background/summary-queue');
 
 const SUMMARY: NodeSummary = { keyword: 'kw', question: 'q?', answer: 'a.' };
@@ -102,6 +106,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   (globalThis as Record<string, unknown>).chrome = { storage: { local: mockLocalStorage } };
   jest.spyOn(console, 'warn').mockImplementation(() => {});
+  mockEmbed.mockReset();
+  mockEmbed.mockResolvedValue([0.1, 0.2, 0.3]);
 });
 
 afterEach(() => {
@@ -121,6 +127,7 @@ describe('enqueueSummaryTurns — happy path', () => {
     expect(readCache('sess-1')['chatbox-0']).toEqual({
       summary: SUMMARY,
       summaryFallback: false,
+      embedding: [0.1, 0.2, 0.3],
     });
   });
 
@@ -195,7 +202,8 @@ describe('availability gating', () => {
       await settle();
 
       expect(model.create).not.toHaveBeenCalled();
-      expect(readCache('sess-1')).toEqual({});
+      // The embedding queue does not consult the Prompt API, so it still runs.
+      expect(readCache('sess-1')['chatbox-0']).toEqual({ embedding: [0.1, 0.2, 0.3] });
     },
   );
 
@@ -228,10 +236,15 @@ describe('availability gating', () => {
     queue.enqueueSummaryTurns('sess-1', [turn('chatbox-60')]);
     await settle();
 
-    const ids = Object.keys(readCache('sess-1'));
-    expect(ids).toHaveLength(50);
-    expect(ids).toContain('chatbox-60');
-    expect(ids).not.toContain('chatbox-0'); // oldest evicted
+    // The cap is per queue, and only the summary queue was ever held back — so
+    // the retained backlog is measured by what got summarized, not by cache keys
+    // (the embedding queue never stalled and wrote entries for its own turns).
+    const summarized = Object.entries(readCache('sess-1'))
+      .filter(([, entry]) => entry.summary)
+      .map(([id]) => id);
+    expect(summarized).toHaveLength(50);
+    expect(summarized).toContain('chatbox-60');
+    expect(summarized).not.toContain('chatbox-0'); // oldest evicted
   });
 });
 
@@ -245,14 +258,16 @@ describe('drain termination', () => {
     queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
     await settle();
 
-    expect(readCache('sess-1')).toEqual({});
+    // Only the SUMMARY backlog is dead here — the turn is still embedded.
+    expect(readCache('sess-1')['chatbox-0']).toEqual({ embedding: [0.1, 0.2, 0.3] });
     // Backlog dropped, so a later enqueue does not replay the dead turns.
     const model = installModel('available');
     queue.enqueueSummaryTurns('sess-1', [turn('chatbox-2')]);
     await settle();
 
     expect(model.create).toHaveBeenCalledTimes(1);
-    expect(Object.keys(readCache('sess-1'))).toEqual(['chatbox-2']);
+    expect(readCache('sess-1')['chatbox-0'].summary).toBeUndefined();
+    expect(readCache('sess-1')['chatbox-2'].summary).toEqual(SUMMARY);
   });
 
   it('stops when availability() itself rejects', async () => {
@@ -284,6 +299,88 @@ describe('drain termination', () => {
     queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0'), turn('chatbox-2')]);
     await settle();
 
-    expect(Object.keys(readCache('sess-1'))).toEqual(['chatbox-2']);
+    expect(Object.keys(readCache('sess-1'))).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(readCache('sess-1')['chatbox-0'].summary).toBeUndefined();
+    expect(readCache('sess-1')['chatbox-2'].summary).toEqual(SUMMARY);
+  });
+});
+
+describe('embedding (#161)', () => {
+  it('computes and stores an embedding for a fresh turn', async () => {
+    installModel('available');
+    const queue = await loadQueue();
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(mockEmbed).toHaveBeenCalledWith(
+      expect.stringContaining('User Question:')   // question+answer 결합 텍스트
+    );
+    expect(readCache('sess-1')['chatbox-0'].embedding).toEqual([0.1, 0.2, 0.3]);
+  });
+
+  it('does not recompute when an embedding already exists (dedup)', async () => {
+    seedCache('sess-1', { 'chatbox-0': { embedding: [0.42, 0.1] } });
+    installModel('available');
+    const queue = await loadQueue();
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(mockEmbed).not.toHaveBeenCalled();
+    expect(readCache('sess-1')['chatbox-0'].embedding).toEqual([0.42, 0.1]);
+  });
+});
+
+// The embedding queue is split from the summary queue precisely so that neither
+// the Prompt API gate nor the summary dedup can suppress an embedding. Without
+// the split, every case below silently produced no embedding at all.
+describe('embedding is independent of the summary pipeline (#161)', () => {
+  it('embeds a turn on a Chrome that has no Prompt API at all', async () => {
+    delete (globalThis as Record<string, unknown>).LanguageModel;
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readCache('sess-1')['chatbox-0'].embedding).toEqual([0.1, 0.2, 0.3]);
+  });
+
+  it('backfills an embedding for a turn that was already summarized', async () => {
+    // Turns summarized before #161 shipped: the summary dedup skips them, but
+    // they still need an embedding or relevance stays null forever.
+    seedCache('sess-1', { 'chatbox-0': { summary: SUMMARY } });
+    const model = installModel('available');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(model.create).not.toHaveBeenCalled(); // summary dedup still holds
+    expect(readCache('sess-1')['chatbox-0']).toEqual({
+      summary: SUMMARY,
+      embedding: [0.1, 0.2, 0.3],
+    });
+  });
+
+  it('still summarizes when embedding fails', async () => {
+    mockEmbed.mockRejectedValue(new Error('offscreen document unavailable'));
+    installModel('available');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readCache('sess-1')['chatbox-0'].summary).toEqual(SUMMARY);
+    expect(readCache('sess-1')['chatbox-0'].embedding).toBeUndefined();
+  });
+
+  it('still embeds when summarization fails', async () => {
+    const model = installModel('available');
+    model.create.mockRejectedValue(new Error('session create failed'));
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readCache('sess-1')['chatbox-0']).toEqual({ embedding: [0.1, 0.2, 0.3] });
   });
 });
