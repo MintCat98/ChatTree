@@ -113,6 +113,24 @@ Messages to the offscreen document are addressed with `target: 'offscreen'`.
 `chrome.runtime.sendMessage` does not deliver to the sending context, so the SW
 never receives its own embed requests.
 
+**Long turns are chunked, not truncated.** The model reads at most
+`model_max_length` (512) tokens — ~2,300 characters of English but only ~930 of
+Korean, since this tokenizer spends 1.8 chars/token on Hangul against 4.5 on
+Latin. `chunkToBudget` splits on token **ids** (exact for any script), embeds
+each chunk, and averages them **unweighted** before renormalizing. Two things to
+keep:
+
+- Unweighted, not token-weighted. Weighting by chunk length re-biases the vector
+  toward the opening chunk, which is what truncation already did — it measured
+  worse (2/4 vs 3/4 on the retrieval probe below).
+- `MAX_CHUNKS` caps a pathological turn at 8 forward passes. Long turns cost
+  ~97 ms instead of ~52 ms; turns inside the budget are a single pass and pay
+  nothing.
+
+Evidence: on long single-topic sections, a follow-up quoting content from the
+END of a section retrieved that section **0/4** times when the source was
+truncated, and **3/4** after chunking.
+
 ## 4. Model delivery (build time)
 
 `Xenova/paraphrase-multilingual-MiniLM-L12-v2`, q8, 384-dim. **The multilingual
@@ -120,7 +138,27 @@ model is deliberate** — the smaller English-only MiniLM was rejected because
 this project's conversations mix Korean and English. Measured cosine on the
 spike set: the same topic across languages scored **0.76** (ko/en "cat") and
 **0.94** (ko/en "database"), while unrelated topics stayed near or below zero.
-Re-run that comparison before swapping the model or the quantization (see §7).
+Re-run that comparison before swapping the model or the quantization.
+
+**q8 is already the floor — do not go looking for a smaller quantization.** 82%
+of this model is the embedding table alone (vocab 250,037 × 384 = 96.2 M of
+117.4 M parameters), because the vocabulary is multilingual. Quantizing the
+twelve encoder layers barely moves the total, and the q4 export leaves the
+embedding table at full precision, so it is *larger*:
+
+| variant | size | |
+|---|---|---|
+| `model_quantized` (q8) | 112.8 MB | shipped |
+| `model_uint8` | 112.6 MB | no meaningful gain |
+| `model_q4f16` | 195.3 MB | |
+| `model_fp16` | 224.4 MB | |
+| `model_q4` | 380.2 MB | 3.4× *larger* |
+
+Sizes predicted from the parameter count match the published files to within
+1%, so this is arithmetic, not a quirk of one export. The only real lever is the
+**vocabulary** — prune it to ko/en, or move to a bilingual model with a smaller
+vocab — and either means re-exporting the weights and re-pinning the checksums
+below.
 
 The model is **not committed** — the quantized ONNX file is ~113 MB, over
 GitHub's limit. `scripts/fetch-model.mjs` downloads it into `public/models/`
@@ -179,16 +217,18 @@ Embeddings are the largest writer in `chrome.storage.local`, which is capped at
 
 Embedding side:
 
-- **Long turns are truncated.** `embedOne` embeds
-  `"User Question: … \n\n LLM Answer: …"` as one string, but the model's max
-  sequence length is far below a typical full answer, so a long answer is
-  largely dropped and the constant prefix plus the question dominates. The
-  similarity numbers in §4 came from single sentences and do not cover this.
-  Not yet re-measured on real conversations.
-- **Package size.** The q8 model is ~113 MB; q4 would roughly halve it at some
-  accuracy cost. Open product decision.
+- **Turns past ~4,000 tokens still lose their tail.** Chunking (§3) raised the
+  ceiling from 512 tokens to `MAX_CHUNKS × 510`, but a turn longer than that is
+  still cut. The cap is a latency bound, not a quality judgement; raise it if
+  real conversations turn out to need it.
+- **Package size is settled at ~113 MB** — see §4. Only a vocabulary change
+  moves it, which is a model swap, not a build flag.
 - **Relevance thresholds** are unvalidated beyond the spike set: related ≈ 0.4+,
   same ≈ 0.9.
+- **The chunking evidence used repo documentation, not real chat turns.**
+  Sections of these skills are the closest offline stand-in — single-topic,
+  long-form, technical. The direction is unambiguous (0/4 → 3/4 on the
+  retrieval probe), but the exact numbers would move on real conversation data.
 
 Summary side — all confirmed during the #158 evaluation and still open. #165
 (rendering) will hit these first:
@@ -213,5 +253,7 @@ Summary side — all confirmed during the #158 evaluation and still open. #165
 - [messaging-and-storage](../messaging-and-storage/SKILL.md) — message contracts, node-cache schema, retention
 - Source: `src/shared/summary.ts` (prompt + schema), `src/background/summary-queue.ts`, `src/background/embed.ts`, `src/offscreen/offscreen.ts`
 - Tests: `tests/unit/summary-queue.test.ts`, `embed.test.ts`, `offscreen.test.ts`, `node-cache.test.ts`
-- Original spike records (#158, #161) were folded into this skill and removed;
-  recover them from git history if the raw evaluation tables are ever needed.
+- Original spike records were folded into this skill and removed. The raw tables
+  survive in git: `git show 06c3f5e:docs/spikes/node-summarization.md` (#158) is
+  on `dev`; the #161 record only ever existed on the PR #191 branch, so if that
+  branch was squash-merged it is reachable only through the PR itself.

@@ -24,8 +24,25 @@ type Listener = (
 let listener: Listener;
 let closeSpy: jest.SpyInstance;
 
-// A feature-extraction pipeline: callable, resolving to a tensor-like object.
-const extractorStub = () => jest.fn(async () => ({ data: Float32Array.from([0.25, -0.5]) }));
+// A character-level stand-in for the real tokenizer: ids are char codes, so a
+// chunk budget is exactly a character count and round-trips through decode().
+const charTokenizer = (modelMaxLength: number) => ({
+  model_max_length: modelMaxLength,
+  encode: (text: string) => [0, ...[...text].map((c) => c.charCodeAt(0)), 2],
+  decode: (ids: number[]) => String.fromCharCode(...ids),
+});
+
+// A feature-extraction pipeline: callable, resolving to a tensor-like object,
+// carrying a tokenizer. `vectors` are handed out in call order — one per chunk.
+const extractorStub = (
+  { modelMaxLength = 512, vectors = [[0.25, -0.5]] }: { modelMaxLength?: number; vectors?: number[][] } = {},
+) => {
+  let i = 0;
+  const fn = jest.fn(async () => ({
+    data: Float32Array.from(vectors[Math.min(i++, vectors.length - 1)]),
+  }));
+  return Object.assign(fn, { tokenizer: charTokenizer(modelMaxLength) });
+};
 
 const embedMessage = (text: string) => ({
   target: 'offscreen',
@@ -114,6 +131,62 @@ describe('offscreen document — model loading', () => {
 
     expect(mockPipeline).toHaveBeenCalledTimes(2); // warm-up failed, request retried
     expect(sendResponse).toHaveBeenCalledWith({ vector: [0.25, -0.5] });
+  });
+});
+
+describe('offscreen document — long-turn chunking (issue #161)', () => {
+  // Reads the vector out of the sendResponse call.
+  const vectorOf = (sendResponse: jest.Mock) => sendResponse.mock.calls[0][0].vector as number[];
+
+  async function embedWith(stub: ReturnType<typeof extractorStub>, text: string) {
+    mockPipeline.mockResolvedValue(stub);
+    await loadOffscreen();
+    const sendResponse = jest.fn();
+    listener(embedMessage(text), null, sendResponse);
+    await jest.advanceTimersByTimeAsync(0);
+    return sendResponse;
+  }
+
+  it('embeds a turn that fits the budget in a single pass', async () => {
+    const stub = extractorStub({ modelMaxLength: 512 });
+
+    const sendResponse = await embedWith(stub, 'a short turn');
+
+    expect(stub).toHaveBeenCalledTimes(1);
+    expect(vectorOf(sendResponse)).toEqual([0.25, -0.5]);
+  });
+
+  it('splits an over-length turn and averages the chunks', async () => {
+    // budget = 10 - 2 = 8 chars per chunk; 16 chars → 2 chunks.
+    const stub = extractorStub({ modelMaxLength: 10, vectors: [[1, 0], [0, 1]] });
+
+    const sendResponse = await embedWith(stub, 'a'.repeat(8) + 'b'.repeat(8));
+
+    expect(stub).toHaveBeenCalledTimes(2);
+    // mean([1,0], [0,1]) = [0.5, 0.5] → renormalized to the unit sphere.
+    const v = vectorOf(sendResponse);
+    expect(v[0]).toBeCloseTo(Math.SQRT1_2, 6);
+    expect(v[1]).toBeCloseTo(Math.SQRT1_2, 6);
+    expect(Math.hypot(...v)).toBeCloseTo(1, 6);
+  });
+
+  it('weights every chunk equally, however short the last one is', async () => {
+    // 8 chars + 1 char. Token-weighted pooling would pull the result almost
+    // entirely onto the first chunk — the bias truncation already had.
+    const stub = extractorStub({ modelMaxLength: 10, vectors: [[1, 0], [0, 1]] });
+
+    const sendResponse = await embedWith(stub, 'a'.repeat(8) + 'b');
+
+    expect(stub).toHaveBeenCalledTimes(2);
+    expect(vectorOf(sendResponse)[1]).toBeCloseTo(Math.SQRT1_2, 6); // not ~0.11
+  });
+
+  it('caps a pathological turn at MAX_CHUNKS passes', async () => {
+    const stub = extractorStub({ modelMaxLength: 10, vectors: [[1, 0]] });
+
+    await embedWith(stub, 'a'.repeat(8 * 40));
+
+    expect(stub).toHaveBeenCalledTimes(8);
   });
 });
 
