@@ -4,7 +4,7 @@ export const SELECTORS = {
   // Two claude.ai variants coexist (2026-07 nav rework, rolled out per browser):
   // legacy pages use #main-content; new pages dropped it — anchor on <main>.
   CHAT_CONTAINER:         '#main-content, main',
-  USER_MESSAGE_BUBBLE:    '[data-user-message-bubble="true"]',
+  USER_MESSAGE_BUBBLE:    '[data-cds="UserMessage"]',
   USER_MESSAGE:           '[data-testid="user-message"]',
   BRANCH_ACTIONS_WRAPPER: '[aria-label="메시지 작업"], [aria-label="Message actions"]',
   BRANCH_PREV_BTN:        'button[aria-label="이전 버전"], button[aria-label="Previous version"]',
