@@ -9,6 +9,7 @@
 // purged as soon as its conversation's cached tree is gone — no age-based GC.
 
 import type { NodeCacheEntry, TreeData } from './types';
+import type { NodeSummary } from './summary';
 import { NODE_CACHE_KEY_PREFIX, TREE_KEY_PREFIX } from './constants';
 
 type SessionNodeCache = Record<string, NodeCacheEntry>;
@@ -21,6 +22,22 @@ export async function getSessionNodeCache(sessionId: string): Promise<SessionNod
   const key = cacheKey(sessionId);
   const result = await chrome.storage.local.get(key);
   return (result[key] as SessionNodeCache | undefined) ?? {};
+}
+
+// Summary-only view of a session's cache, for the panel (issue #165).
+// Deliberately a projection, not the raw entries: an embedding is ~2.8 KB per
+// node (see EMBEDDING_STORED_DECIMALS) and the panel has no use for one, so
+// dropping them here keeps vectors out of the content script entirely.
+export function projectSummaries(cache: SessionNodeCache): Record<string, NodeSummary> {
+  const summaries: Record<string, NodeSummary> = {};
+  for (const [nodeId, entry] of Object.entries(cache)) {
+    if (entry?.summary) summaries[nodeId] = entry.summary;
+  }
+  return summaries;
+}
+
+export async function getSessionSummaries(sessionId: string): Promise<Record<string, NodeSummary>> {
+  return projectSummaries(await getSessionNodeCache(sessionId));
 }
 
 // Serializes every write. The read-modify-write below awaits between reading

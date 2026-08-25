@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import type { TreeData, UserSettings, NodeMetadata } from '@shared/types';
+import type { NodeSummary } from '@shared/summary';
 import { DEFAULT_SETTINGS, DEFAULT_NODE_METADATA } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
 
@@ -34,6 +35,10 @@ interface PanelState {
   // Per-node metadata for the current session, keyed by nodeId (issue #96).
   // Loaded from chrome.storage.local when the tree is hydrated.
   sessionMetadata:  Record<string, NodeMetadata>;
+  // Per-node summaries for the current session, keyed by nodeId (issue #165).
+  // Derived cache, not user data: loaded from the node cache on hydration and
+  // refreshed as the summary queue drains. A node with no entry has no summary.
+  sessionSummaries: Record<string, NodeSummary>;
   // Tag management state (issue #98) — all transient, not persisted.
   activeTagFilters: string[];      // tag names currently active as filters
   tagPanelOpen:     boolean;       // controls TagPanel visibility
@@ -65,6 +70,10 @@ interface PanelState {
   setGenerationComplete: (done: boolean) => void;
   // Replace the entire session metadata map (called when tree/session changes).
   setSessionMetadata:   (meta: Record<string, NodeMetadata>) => void;
+  // Replace the entire session summary map. Always a full replace: the node
+  // cache is the source of truth and a session switch must not leak the
+  // previous conversation's summaries onto position-based node IDs.
+  setSessionSummaries:  (summaries: Record<string, NodeSummary>) => void;
   // Optimistic local update for a single node (caller writes to chrome.storage).
   patchNodeMetadata:    (nodeId: string, patch: Partial<NodeMetadata>) => void;
 }
@@ -80,6 +89,7 @@ export const usePanelStore = create<PanelState>()(
     settingsOpen:        false,
     bookmarksOnlyFilter: false,
     sessionMetadata:     {},
+    sessionSummaries:    {},
     activeTagFilters:    [],
     tagPanelOpen:        false,
     tagEditNodeId:       null,
@@ -158,6 +168,8 @@ export const usePanelStore = create<PanelState>()(
     setGenerationComplete: (done) => set({ generationComplete: done }),
 
     setSessionMetadata: (meta) => set({ sessionMetadata: meta }),
+
+    setSessionSummaries: (summaries) => set({ sessionSummaries: summaries }),
 
     patchNodeMetadata: (nodeId, patch) =>
       set((s) => ({

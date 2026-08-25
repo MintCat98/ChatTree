@@ -4,12 +4,15 @@
 //   2. settings sync — hydrate from chrome.storage.local and live-subscribe to
 //      chrome.storage.onChanged so popup changes reflect instantly (issue 05).
 //   3. theme       — follow claude.ai's light/dark theme (issue 06).
+//   4. summaries   — hydrate per-node summaries from the node cache and keep
+//      them live as the summary queue drains (issue #165).
 
 import { useEffect } from 'react';
-import type { TreeData, UserSettings } from '@shared/types';
+import type { TreeData, UserSettings, NodeCacheEntry } from '@shared/types';
 import { TREE_READY_EVENT } from '../observer';
-import { STORAGE_KEYS } from '@shared/constants';
+import { NODE_CACHE_KEY_PREFIX, STORAGE_KEYS } from '@shared/constants';
 import { getSessionMetadata } from '@shared/metadata-storage';
+import { getSessionSummaries, projectSummaries } from '@shared/node-cache';
 import { usePanelStore } from './store/panel-store';
 import { resolveTheme } from './theme';
 import { TreeMapCanvas } from './components/TreeMapCanvas';
@@ -23,6 +26,8 @@ import { Tooltip } from './components/Tooltip';
 export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
   const setTree = usePanelStore((s) => s.setTree);
   const setSessionMetadata = usePanelStore((s) => s.setSessionMetadata);
+  const setSessionSummaries = usePanelStore((s) => s.setSessionSummaries);
+  const sessionId = usePanelStore((s) => s.tree?.sessionId ?? '');
   const hydrateSettings = usePanelStore((s) => s.hydrateSettings);
   const settings = usePanelStore((s) => s.settings);
   const collapsed = usePanelStore((s) => s.collapsed);
@@ -37,11 +42,12 @@ export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
       setTree(tree);
       if (typeof chrome !== 'undefined' && chrome.storage?.local) {
         getSessionMetadata(tree.sessionId).then(setSessionMetadata);
+        getSessionSummaries(tree.sessionId).then(setSessionSummaries);
       }
     };
     window.addEventListener(TREE_READY_EVENT, handler);
     return () => window.removeEventListener(TREE_READY_EVENT, handler);
-  }, [setTree, setSessionMetadata]);
+  }, [setTree, setSessionMetadata, setSessionSummaries]);
 
   // 2) Settings: initial hydrate (with legacy-key migration) + live sync.
   useEffect(() => {
@@ -74,7 +80,33 @@ export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
     return () => chrome.storage.onChanged.removeListener(onChanged);
   }, [hydrateSettings]);
 
-  // 3) Apply the resolved theme to the Shadow host's data-theme attribute, and
+  // 3) Summaries: keep the map in sync while the summary queue drains (#165).
+  //    The queue runs in the background SW and writes straight to the node
+  //    cache, so storage is the only signal the panel gets. Projecting
+  //    `newValue` here rather than re-reading storage keeps this to one hop.
+  useEffect(() => {
+    if (!sessionId) return;
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
+
+    const key = `${NODE_CACHE_KEY_PREFIX}${sessionId}`;
+    const onChanged = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      area: string,
+    ) => {
+      if (area !== 'local') return;
+      const change = changes[key];
+      if (!change) return;
+      // A cache clear (#153) removes the key entirely — newValue is undefined,
+      // which must reset the map, not be ignored.
+      setSessionSummaries(
+        projectSummaries((change.newValue as Record<string, NodeCacheEntry> | undefined) ?? {}),
+      );
+    };
+    chrome.storage.onChanged.addListener(onChanged);
+    return () => chrome.storage.onChanged.removeListener(onChanged);
+  }, [sessionId, setSessionSummaries]);
+
+  // 4) Apply the resolved theme to the Shadow host's data-theme attribute, and
   //    track claude.ai theme changes while in 'auto' mode.
   useEffect(() => {
     const apply = () => shadowHost.setAttribute('data-theme', resolveTheme(settings.themeMode));
