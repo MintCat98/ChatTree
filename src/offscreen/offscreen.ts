@@ -2,7 +2,12 @@
 // because the MV3 service worker has no DOM and too short a lifetime to host
 // inference. Created on demand by @background/embed; closes itself when idle.
 
-import { pipeline, env, type FeatureExtractionPipeline } from '@huggingface/transformers'
+import {
+    pipeline,
+    env,
+    type FeatureExtractionPipeline,
+    type PreTrainedTokenizer,
+} from '@huggingface/transformers'
 import { MessageType } from '@shared/message-types'
 import { TIMING } from '@shared/constants'
 
@@ -27,10 +32,53 @@ const getExtractor = (): Promise<FeatureExtractionPipeline> =>
         throw err;
     }));
 
+// The model reads at most `model_max_length` tokens (512). That is roughly
+// 2,300 characters of English but only ~930 of Korean — this tokenizer spends
+// 1.8 chars/token on Hangul against 4.5 on Latin — so a full answer routinely
+// overflows and everything past the cut is silently dropped.
+//
+// Measured on long single-topic sections: a follow-up quoting content from the
+// END of a section never once retrieved that section (0/4) when the source was
+// plainly truncated; chunking recovered 3/4. Chunks are averaged UNWEIGHTED on
+// purpose — weighting by token count re-biases the vector toward the opening
+// chunk, which is exactly what truncation was doing, and scored worse (2/4).
+const MAX_CHUNKS = 8;
+
+// Splits on token ids rather than characters so the budget is exact for any
+// script. Beyond MAX_CHUNKS the tail is dropped: that bounds a pathological
+// turn to 8 forward passes, and ~4,000 tokens already covers far more than
+// truncation ever did.
+function chunkToBudget(tokenizer: PreTrainedTokenizer, text: string): string[] {
+    const budget = tokenizer.model_max_length - 2; // room for [CLS] / [SEP]
+    const ids = tokenizer.encode(text).slice(1, -1);
+    if (ids.length <= budget) return [text];
+
+    const chunks: string[] = [];
+    for (let i = 0; i < ids.length && chunks.length < MAX_CHUNKS; i += budget) {
+        chunks.push(tokenizer.decode(ids.slice(i, i + budget), { skip_special_tokens: true }));
+    }
+    return chunks;
+}
+
 async function embed(text: string): Promise<number[]> {
     const extractor = await getExtractor();
-    const out = await extractor(text, { pooling: 'mean', normalize: true });
-    return Array.from(out.data as Float32Array);
+    const chunks = chunkToBudget(extractor.tokenizer, text);
+
+    const vectors: Float32Array[] = [];
+    for (const chunk of chunks) {
+        const out = await extractor(chunk, { pooling: 'mean', normalize: true });
+        vectors.push(out.data as Float32Array);
+    }
+    if (vectors.length === 1) return Array.from(vectors[0]);
+
+    // Each chunk vector is already L2-normalized; average, then renormalize so
+    // the result stays on the unit sphere and cosine stays comparable.
+    const mean = new Array<number>(vectors[0].length).fill(0);
+    for (const v of vectors) {
+        for (let i = 0; i < mean.length; i++) mean[i] += v[i] / vectors.length;
+    }
+    const norm = Math.hypot(...mean);
+    return norm === 0 ? mean : mean.map((x) => x / norm);
 }
 
 // Releases the loaded model (hundreds of MB) after a stretch with no work. The
