@@ -10,6 +10,7 @@ import * as d3 from 'd3';
 import type { ChatboxNode, NodeMetadata } from '@shared/types';
 import { usePanelStore } from '../store/panel-store';
 import { scrollToNode } from '../../scroll-navigator';
+import { nodeLabel } from './node-label';
 import { pickParent, wouldCreateCycle } from './parent-resolver';
 import { setNodeMetadata } from '@shared/metadata-storage';
 
@@ -77,6 +78,7 @@ export function InteractiveMap() {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const tree = usePanelStore((s) => s.tree);
   const sessionMetadata = usePanelStore((s) => s.sessionMetadata);
+  const sessionSummaries = usePanelStore((s) => s.sessionSummaries);
   const patchNodeMetadata = usePanelStore((s) => s.patchNodeMetadata);
 
   // Zoom behavior state
@@ -364,10 +366,7 @@ export function InteractiveMap() {
       .attr('y', NODE_HEIGHT / 2)
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'central')
-      .text((d) => {
-        const t = d.data.text.trim();
-        return t.length > 18 ? t.slice(0, 17) + '…' : t;
-      });
+      .text((d) => nodeLabel(d.data.text, sessionSummaries[d.data.id]));
 
     
 
@@ -644,7 +643,7 @@ export function InteractiveMap() {
         if (up) window.removeEventListener('pointerup', up);
         dragListenersRef.current = { move: null, up: null };
       };
-  }, [tree, sessionMetadata, editingLabelId]);
+  }, [tree, sessionMetadata, sessionSummaries, editingLabelId]);
 
   // Sync expand state to the parent sidebar-bottom container so it can
   // break out horizontally beyond the sidebar width.
