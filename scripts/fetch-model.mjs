@@ -8,7 +8,7 @@
 // them from https://huggingface.co/<REPO>/tree/<REVISION> or from the
 // `x-linked-etag` header on each resolve URL (it is the sha256 for LFS files).
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, rename, rm, stat } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
@@ -72,5 +72,38 @@ async function download({ path: file, sha256: expected }) {
   }
 }
 
+// Neither the ONNX export nor the original model ships a LICENSE file, so the
+// notice that travels with the weights has to be written here. Keeping it next
+// to the model means the license survives if dist/models is ever extracted on
+// its own; the same components are also listed in THIRD_PARTY_LICENSES.md at
+// the package root.
+async function writeLicense() {
+  const dest = join(OUT_ROOT, 'LICENSE');
+  const content = `${REPO}
+
+Source:       https://huggingface.co/${REPO}
+Revision:     ${REVISION}
+Derived from: https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+
+These files are redistributed unmodified. Neither upstream repository declares a
+copyright line or ships a NOTICE file; both are published under the Apache
+License 2.0, reproduced in full below.
+
+${'-'.repeat(80)}
+
+${await readFile(join('scripts', 'apache-2.0.txt'), 'utf8')}`;
+
+  // Rewriting every run would bump the mtime and make webpack re-copy the file
+  // for no reason, so only touch it when the content actually changes.
+  if ((await readFile(dest, 'utf8').catch(() => null)) === content) {
+    console.log('[fetch-model] ok: LICENSE');
+    return;
+  }
+  await mkdir(dirname(dest), { recursive: true });
+  await writeFile(dest, content);
+  console.log('[fetch-model] wrote: LICENSE');
+}
+
 for (const file of FILES) await download(file);
+await writeLicense();
 console.log('[fetch-model] all model files ready');

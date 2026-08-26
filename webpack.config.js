@@ -76,6 +76,8 @@ module.exports = {
         { from: 'public/models', to: 'models' },
         { from: 'node_modules/onnxruntime-web/dist/*.wasm', to: 'wasm/[name][ext]' },
         { from: 'node_modules/onnxruntime-web/dist/ort-wasm-*.mjs', to: 'wasm/[name][ext]' },
+        { from: 'LICENSE', to: 'LICENSE', toType: 'file' },
+        { from: 'THIRD_PARTY_LICENSES.md', to: 'THIRD_PARTY_LICENSES.md' },
       ],
     }),
   ],

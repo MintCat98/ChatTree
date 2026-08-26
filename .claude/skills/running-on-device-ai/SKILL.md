@@ -176,6 +176,13 @@ no host permission, `env.allowRemoteModels = false`.
 - To move to a new revision, update `REVISION` **and** every hash. Get hashes
   from the `x-linked-etag` header on each resolve URL (it is the sha256 for LFS
   files) or by hashing a verified download.
+- Neither the ONNX export nor the original model ships a license file, so the
+  script also **writes a `LICENSE`** beside the weights: source, revision, an
+  explicit "redistributed unmodified" note, and the Apache-2.0 text read from
+  `scripts/apache-2.0.txt`. It is rewritten only when the content changes, so
+  repeat builds do not churn the mtime and make `CopyPlugin` re-copy it. The
+  same components are listed in `THIRD_PARTY_LICENSES.md`, which `CopyPlugin`
+  ships into `dist/` alongside the project's own `LICENSE`.
 - **Consequence:** builds need network on a clean checkout. There is no CI in
   this repo yet; if one is added, cache `public/models/`.
 
