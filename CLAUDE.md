@@ -90,8 +90,8 @@ into **Claude.ai only (beta)**, allowing users to track and jump between chat me
 | Role | Tool |
 |------|------|
 | Language | TypeScript (strict) |
-| UI | React 18 via Shadow DOM |
-| Tree rendering | Hand-rolled SVG (React components — no D3) |
+| UI | React 19 via Shadow DOM |
+| Tree rendering | Hand-rolled SVG via `tree-layout.ts` (`TreeMapCanvas`, panel top); D3 `hierarchy`/`tree` + zoom (`InteractiveMap`, panel bottom) |
 | State management | Zustand (Panel), chrome.storage (Background) |
 | Bundler | Webpack 5 |
 | Test | Jest + ts-jest |
@@ -102,7 +102,7 @@ into **Claude.ai only (beta)**, allowing users to track and jump between chat me
 ```bash
 npm run dev          # watch build → dist/   (runs fetch-model first)
 npm run build        # production build      (runs fetch-model first)
-npm run fetch-model  # download the embedding model into public/models/ (git-ignored)
+npm run fetch-model  # download the embedding model + write its LICENSE into public/models/ (git-ignored)
 npm run typecheck    # tsc --noEmit
 npm run test         # jest
 npm run lint         # eslint src/**
