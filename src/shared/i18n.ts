@@ -59,6 +59,14 @@ export interface Messages {
   notifyCompleteAria: string;
   notifyOnLabel: string;
   notifyOffLabel: string;
+  summaryEnabled: string;
+  summaryEnabledAria: string;
+  summaryOnLabel: string;
+  summaryOffLabel: string;
+  summaryModelPreparing: string;
+  summaryModelDownloading: (percent: number) => string;
+  summaryModelUnavailable: string;
+  summaryModelUnsupported: string;
   language: string;
   languageAria: string;
   langEnglish: string;
@@ -118,6 +126,14 @@ export interface Messages {
   // PanelShell
   resizeAria: string;
 
+  // InteractiveMap — summary dropdown (issue #165)
+  summaryQuestionLabel: string;
+  summaryAnswerLabel: string;
+  expandSummaryAria: string;
+  collapseSummaryAria: string;
+  summaryRunning: string;
+  summaryQueued: (n: number) => string;
+
   // Popup
   loading: string;
   unsupportedTitle: string;
@@ -170,6 +186,14 @@ const en: Messages = {
   notifyCompleteAria: 'Blink the message count when response generation completes',
   notifyOnLabel: 'On',
   notifyOffLabel: 'Off',
+  summaryEnabled: 'Node summaries',
+  summaryEnabledAria: 'Summarize each turn on-device to label map nodes by keyword',
+  summaryOnLabel: 'On',
+  summaryOffLabel: 'Off',
+  summaryModelPreparing: 'Preparing the on-device model…',
+  summaryModelDownloading: (percent) => `Downloading the on-device model… ${percent}%`,
+  summaryModelUnavailable: 'The on-device model is unavailable on this device.',
+  summaryModelUnsupported: 'This Chrome version has no built-in AI model.',
   language: 'Language',
   languageAria: 'Language',
   langEnglish: 'English',
@@ -229,6 +253,14 @@ const en: Messages = {
   // PanelShell
   resizeAria: 'Resize panel width',
 
+  // InteractiveMap — summary dropdown (issue #165)
+  summaryQuestionLabel: 'Question',
+  summaryAnswerLabel: 'Answer',
+  expandSummaryAria: 'Show summary',
+  collapseSummaryAria: 'Hide summary',
+  summaryRunning: 'Summarizing on-device',
+  summaryQueued: (n) => `+${n} queued`,
+
   // Popup
   loading: 'Loading…',
   unsupportedTitle: 'This page is not supported',
@@ -281,6 +313,14 @@ const ko: Messages = {
   notifyCompleteAria: '응답 생성이 완료되면 메시지 개수를 깜빡여 알림',
   notifyOnLabel: '켜짐',
   notifyOffLabel: '꺼짐',
+  summaryEnabled: '노드 요약',
+  summaryEnabledAria: '각 대화를 온디바이스로 요약해 맵 노드를 키워드로 표시',
+  summaryOnLabel: '켜짐',
+  summaryOffLabel: '꺼짐',
+  summaryModelPreparing: '온디바이스 모델 준비 중…',
+  summaryModelDownloading: (percent) => `온디바이스 모델 다운로드 중… ${percent}%`,
+  summaryModelUnavailable: '이 기기에서는 온디바이스 모델을 사용할 수 없습니다.',
+  summaryModelUnsupported: '이 Chrome 버전에는 내장 AI 모델이 없습니다.',
   language: '언어',
   languageAria: '언어',
   langEnglish: 'English',
@@ -339,6 +379,14 @@ const ko: Messages = {
 
   // PanelShell
   resizeAria: '패널 너비 조절',
+
+  // InteractiveMap — summary dropdown (issue #165)
+  summaryQuestionLabel: '질문',
+  summaryAnswerLabel: '답변',
+  expandSummaryAria: '요약 보기',
+  collapseSummaryAria: '요약 숨기기',
+  summaryRunning: '온디바이스 요약 중',
+  summaryQueued: (n) => `+${n}개 대기`,
 
   // Popup
   loading: '불러오는 중…',

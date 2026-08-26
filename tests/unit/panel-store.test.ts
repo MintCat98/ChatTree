@@ -50,6 +50,7 @@ function resetStore() {
     settingsOpen:        false,
     bookmarksOnlyFilter: false,
     sessionMetadata:     {},
+    sessionSummaries:    {},
     activeTagFilters:    [],
     tagPanelOpen:        false,
     tagEditNodeId:       null,
@@ -207,6 +208,32 @@ describe('usePanelStore — sessionMetadata (issue #96)', () => {
       tags: ['x'],
       hidden: true,
     });
+  });
+});
+
+describe('usePanelStore — sessionSummaries (issue #165)', () => {
+  beforeEach(resetStore);
+
+  const SUMMARY = { keyword: 'LUT basics', question: 'How to pick a LUT?', answer: 'By look.' };
+
+  it('starts with empty sessionSummaries', () => {
+    expect(usePanelStore.getState().sessionSummaries).toEqual({});
+  });
+
+  it('setSessionSummaries replaces rather than merges', () => {
+    // Node IDs encode absolute turn position and are per-conversation, so
+    // merging would attach a previous conversation's summary to a new node.
+    usePanelStore.getState().setSessionSummaries({ 'chatbox-0': SUMMARY });
+    usePanelStore.getState().setSessionSummaries({ 'chatbox-1': SUMMARY });
+
+    expect(usePanelStore.getState().sessionSummaries).toEqual({ 'chatbox-1': SUMMARY });
+  });
+
+  it('clears back to empty when the session cache is gone', () => {
+    usePanelStore.getState().setSessionSummaries({ 'chatbox-0': SUMMARY });
+    usePanelStore.getState().setSessionSummaries({});
+
+    expect(usePanelStore.getState().sessionSummaries).toEqual({});
   });
 });
 

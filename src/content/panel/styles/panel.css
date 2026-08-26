@@ -129,6 +129,13 @@
     animation: none;
     opacity: 1;
   }
+  /* The summary indicator's dots stop moving, but stay visible: the elapsed
+     counter next to them is still ticking, so the strip must not read as
+     finished (issue #165). */
+  .nav-im-activity-dots i {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 @keyframes nav-slide-in {
@@ -484,6 +491,14 @@
 .nav-control-sort:hover {
   background: var(--nav-color-accent-soft);
   border-color: var(--nav-color-accent);
+}
+/* Status line under a control row — currently the on-device model's download
+   progress / unavailability (issue #165). Full width, no label column. */
+.nav-control-hint {
+  margin-top: -2px;
+  font-size: var(--nav-font-size-xs);
+  line-height: 1.4;
+  color: var(--nav-color-text-muted);
 }
 .nav-control-readout {
   min-width: 38px;
@@ -1280,4 +1295,140 @@
 .im-edge-group:hover .im-disconnect,
 .im-disconnect:hover {
   opacity: 1;
+}
+
+/* ─── Interactive Map — summary activity strip (issue #165) ─────────── */
+
+/* Overlays the top of the map rather than displacing it: the map's height is
+   driven by .nav-sidebar-bottom, so a strip in the flow would resize the
+   graph every time the queue starts and stops. */
+.nav-im-activity {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--nav-spacing-4);
+  padding: var(--nav-spacing-3) var(--nav-spacing-5);
+  background: rgb(var(--nav-color-bg-rgb) / 0.92);
+  border-bottom: var(--nav-border-width) solid var(--nav-color-border);
+  font-family: var(--nav-font-family);
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-color-text-secondary);
+  pointer-events: none; /* never intercepts a pan that starts near the top edge */
+}
+
+.nav-im-activity-label {
+  color: var(--nav-color-text);
+}
+
+.nav-im-activity-elapsed {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums; /* digits must not jitter as it ticks */
+  color: var(--nav-color-text-secondary);
+}
+
+.nav-im-activity-pending {
+  color: var(--nav-color-text-muted);
+}
+
+/* Three-dot wave — the "model is thinking" signal. */
+.nav-im-activity-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.nav-im-activity-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--nav-color-accent);
+  animation: nav-im-dot-wave 1200ms ease-in-out infinite;
+}
+
+.nav-im-activity-dots i:nth-child(2) { animation-delay: 160ms; }
+.nav-im-activity-dots i:nth-child(3) { animation-delay: 320ms; }
+
+@keyframes nav-im-dot-wave {
+  0%, 60%, 100% { opacity: 0.25; }
+  30%           { opacity: 1; }
+}
+
+/* ─── Interactive Map — summary dropdown (issue #165) ───────────────── */
+
+/* Toggle sits on the box's bottom edge. Unlike the rewire handles it is
+   always visible, so it also reads as "this turn has a summary". */
+.im-summary-toggle {
+  cursor: pointer;
+}
+
+.im-summary-toggle circle {
+  fill: var(--nav-color-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1;
+}
+
+.im-summary-chevron {
+  fill: none;
+  stroke: var(--nav-color-text-muted);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* Rotated here rather than on .im-summary-toggle: a CSS transform on the
+     group would override its SVG translate() presentation attribute and snap
+     the toggle back to the map origin. The path carries no transform attr, and
+     its bbox is centred on (0,0), so this rotates in place. */
+  transform-origin: center;
+  transition: transform 120ms ease;
+}
+
+.im-summary-toggle:hover circle {
+  stroke: var(--nav-color-accent);
+}
+
+.im-summary-toggle:hover .im-summary-chevron {
+  stroke: var(--nav-color-accent);
+}
+
+/* Open state flips the chevron to point back at the node. */
+.im-summary-toggle.is-open .im-summary-chevron {
+  transform: rotate(180deg);
+}
+
+/* The panel body inside the foreignObject. Height is set on the
+   foreignObject from the measured content, so this scrolls only once the
+   content passes SUMMARY_PANEL_MAX_HEIGHT. */
+.im-summary-panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--nav-spacing-4) var(--nav-spacing-5);
+  background: var(--nav-color-bg);
+  border: var(--nav-border-width) solid var(--nav-color-border);
+  border-radius: var(--nav-radius-md);
+  box-shadow: var(--nav-panel-shadow);
+  font-family: var(--nav-font-family);
+  color: var(--nav-color-text);
+  overflow-wrap: break-word;
+}
+
+.im-summary-row + .im-summary-row {
+  margin-top: var(--nav-spacing-4);
+}
+
+.im-summary-label {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--nav-color-text-muted);
+  margin-bottom: 2px;
+}
+
+.im-summary-text {
+  font-size: 11px;
+  line-height: 1.45;
 }

@@ -4,9 +4,9 @@
 // The queue keeps module-level state (`pending`, `draining`), so every case
 // re-imports the module through jest.isolateModulesAsync.
 
-import type { NodeCacheEntry } from '@shared/types';
+import type { NodeCacheEntry, SummaryQueueStatus } from '@shared/types';
 import type { NodeSummary } from '@shared/summary';
-import { NODE_CACHE_KEY_PREFIX } from '@shared/constants';
+import { NODE_CACHE_KEY_PREFIX, STORAGE_KEYS } from '@shared/constants';
 
 jest.mock('@background/embed');
 import { embedViaOffscreen } from '@background/embed';
@@ -382,5 +382,110 @@ describe('embedding is independent of the summary pipeline (#161)', () => {
     await settle();
 
     expect(readCache('sess-1')['chatbox-0']).toEqual({ embedding: [0.1, 0.2, 0.3] });
+  });
+});
+// ---------------------------------------------------------------------------
+// Drain status published to storage (issue #165 indicator)
+// ---------------------------------------------------------------------------
+//
+// The panel has no other view of the queue: it runs in the SW and a single turn
+// can take 30s, so "slow" and "broken" look identical without this. The tests
+// below pin the distinction — status is published ONLY around work that can
+// actually happen.
+
+function readStatus(): SummaryQueueStatus | undefined {
+  return mockStorage.get(STORAGE_KEYS.SUMMARY_STATUS) as SummaryQueueStatus | undefined;
+}
+
+describe('summary drain — status reporting', () => {
+  it('clears any stale status on module load', async () => {
+    // A SW terminated mid-drain leaves active:true behind with nobody to clear
+    // it; a cold start is proof no drain is in flight.
+    mockStorage.set(STORAGE_KEYS.SUMMARY_STATUS, {
+      active: true,
+      startedAt: 1,
+      pending: 7,
+    } satisfies SummaryQueueStatus);
+
+    await loadQueue();
+
+    expect(readStatus()).toEqual({ active: false, startedAt: 0, pending: 0 });
+  });
+
+  it('reports active while draining and idle once done', async () => {
+    installModel('available');
+    const queue = await loadQueue();
+
+    const seen: SummaryQueueStatus[] = [];
+    mockLocalStorage.set.mockImplementation(async (items: Record<string, unknown>) => {
+      Object.entries(items).forEach(([k, v]) => {
+        mockStorage.set(k, v);
+        if (k === STORAGE_KEYS.SUMMARY_STATUS) seen.push(v as SummaryQueueStatus);
+      });
+    });
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(seen.some((s) => s.active)).toBe(true);
+    expect(readStatus()?.active).toBe(false);
+  });
+
+  it('stamps one startedAt across the whole backlog, not per turn', async () => {
+    // The counter answers "how long has the AI been busy", so a 3-turn drain is
+    // one run — re-stamping per turn would reset the display to 0:00 each time.
+    installModel('available');
+    const queue = await loadQueue();
+
+    const active: SummaryQueueStatus[] = [];
+    mockLocalStorage.set.mockImplementation(async (items: Record<string, unknown>) => {
+      Object.entries(items).forEach(([k, v]) => {
+        mockStorage.set(k, v);
+        const status = v as SummaryQueueStatus;
+        if (k === STORAGE_KEYS.SUMMARY_STATUS && status.active) active.push(status);
+      });
+    });
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0'), turn('chatbox-1'), turn('chatbox-2')]);
+    await settle();
+
+    expect(active).toHaveLength(3);
+    expect(new Set(active.map((s) => s.startedAt)).size).toBe(1);
+    // Counts down as the backlog drains, so the UI can show "+n queued".
+    expect(active.map((s) => s.pending)).toEqual([2, 1, 0]);
+  });
+
+  it('never reports active when the Prompt API is missing', async () => {
+    // Backlog is dropped, nothing can run — an indicator here would be exactly
+    // the false "it's working" signal this feature exists to remove.
+    delete (globalThis as Record<string, unknown>).LanguageModel;
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readStatus()?.active).toBe(false);
+  });
+
+  it('never reports active while the model is still downloading', async () => {
+    // Backlog is KEPT here, but no turn is being summarized yet.
+    installModel('downloading');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readStatus()?.active).toBe(false);
+  });
+
+  it('returns to idle when a turn throws mid-drain', async () => {
+    const model = installModel('available');
+    model.create.mockRejectedValue(new Error('session create failed'));
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readStatus()?.active).toBe(false);
   });
 });

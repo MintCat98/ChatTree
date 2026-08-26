@@ -48,6 +48,23 @@ export interface NodeCacheEntry {
   embedding?: number[];
 }
 
+// Live state of the summary drain (issue #165 follow-up). Published to
+// chrome.storage.local under STORAGE_KEYS.SUMMARY_STATUS by the background
+// queue and read by the panel — the queue runs in the SW, so storage is the
+// only channel the panel has. Not user data and not a cache: it is a status
+// flag whose only consumer is the map's "AI is working" indicator.
+export interface SummaryQueueStatus {
+  active: boolean;
+  startedAt: number; // Date.now() when the current run began; 0 when idle
+  pending: number;   // turns still queued behind the one being summarized
+}
+
+export const IDLE_SUMMARY_STATUS: SummaryQueueStatus = {
+  active: false,
+  startedAt: 0,
+  pending: 0,
+};
+
 export interface ChatboxNode {
   id: string; // "chatbox-0", "chatbox-1", ... (assigned by tracker.ts)
   index: number; // DOM order index

@@ -1,5 +1,7 @@
 import {
   getSessionNodeCache,
+  getSessionSummaries,
+  projectSummaries,
   setNodeCache,
   clearSessionNodeCache,
   clearAllNodeCache,
@@ -67,6 +69,54 @@ describe('getSessionNodeCache', () => {
     seedSession('sess-2', { 'chatbox-0': { embedding: [0.1, 0.9] } });
 
     expect(await getSessionNodeCache('sess-1')).toEqual({ 'chatbox-0': { embedding: [0.9, 0.1] } });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// projectSummaries / getSessionSummaries (issue #165)
+// ---------------------------------------------------------------------------
+
+describe('projectSummaries', () => {
+  it('returns {} for an empty cache', () => {
+    expect(projectSummaries({})).toEqual({});
+  });
+
+  it('skips entries that have an embedding but no summary yet', () => {
+    // The two drains are independent, so an embedded-but-unsummarized node is
+    // the normal mid-drain state — it must not surface as an empty summary.
+    expect(projectSummaries({ 'chatbox-0': { embedding: [0.9, 0.1] } })).toEqual({});
+  });
+
+  it('keeps only the summary field, dropping the embedding', () => {
+    // The panel has no use for a ~2.8 KB vector per node; the projection is
+    // what keeps embeddings out of the content script.
+    const projected = projectSummaries({
+      'chatbox-0': { summary: SUMMARY, embedding: [0.9, 0.1] },
+      'chatbox-1': { embedding: [0.1, 0.9] },
+    });
+
+    expect(projected).toEqual({ 'chatbox-0': SUMMARY });
+  });
+
+  it('keeps fallback summaries — they are the degradation path, not a miss', () => {
+    const projected = projectSummaries({
+      'chatbox-0': { summary: SUMMARY, summaryFallback: true },
+    });
+
+    expect(projected).toEqual({ 'chatbox-0': SUMMARY });
+  });
+});
+
+describe('getSessionSummaries', () => {
+  it('returns {} when the session has no cache', async () => {
+    expect(await getSessionSummaries('sess-1')).toEqual({});
+  });
+
+  it('reads only the requested session', async () => {
+    seedSession('sess-1', { 'chatbox-0': { summary: SUMMARY } });
+    seedSession('sess-2', { 'chatbox-0': { summary: { keyword: 'other', question: 'q', answer: 'a' } } });
+
+    expect(await getSessionSummaries('sess-1')).toEqual({ 'chatbox-0': SUMMARY });
   });
 });
 
