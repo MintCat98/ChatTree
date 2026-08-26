@@ -63,6 +63,10 @@ export interface Messages {
   summaryEnabledAria: string;
   summaryOnLabel: string;
   summaryOffLabel: string;
+  summaryModelPreparing: string;
+  summaryModelDownloading: (percent: number) => string;
+  summaryModelUnavailable: string;
+  summaryModelUnsupported: string;
   language: string;
   languageAria: string;
   langEnglish: string;
@@ -184,6 +188,10 @@ const en: Messages = {
   summaryEnabledAria: 'Summarize each turn on-device to label map nodes by keyword',
   summaryOnLabel: 'On',
   summaryOffLabel: 'Off',
+  summaryModelPreparing: 'Preparing the on-device model…',
+  summaryModelDownloading: (percent) => `Downloading the on-device model… ${percent}%`,
+  summaryModelUnavailable: 'The on-device model is unavailable on this device.',
+  summaryModelUnsupported: 'This Chrome version has no built-in AI model.',
   language: 'Language',
   languageAria: 'Language',
   langEnglish: 'English',
@@ -305,6 +313,10 @@ const ko: Messages = {
   summaryEnabledAria: '각 대화를 온디바이스로 요약해 맵 노드를 키워드로 표시',
   summaryOnLabel: '켜짐',
   summaryOffLabel: '꺼짐',
+  summaryModelPreparing: '온디바이스 모델 준비 중…',
+  summaryModelDownloading: (percent) => `온디바이스 모델 다운로드 중… ${percent}%`,
+  summaryModelUnavailable: '이 기기에서는 온디바이스 모델을 사용할 수 없습니다.',
+  summaryModelUnsupported: '이 Chrome 버전에는 내장 AI 모델이 없습니다.',
   language: '언어',
   languageAria: '언어',
   langEnglish: 'English',

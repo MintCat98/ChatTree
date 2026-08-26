@@ -485,6 +485,14 @@
   background: var(--nav-color-accent-soft);
   border-color: var(--nav-color-accent);
 }
+/* Status line under a control row — currently the on-device model's download
+   progress / unavailability (issue #165). Full width, no label column. */
+.nav-control-hint {
+  margin-top: -2px;
+  font-size: var(--nav-font-size-xs);
+  line-height: 1.4;
+  color: var(--nav-color-text-muted);
+}
 .nav-control-readout {
   min-width: 38px;
   text-align: right;

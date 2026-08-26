@@ -11,9 +11,19 @@ import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, MAX_VISIBLE_NODES, DEFAULT_SETTINGS }
 import { MessageType } from '@shared/message-types';
 import { requestFromBackground } from '../../message-bridge';
 import { rescanFromDom } from '../../observer';
+import { ensureSummaryModel, type SummaryModelStatus } from '../summary-model';
 
 // Cache retention choices in days (issue #153). Default: 30.
 const RETENTION_OPTIONS = [7, 30, 90] as const;
+
+// What the summary row reports under the toggle. 'idle' renders nothing —
+// either the user has not opted in this session, or the model was already
+// there and the On state says everything.
+type SummaryModelUiState =
+  | { status: 'idle' }
+  | { status: 'preparing' }
+  | { status: 'downloading'; percent: number }
+  | { status: SummaryModelStatus };
 
 export function ControlBar() {
   const t = useMessages();
@@ -23,6 +33,10 @@ export function ControlBar() {
   // Two-step confirm for the destructive cache clear: first click arms the
   // button, second click executes; arming times out after a few seconds.
   const [confirmingClear, setConfirmingClear] = useState(false);
+  // Transient, per-panel-mount: a status the user needs while the download runs,
+  // not a setting. Resets to idle on remount, when the toggle's own On/Off state
+  // is the honest signal again.
+  const [modelState, setModelState] = useState<SummaryModelUiState>({ status: 'idle' });
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -66,10 +80,36 @@ export function ControlBar() {
   // Opt-in for the on-device pipeline (#160/#161) that feeds the Interactive
   // Map's keyword labels and summary dropdowns (#165). Default stays off:
   // turning it on runs Gemini Nano and the bundled embedding model locally.
-  const handleSummaryToggle = () => updateSettings({ summaryEnabled: !settings.summaryEnabled });
+  //
+  // This click is also the pipeline's only user gesture, so it is where the
+  // Gemini Nano download gets kicked off — see summary-model.ts. ensureSummaryModel
+  // must be reached synchronously from here or the transient activation is gone.
+  const handleSummaryToggle = () => {
+    const enabling = !settings.summaryEnabled;
+    updateSettings({ summaryEnabled: enabling });
+    if (!enabling) {
+      setModelState({ status: 'idle' });
+      return;
+    }
+    setModelState({ status: 'preparing' });
+    void ensureSummaryModel((percent) => setModelState({ status: 'downloading', percent })).then(
+      (status) => setModelState({ status }),
+    );
+  };
   const handlePanelMode = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ panelMode: e.target.value as UserSettings['panelMode'] });
   const handleReset = () => updateSettings(DEFAULT_SETTINGS);
+
+  // 'ready' says nothing the On toggle does not already say, so it stays quiet.
+  const summaryModelHint = (() => {
+    switch (modelState.status) {
+      case 'preparing':   return t.summaryModelPreparing;
+      case 'downloading': return t.summaryModelDownloading(modelState.percent);
+      case 'unavailable': return t.summaryModelUnavailable;
+      case 'unsupported': return t.summaryModelUnsupported;
+      default:            return null;
+    }
+  })();
 
   return (
     <div data-testid="control-bar" className="nav-control-bar">
@@ -208,6 +248,11 @@ export function ControlBar() {
           {settings.summaryEnabled ? t.summaryOnLabel : t.summaryOffLabel}
         </button>
       </div>
+      {summaryModelHint && (
+        <div className="nav-control-hint" role="status">
+          {summaryModelHint}
+        </div>
+      )}
 
       {/* Language (issue #100) */}
       <div className="nav-control-row">
