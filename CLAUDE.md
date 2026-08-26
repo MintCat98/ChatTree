@@ -80,9 +80,10 @@ into **Claude.ai only (beta)**, allowing users to track and jump between chat me
   panel settings) and both fed by the same `SUMMARIZE_TURNS` message:
   summarization via Gemini Nano (#160) and per-turn embeddings via a bundled
   model in an offscreen document (#161). Summaries surface in the Interactive
-  Map as keyword labels + a Q&A dropdown (#165); relevance is still read-only
-  (`GET_RELEVANCE`) with no layout consumer. See the `running-on-device-ai`
-  skill.
+  Map as keyword labels + a Q&A dropdown (#165), with drain progress published
+  to `summaryStatus` and rendered as an activity strip; relevance is still
+  read-only (`GET_RELEVANCE`) with no layout consumer. See the
+  `running-on-device-ai` skill.
 
 ### Tech Stack
 

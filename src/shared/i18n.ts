@@ -131,6 +131,8 @@ export interface Messages {
   summaryAnswerLabel: string;
   expandSummaryAria: string;
   collapseSummaryAria: string;
+  summaryRunning: string;
+  summaryQueued: (n: number) => string;
 
   // Popup
   loading: string;
@@ -256,6 +258,8 @@ const en: Messages = {
   summaryAnswerLabel: 'Answer',
   expandSummaryAria: 'Show summary',
   collapseSummaryAria: 'Hide summary',
+  summaryRunning: 'Summarizing on-device',
+  summaryQueued: (n) => `+${n} queued`,
 
   // Popup
   loading: 'Loading…',
@@ -381,6 +385,8 @@ const ko: Messages = {
   summaryAnswerLabel: '답변',
   expandSummaryAria: '요약 보기',
   collapseSummaryAria: '요약 숨기기',
+  summaryRunning: '온디바이스 요약 중',
+  summaryQueued: (n) => `+${n}개 대기`,
 
   // Popup
   loading: '불러오는 중…',

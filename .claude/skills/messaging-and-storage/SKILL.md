@@ -154,6 +154,7 @@ hydration source.
 | `tree_<sessionId>` | Background (`session-store.ts`) | Cached `TreeData` per conversation — subject to retention purge |
 | `nodeCache_<sessionId>` | `src/shared/node-cache.ts` | Computed per-node data — `summary` (#160), `embedding` (#161). Rebuildable; purged as soon as its `tree_` key is gone. Read back by the panel via `getSessionSummaries` — §9 |
 | `nodeMetadata` | `src/shared/metadata-storage.ts` | User data, **not** a rebuildable cache — 180-day orphan GC only |
+| `summaryStatus` | `src/background/summary-queue.ts` | `SummaryQueueStatus` — live drain state, SW → panel. Ephemeral; cleared on SW cold start (§9) |
 | `userSettings` | Panel store `mirrorToChromeStorage` | `UserSettings` — `chrome.storage.local`, no localStorage fallback |
 
 **`setNodeCache` writes are serialized** through a module-level promise chain.
@@ -354,6 +355,30 @@ position (`chatbox-<absIndex>`), so `chatbox-3` exists in most conversations and
 a merge would attach the previous conversation's summary to an unrelated node.
 The same hazard is why the Interactive Map clears its open-dropdown state on a
 `sessionId` change.
+
+### Drain progress (`summaryStatus`)
+
+A turn can take 30s and the drain lives in the SW, so without a progress signal
+"slow" and "broken" are indistinguishable from the panel. `summary-queue.ts`
+publishes `SummaryQueueStatus { active, startedAt, pending }` to storage, and
+the map renders it as an animated strip plus an elapsed counter
+(`SummaryActivity.tsx`).
+
+Three rules, each load-bearing:
+
+- **Only published around the actual summarize loop.** The early returns above
+  it — no Prompt API, model not `'available'` — must leave the status idle.
+  Reporting "working" while nothing can run is the exact confusion this exists
+  to remove. Regression tests: `tests/unit/summary-queue.test.ts`, *"never
+  reports active when…"*.
+- **One `startedAt` per run, not per turn.** The counter measures how long the
+  AI has been busy overall; re-stamping per turn resets the display to 0:00
+  mid-drain. `pending` counts down within that run.
+- **Cleared at module scope.** A SW terminated mid-drain leaves `active: true`
+  with nobody to clear it, and the panel would tick forever. A cold start
+  proves no drain is in flight, and the SW wakes within seconds during an
+  active conversation. `publishSummaryStatus` is `chrome`-guarded because that
+  module-scope call runs on import.
 
 ### The model download lives on the toggle
 

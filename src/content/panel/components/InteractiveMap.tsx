@@ -13,6 +13,7 @@ import { useMessages } from '../i18n';
 import { scrollToNode } from '../../scroll-navigator';
 import { nodeLabel } from './node-label';
 import { pickParent, wouldCreateCycle } from './parent-resolver';
+import { SummaryActivity } from './SummaryActivity';
 import { setNodeMetadata } from '@shared/metadata-storage';
 
 const NODE_WIDTH = 140;
@@ -768,6 +769,9 @@ export function InteractiveMap() {
 
   return (
     <div className="nav-im-container">
+      {/* Top strip — only rendered while the summary queue is draining. */}
+      <SummaryActivity />
+
       <svg
         ref={svgRef}
         className="nav-im-svg"

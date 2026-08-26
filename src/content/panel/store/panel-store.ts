@@ -4,9 +4,9 @@
 // single source of truth — no localStorage fallback.
 
 import { create } from 'zustand';
-import type { TreeData, UserSettings, NodeMetadata } from '@shared/types';
+import type { TreeData, UserSettings, NodeMetadata, SummaryQueueStatus } from '@shared/types';
 import type { NodeSummary } from '@shared/summary';
-import { DEFAULT_SETTINGS, DEFAULT_NODE_METADATA } from '@shared/types';
+import { DEFAULT_SETTINGS, DEFAULT_NODE_METADATA, IDLE_SUMMARY_STATUS } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
 
 // Cursor position used to anchor the hover tooltip. Stored here because the
@@ -39,6 +39,9 @@ interface PanelState {
   // Derived cache, not user data: loaded from the node cache on hydration and
   // refreshed as the summary queue drains. A node with no entry has no summary.
   sessionSummaries: Record<string, NodeSummary>;
+  // Live summary-drain state published by the background queue. Drives the
+  // map's "AI is working" indicator; not persisted by the panel.
+  summaryStatus:    SummaryQueueStatus;
   // Tag management state (issue #98) — all transient, not persisted.
   activeTagFilters: string[];      // tag names currently active as filters
   tagPanelOpen:     boolean;       // controls TagPanel visibility
@@ -74,6 +77,7 @@ interface PanelState {
   // cache is the source of truth and a session switch must not leak the
   // previous conversation's summaries onto position-based node IDs.
   setSessionSummaries:  (summaries: Record<string, NodeSummary>) => void;
+  setSummaryStatus:     (status: SummaryQueueStatus) => void;
   // Optimistic local update for a single node (caller writes to chrome.storage).
   patchNodeMetadata:    (nodeId: string, patch: Partial<NodeMetadata>) => void;
 }
@@ -90,6 +94,7 @@ export const usePanelStore = create<PanelState>()(
     bookmarksOnlyFilter: false,
     sessionMetadata:     {},
     sessionSummaries:    {},
+    summaryStatus:       IDLE_SUMMARY_STATUS,
     activeTagFilters:    [],
     tagPanelOpen:        false,
     tagEditNodeId:       null,
@@ -170,6 +175,8 @@ export const usePanelStore = create<PanelState>()(
     setSessionMetadata: (meta) => set({ sessionMetadata: meta }),
 
     setSessionSummaries: (summaries) => set({ sessionSummaries: summaries }),
+
+    setSummaryStatus: (status) => set({ summaryStatus: status }),
 
     patchNodeMetadata: (nodeId, patch) =>
       set((s) => ({

@@ -129,6 +129,13 @@
     animation: none;
     opacity: 1;
   }
+  /* The summary indicator's dots stop moving, but stay visible: the elapsed
+     counter next to them is still ticking, so the strip must not read as
+     finished (issue #165). */
+  .nav-im-activity-dots i {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 @keyframes nav-slide-in {
@@ -1288,6 +1295,66 @@
 .im-edge-group:hover .im-disconnect,
 .im-disconnect:hover {
   opacity: 1;
+}
+
+/* ─── Interactive Map — summary activity strip (issue #165) ─────────── */
+
+/* Overlays the top of the map rather than displacing it: the map's height is
+   driven by .nav-sidebar-bottom, so a strip in the flow would resize the
+   graph every time the queue starts and stops. */
+.nav-im-activity {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--nav-spacing-4);
+  padding: var(--nav-spacing-3) var(--nav-spacing-5);
+  background: rgb(var(--nav-color-bg-rgb) / 0.92);
+  border-bottom: var(--nav-border-width) solid var(--nav-color-border);
+  font-family: var(--nav-font-family);
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-color-text-secondary);
+  pointer-events: none; /* never intercepts a pan that starts near the top edge */
+}
+
+.nav-im-activity-label {
+  color: var(--nav-color-text);
+}
+
+.nav-im-activity-elapsed {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums; /* digits must not jitter as it ticks */
+  color: var(--nav-color-text-secondary);
+}
+
+.nav-im-activity-pending {
+  color: var(--nav-color-text-muted);
+}
+
+/* Three-dot wave — the "model is thinking" signal. */
+.nav-im-activity-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.nav-im-activity-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--nav-color-accent);
+  animation: nav-im-dot-wave 1200ms ease-in-out infinite;
+}
+
+.nav-im-activity-dots i:nth-child(2) { animation-delay: 160ms; }
+.nav-im-activity-dots i:nth-child(3) { animation-delay: 320ms; }
+
+@keyframes nav-im-dot-wave {
+  0%, 60%, 100% { opacity: 0.25; }
+  30%           { opacity: 1; }
 }
 
 /* ─── Interactive Map — summary dropdown (issue #165) ───────────────── */

@@ -53,6 +53,7 @@ description: Tree map panel UI - component specs, SVG layout constants, Zustand 
     <TagPanel> / <SearchPanel> ← Collapsible panels below the canvas (conditional)
     <EmptyState>               ← Placeholder when no chatboxes exist
     <InteractiveMap>           ← d3 keyword-box graph, sidebar mode ONLY (#162-#165)
+      <SummaryActivity>        ← "AI is working" strip + elapsed counter (conditional, #165)
 ```
 
 `InteractiveMap` is rendered by `PanelShell` into `.nav-sidebar-bottom`, and
@@ -324,6 +325,17 @@ logic out of the `.tsx`.
 Draw order is paint order: append overlays (the summary dropdown) **after** the
 node groups, since `V_GAP` is only 12px and an open panel always overlaps its
 neighbours.
+
+**`<SummaryActivity>` is plain React, not d3, on purpose.** It is an HTML
+overlay in `.nav-im-container` outside the SVG, so it neither pans nor zooms
+with the graph — and, critically, its once-a-second tick does not drag the d3
+effect through a full teardown/rebuild. Keep any future map chrome (toolbars,
+badges, status) out of the SVG for the same reason. It is `pointer-events:
+none` so it cannot swallow a pan that starts near the top edge, and its
+interval only runs while `active` — an idle timer would wake the tab every
+second for the life of the page. Its state comes from `summaryStatus`
+([messaging-and-storage](../messaging-and-storage/SKILL.md) §9), not from
+counting un-summarized nodes: storage cannot tell "slow" from "no model".
 
 > Still undocumented here: the internals of viewport controls (#163) and edge
 > rewiring / branch naming (#164). Read `InteractiveMap.tsx` directly for those.

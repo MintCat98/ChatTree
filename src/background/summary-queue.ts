@@ -22,7 +22,8 @@
 import { getSessionNodeCache, setNodeCache } from '@shared/node-cache';
 import { summarizeConversation, SUMMARY_SYSTEM_PROMPT } from '@shared/summary';
 import { embedViaOffscreen } from '@background/embed';
-import { TIMING } from '@shared/constants';
+import { STORAGE_KEYS, TIMING } from '@shared/constants';
+import { IDLE_SUMMARY_STATUS, type SummaryQueueStatus } from '@shared/types';
 
 // One completed turn to summarize. `answer` is guaranteed non-empty by the
 // content-side filter before it is sent.
@@ -47,6 +48,33 @@ const pendingSummary: QueueItem[] = [];
 const pendingEmbed: QueueItem[] = [];
 let drainingSummary = false;
 let drainingEmbed = false;
+
+// Progress reporting (#165). Without it a slow turn is indistinguishable from a
+// broken pipeline: the drain lives in the SW and the panel sees nothing until a
+// summary lands, which can be 30s away. Published through storage rather than a
+// message because the queue has no tab to answer — one write reaches every open
+// tab's panel, and the panel already subscribes to storage for summaries.
+//
+// Deliberately only written around the ACTUAL summarize loop. The early returns
+// above it (no Prompt API, model not ready) must stay silent: reporting
+// "working" while nothing can run is the exact confusion this is meant to end.
+function publishSummaryStatus(status: SummaryQueueStatus): void {
+  // Guarded like panel-store's mirrorToChromeStorage: this also runs at module
+  // scope (below), and importing this module must not throw in a context with
+  // no `chrome` — the SW always has one, unit tests do not.
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
+  // Fire-and-forget: a dropped status update costs an indicator frame, and must
+  // never interfere with the drain that produced it.
+  void chrome.storage.local.set({ [STORAGE_KEYS.SUMMARY_STATUS]: status }).catch(() => {});
+}
+
+// Self-heal after SW termination. If the worker dies mid-drain the last status
+// written says "active" and no one is left to clear it — the panel would show a
+// counter climbing forever. Module scope runs on every cold start, and a cold
+// start means no drain is in flight by definition, so clearing here is always
+// correct. The SW wakes on the next message from any tab, which during an
+// active conversation is seconds away.
+publishSummaryStatus(IDLE_SUMMARY_STATUS);
 
 // Public API — the message handler calls this and returns immediately.
 // Fire-and-forget: both summaries and embeddings are a derived cache, so a lost
@@ -87,12 +115,23 @@ async function drainSummary(): Promise<void> {
     const availability = await LanguageModel.availability();
     if (availability !== 'available') return;
 
+    // One run spans the whole backlog, not one turn: `startedAt` is stamped
+    // once here so the panel's counter measures how long the AI has been busy
+    // overall, which is the question a stuck-looking pipeline raises.
+    const startedAt = Date.now();
     while (pendingSummary.length > 0) {
-      await summarizeOne(pendingSummary.shift()!);
+      const item = pendingSummary.shift()!;
+      // Published before the await, so the indicator appears at the start of a
+      // turn rather than after the first one finishes ~2-7s later.
+      publishSummaryStatus({ active: true, startedAt, pending: pendingSummary.length });
+      await summarizeOne(item);
     }
   } catch (err) {
     console.warn('[ChatTree] summary drain failed:', err);
   } finally {
+    // In the finally so a throw mid-loop still clears the indicator; the early
+    // returns above reach this too, where it is a harmless no-op write.
+    publishSummaryStatus(IDLE_SUMMARY_STATUS);
     // No re-drain here: the loop's `pendingSummary.length > 0` check and this
     // assignment run in the same microtask (no await between them), so nothing
     // can be enqueued in the gap. Any later push runs enqueueSummaryTurns'

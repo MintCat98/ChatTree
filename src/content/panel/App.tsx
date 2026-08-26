@@ -8,7 +8,8 @@
 //      them live as the summary queue drains (issue #165).
 
 import { useEffect } from 'react';
-import type { TreeData, UserSettings, NodeCacheEntry } from '@shared/types';
+import type { TreeData, UserSettings, NodeCacheEntry, SummaryQueueStatus } from '@shared/types';
+import { IDLE_SUMMARY_STATUS } from '@shared/types';
 import { TREE_READY_EVENT } from '../observer';
 import { NODE_CACHE_KEY_PREFIX, STORAGE_KEYS } from '@shared/constants';
 import { getSessionMetadata } from '@shared/metadata-storage';
@@ -27,6 +28,7 @@ export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
   const setTree = usePanelStore((s) => s.setTree);
   const setSessionMetadata = usePanelStore((s) => s.setSessionMetadata);
   const setSessionSummaries = usePanelStore((s) => s.setSessionSummaries);
+  const setSummaryStatus = usePanelStore((s) => s.setSummaryStatus);
   const sessionId = usePanelStore((s) => s.tree?.sessionId ?? '');
   const hydrateSettings = usePanelStore((s) => s.hydrateSettings);
   const settings = usePanelStore((s) => s.settings);
@@ -79,6 +81,31 @@ export default function App({ shadowHost }: { shadowHost: HTMLElement }) {
     chrome.storage.onChanged.addListener(onChanged);
     return () => chrome.storage.onChanged.removeListener(onChanged);
   }, [hydrateSettings]);
+
+  // 2b) Summary-drain status: the queue runs in the SW, so this storage key is
+  //     the panel's only view of whether the AI is currently working. Hydrated
+  //     once (a drain may already be running when the panel mounts) and then
+  //     kept live. Session-independent, hence its own effect.
+  useEffect(() => {
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
+
+    chrome.storage.local.get(STORAGE_KEYS.SUMMARY_STATUS).then((result) => {
+      const stored = result[STORAGE_KEYS.SUMMARY_STATUS] as SummaryQueueStatus | undefined;
+      if (stored) setSummaryStatus(stored);
+    });
+
+    const onChanged = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      area: string,
+    ) => {
+      if (area !== 'local') return;
+      const change = changes[STORAGE_KEYS.SUMMARY_STATUS];
+      if (!change) return;
+      setSummaryStatus((change.newValue as SummaryQueueStatus | undefined) ?? IDLE_SUMMARY_STATUS);
+    };
+    chrome.storage.onChanged.addListener(onChanged);
+    return () => chrome.storage.onChanged.removeListener(onChanged);
+  }, [setSummaryStatus]);
 
   // 3) Summaries: keep the map in sync while the summary queue drains (#165).
   //    The queue runs in the background SW and writes straight to the node
