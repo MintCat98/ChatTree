@@ -3,9 +3,11 @@
 import {
   assignChatboxIds,
   mergeMountedNodes,
+  getCachedNodes,
   resetNodeCache,
   seedNodeCache,
   getCachedTop,
+  getCachedAnswer,
   absIndexFromNavId,
   reloadFromNode,
 } from '@content/chatbox-tracker';
@@ -48,17 +50,46 @@ function makeBubble(
   };
 }
 
-function makeContainer(bubbles: FakeEl[]) {
+// Assistant answer element (`.font-claude-response`). `texts` becomes the
+// nested `.standard-markdown` blocks; `streaming` makes the closest()
+// lookup for '[data-is-streaming="true"]' hit, which suppresses the read.
+type FakeAnswer = {
+  closest: (sel: string) => unknown;
+  querySelectorAll: (sel: string) => Array<{ textContent: string }>;
+};
+
+function makeAnswer(texts: string[], streaming = false): FakeAnswer {
   return {
-    querySelectorAll: (_sel: string) => bubbles,
-    querySelector: (_sel: string) => null,
+    closest: (sel) =>
+      streaming && sel === `[${SELECTORS.STREAMING_ATTR}="true"]` ? {} : null,
+    querySelectorAll: (sel) =>
+      sel === SELECTORS.RESPONSE_MARKDOWN ? texts.map((t) => ({ textContent: t })) : [],
   };
 }
 
-function makeDocument(bubbles: FakeEl[]) {
+// Selector-aware: scanMounted queries bubbles and answers off the same
+// container, so returning one list for every selector mixes them up.
+function makeContainer(bubbles: FakeEl[], answers: FakeAnswer[]) {
   return {
-    querySelector: (sel: string) =>
-      sel === SELECTORS.CHAT_CONTAINER ? makeContainer(bubbles) : null,
+    querySelectorAll: (sel: string) => {
+      if (sel === SELECTORS.USER_MESSAGE_BUBBLE) return bubbles;
+      if (sel === SELECTORS.CLAUDE_RESPONSE) return answers;
+      return [];
+    },
+    querySelector: () => null,
+  };
+}
+
+function makeDocument(bubbles: FakeEl[], setsize?: number, answers: FakeAnswer[] = []) {
+  return {
+    querySelector: (sel: string) => {
+      if (sel === SELECTORS.CHAT_CONTAINER) return makeContainer(bubbles, answers);
+      // Fakes the '[role="article"][aria-setsize]' lookup in getTurnSetsize.
+      if (setsize !== undefined && sel === `${SELECTORS.TURN_ARTICLE}[aria-setsize]`) {
+        return { getAttribute: (k: string) => (k === 'aria-setsize' ? String(setsize) : null) };
+      }
+      return null;
+    },
   };
 }
 
@@ -144,6 +175,113 @@ describe('mergeMountedNodes', () => {
     const nodes = mergeMountedNodes();
 
     expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-1']);
+  });
+});
+
+describe('getCachedNodes', () => {
+  beforeEach(() => resetNodeCache());
+
+  it('returns the seeded cache without touching the DOM', () => {
+    seedNodeCache([
+      { id: 'chatbox-2', index: 0, text: 'b', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+      { id: 'chatbox-0', index: 1, text: 'a', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+    ]);
+    // The previous conversation's DOM must never be queried on this path
+    // (SPA transition, see observer.ts domTrusted).
+    const query = jest.fn(() => null);
+    (global as Record<string, unknown>).document = {
+      querySelector: query,
+      querySelectorAll: query,
+    };
+
+    const nodes = getCachedNodes();
+
+    expect(query).not.toHaveBeenCalled();
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(nodes.map((n) => n.index)).toEqual([0, 1]);
+  });
+});
+
+describe('mergeMountedNodes — setsize pruning (SPA cross-session contamination)', () => {
+  beforeEach(() => resetNodeCache());
+
+  it('prunes cached turns at indices the conversation cannot contain', () => {
+    // A scan spanning an SPA transition caught the previous conversation's
+    // tail (high absolute indices) — no setsize exposed during the glitch.
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'prev-tail-1', 20),
+      makeBubble(null, 'prev-tail-2', 22),
+    ]);
+    mergeMountedNodes();
+
+    // The real (short) conversation mounts: 4 turns total, user turn at 0.
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'real-q1', 0)],
+      4,
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0']);
+  });
+
+  it('keeps cached turns within the conversation turn count', () => {
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0), makeBubble(null, 'q2', 2)],
+      8,
+    );
+    mergeMountedNodes();
+
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q4', 6)],
+      8,
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2', 'chatbox-6']);
+  });
+
+  it('does not prune when aria-setsize is absent', () => {
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'tail', 20),
+    ]);
+    mergeMountedNodes();
+
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'q1', 0),
+    ]);
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-20']);
+  });
+
+  it('ignores a non-positive aria-setsize (ARIA "unknown size" is -1)', () => {
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'tail', 20),
+    ]);
+    mergeMountedNodes();
+
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0)],
+      -1,
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-20']);
+  });
+
+  it('also drops seeded (hydrated) turns beyond the turn count', () => {
+    seedNodeCache([
+      { id: 'chatbox-2', index: 0, text: 'kept', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+      { id: 'chatbox-30', index: 1, text: 'foreign', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+    ]);
+
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0)],
+      6,
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2']);
   });
 });
 
@@ -296,5 +434,79 @@ describe('reloadFromNode', () => {
     expect(result).toHaveLength(2);
     expect(result[0]).toBe(node0);
     expect(result[1]).toBe(node1);
+  });
+});
+
+// Answers feed the summary pipeline (#160): read at scan time, never persisted
+// on the node itself. Pairing is by mounted DOM order — bubble i ↔ answer i.
+describe('answer reading (summary pipeline #160)', () => {
+  beforeEach(() => resetNodeCache());
+
+  it('pairs each mounted answer to the bubble at the same index', () => {
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0), makeBubble(null, 'q2', 2)],
+      undefined,
+      [makeAnswer(['a1']), makeAnswer(['a2'])],
+    );
+    mergeMountedNodes();
+
+    expect(getCachedAnswer('chatbox-0')).toBe('a1');
+    expect(getCachedAnswer('chatbox-2')).toBe('a2');
+  });
+
+  it('joins several markdown blocks in one turn', () => {
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0)],
+      undefined,
+      [makeAnswer(['para one', 'para two'])],
+    );
+    mergeMountedNodes();
+
+    expect(getCachedAnswer('chatbox-0')).toBe('para one\n\npara two');
+  });
+
+  it('does not read a still-streaming answer', () => {
+    // A generating turn exposes partial text — reading it would cache a
+    // summary of half an answer.
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0)],
+      undefined,
+      [makeAnswer(['half of an ans'], true)],
+    );
+    mergeMountedNodes();
+
+    expect(getCachedAnswer('chatbox-0')).toBeNull();
+  });
+
+  it('keeps the answer after the turn is virtualized out', () => {
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0)],
+      undefined,
+      [makeAnswer(['a1'])],
+    );
+    mergeMountedNodes();
+
+    // Scrolled away: turn 0 unmounted, turn 2 mounted with its own answer.
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q2', 2)],
+      undefined,
+      [makeAnswer(['a2'])],
+    );
+    mergeMountedNodes();
+
+    expect(getCachedAnswer('chatbox-0')).toBe('a1');
+    expect(getCachedAnswer('chatbox-2')).toBe('a2');
+  });
+
+  it('returns null for a turn with no answer element yet', () => {
+    // Newest user message, assistant has not started responding.
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0), makeBubble(null, 'q2', 2)],
+      undefined,
+      [makeAnswer(['a1'])],
+    );
+    mergeMountedNodes();
+
+    expect(getCachedAnswer('chatbox-2')).toBeNull();
   });
 });

@@ -3,9 +3,10 @@ dist/
 .env
 *.local
 .DS_Store
+public/models/
 
 # Claude
-agent_docs/issues/
+.claude/settings.local.json
 
 # VS Code
 .vscode/launch.json

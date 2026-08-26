@@ -17,7 +17,7 @@
 //   6. tree NOT persisted across re-init
 
 import { usePanelStore } from '../../src/content/panel/store/panel-store';
-import { DEFAULT_SETTINGS } from '@shared/types';
+import { DEFAULT_SETTINGS, DEFAULT_NODE_METADATA } from '@shared/types';
 import type { TreeData } from '@shared/types';
 
 const SAMPLE_TREE: TreeData = {
@@ -50,11 +50,13 @@ function resetStore() {
     settingsOpen:        false,
     bookmarksOnlyFilter: false,
     sessionMetadata:     {},
+    sessionSummaries:    {},
     activeTagFilters:    [],
     tagPanelOpen:        false,
     tagEditNodeId:       null,
     searchPanelOpen:     false,
     searchQuery:         '',
+    generationComplete:  false,
   });
 }
 
@@ -96,9 +98,52 @@ describe('usePanelStore — actions', () => {
     expect(usePanelStore.getState().activeNodeId).toBe('chatbox-3');
   });
 
+  describe('setTree — active node fallback', () => {
+    const node = (id: string): TreeData['nodes'][number] => ({
+      id, index: 0, text: 'x', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null,
+    });
+    const tree = (ids: string[]): TreeData => ({
+      sessionId: 'test-uuid',
+      nodes: ids.map(node),
+      activeBranchPath: ids,
+      lastUpdated: 0,
+    });
+
+    it('keeps the active node when the incoming tree still contains it', () => {
+      usePanelStore.getState().setActiveNode('chatbox-2');
+      usePanelStore.getState().setTree(tree(['chatbox-0', 'chatbox-2', 'chatbox-4']));
+      expect(usePanelStore.getState().activeNodeId).toBe('chatbox-2');
+    });
+
+    it('defaults to the newest message when the active node is gone', () => {
+      usePanelStore.getState().setActiveNode('chatbox-18');
+      usePanelStore.getState().setTree(tree(['chatbox-0', 'chatbox-2']));
+      expect(usePanelStore.getState().activeNodeId).toBe('chatbox-2');
+    });
+
+    it('defaults to the newest message when nothing was active (conversation entry)', () => {
+      usePanelStore.getState().setTree(tree(['chatbox-0', 'chatbox-2']));
+      expect(usePanelStore.getState().activeNodeId).toBe('chatbox-2');
+    });
+
+    it('clears the highlight when the tree is empty', () => {
+      usePanelStore.getState().setActiveNode('chatbox-0');
+      usePanelStore.getState().setTree(tree([]));
+      expect(usePanelStore.getState().activeNodeId).toBeNull();
+    });
+  });
+
   it('setHoveredNode sets hoveredNodeId', () => {
     usePanelStore.getState().setHoveredNode('chatbox-1');
     expect(usePanelStore.getState().hoveredNodeId).toBe('chatbox-1');
+  });
+
+  it('setGenerationComplete sets and clears the flag (issue #166)', () => {
+    expect(usePanelStore.getState().generationComplete).toBe(false);
+    usePanelStore.getState().setGenerationComplete(true);
+    expect(usePanelStore.getState().generationComplete).toBe(true);
+    usePanelStore.getState().setGenerationComplete(false);
+    expect(usePanelStore.getState().generationComplete).toBe(false);
   });
 });
 
@@ -111,19 +156,20 @@ describe('usePanelStore — sessionMetadata (issue #96)', () => {
 
   it('setSessionMetadata replaces the full metadata map', () => {
     usePanelStore.getState().setSessionMetadata({
-      'chatbox-0': { bookmarked: true, tags: ['a'] },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['a'] },
     });
     expect(usePanelStore.getState().sessionMetadata).toEqual({
-      'chatbox-0': { bookmarked: true, tags: ['a'] },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['a'] },
     });
   });
 
   it('patchNodeMetadata merges defaults with existing entry', () => {
     usePanelStore.getState().setSessionMetadata({
-      'chatbox-0': { bookmarked: false, tags: ['x'] },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: false, tags: ['x'] },
     });
     usePanelStore.getState().patchNodeMetadata('chatbox-0', { bookmarked: true });
     expect(usePanelStore.getState().sessionMetadata['chatbox-0']).toEqual({
+      ...DEFAULT_NODE_METADATA, 
       bookmarked: true,
       tags: ['x'],
     });
@@ -132,21 +178,62 @@ describe('usePanelStore — sessionMetadata (issue #96)', () => {
   it('patchNodeMetadata creates a new entry using defaults when node has no prior metadata', () => {
     usePanelStore.getState().patchNodeMetadata('chatbox-1', { bookmarked: true });
     expect(usePanelStore.getState().sessionMetadata['chatbox-1']).toEqual({
+      ...DEFAULT_NODE_METADATA, 
       bookmarked: true,
-      tags: [],
     });
   });
 
   it('patchNodeMetadata does not affect other nodes', () => {
     usePanelStore.getState().setSessionMetadata({
-      'chatbox-0': { bookmarked: false, tags: [] },
-      'chatbox-1': { bookmarked: true, tags: ['y'] },
+      'chatbox-0': { ...DEFAULT_NODE_METADATA },
+      'chatbox-1': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['y'] },
     });
     usePanelStore.getState().patchNodeMetadata('chatbox-0', { bookmarked: true });
     expect(usePanelStore.getState().sessionMetadata['chatbox-1']).toEqual({
+      ...DEFAULT_NODE_METADATA, 
       bookmarked: true,
       tags: ['y'],
     });
+  });
+
+  // Issue #167 — the hide control patches the same metadata layer.
+  it('patchNodeMetadata sets hidden without clearing bookmarks or tags', () => {
+    usePanelStore.getState().setSessionMetadata({
+      'chatbox-0': { ...DEFAULT_NODE_METADATA, bookmarked: true, tags: ['x'] },
+    });
+    usePanelStore.getState().patchNodeMetadata('chatbox-0', { hidden: true });
+    expect(usePanelStore.getState().sessionMetadata['chatbox-0']).toEqual({
+      ...DEFAULT_NODE_METADATA, 
+      bookmarked: true,
+      tags: ['x'],
+      hidden: true,
+    });
+  });
+});
+
+describe('usePanelStore — sessionSummaries (issue #165)', () => {
+  beforeEach(resetStore);
+
+  const SUMMARY = { keyword: 'LUT basics', question: 'How to pick a LUT?', answer: 'By look.' };
+
+  it('starts with empty sessionSummaries', () => {
+    expect(usePanelStore.getState().sessionSummaries).toEqual({});
+  });
+
+  it('setSessionSummaries replaces rather than merges', () => {
+    // Node IDs encode absolute turn position and are per-conversation, so
+    // merging would attach a previous conversation's summary to a new node.
+    usePanelStore.getState().setSessionSummaries({ 'chatbox-0': SUMMARY });
+    usePanelStore.getState().setSessionSummaries({ 'chatbox-1': SUMMARY });
+
+    expect(usePanelStore.getState().sessionSummaries).toEqual({ 'chatbox-1': SUMMARY });
+  });
+
+  it('clears back to empty when the session cache is gone', () => {
+    usePanelStore.getState().setSessionSummaries({ 'chatbox-0': SUMMARY });
+    usePanelStore.getState().setSessionSummaries({});
+
+    expect(usePanelStore.getState().sessionSummaries).toEqual({});
   });
 });
 

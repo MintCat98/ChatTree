@@ -64,6 +64,10 @@
   --nav-color-accent-hover: #c8643f;
   --nav-color-accent-soft: rgba(217, 119, 87, 0.12);
 
+  /* Sticky-note yellow for branch labels — Figma reference. */
+  --nav-color-sticky-bg: #fbcf75;
+  --nav-color-sticky-border: #d4a017;
+
   /* Nodes */
   --nav-color-node-fill:    #ffffff;    /* previous node fill (outlined) */
   --nav-color-node-border:  #d9d4cb;    /* previous node ring */
@@ -99,6 +103,10 @@
   --nav-color-accent-hover: #ec9a7e;
   --nav-color-accent-soft: rgba(224, 138, 110, 0.16);
 
+  /* Dimmer sticky note for dark mode — same hue, less punch. */
+  --nav-color-sticky-bg: #8a6a1a;
+  --nav-color-sticky-border: #b88a20;
+
   --nav-color-node-fill: rgba(255, 255, 255, 0.05);
   --nav-color-node-border: rgba(255, 255, 255, 0.2);
   --nav-color-node-number: #b8b2a9;
@@ -116,11 +124,30 @@
     --nav-duration-slow: 0ms;
     --nav-active-glow: none;
   }
+  /* Static glow instead of blinking (issue #166) — cleared with the flag. */
+  .nav-header-count.is-notifying::before {
+    animation: none;
+    opacity: 1;
+  }
+  /* The summary indicator's dots stop moving, but stay visible: the elapsed
+     counter next to them is still ticking, so the strip must not read as
+     finished (issue #165). */
+  .nav-im-activity-dots i {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 @keyframes nav-slide-in {
   from { transform: translateX(20px); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* Generation-complete blink on the message count (issue #166). The observer
+   sets the store flag; a Header timer removes .is-notifying after ~3s. */
+@keyframes nav-notify-blink {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* Right-edge drag-resize handle (issue 02). */
@@ -287,6 +314,36 @@
   line-height: 1;
   flex: 1;
 }
+.nav-header-count {
+  position: relative;
+  z-index: 0; /* own stacking context so the ::before glow stays behind the text only */
+  padding: 3px 6px;
+  margin: -3px -6px; /* padding gives the blink background breathing room without shifting the text */
+  border-radius: var(--nav-radius-md);
+}
+/* Gradient light behind the count — rounded box slightly larger than the
+   text, with a soft outer glow so it reads as light rather than a solid chip. */
+.nav-header-count::before {
+  content: '';
+  position: absolute;
+  inset: -3px -8px;
+  z-index: -1;
+  border-radius: var(--nav-radius-md);
+  /* Hottest at the center, fading outward — but never fully transparent, so
+     the rounded-box silhouette stays visible instead of reading as an ellipse. */
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--nav-color-accent) 34%, transparent) 0%,
+    color-mix(in srgb, var(--nav-color-accent) 18%, transparent) 60%,
+    color-mix(in srgb, var(--nav-color-accent) 10%, transparent) 100%
+  );
+  box-shadow: 0 0 10px 2px color-mix(in srgb, var(--nav-color-accent) 20%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.nav-header-count.is-notifying::before {
+  animation: nav-notify-blink 0.5s ease-in-out infinite alternate;
+}
 .nav-header-controls {
   display: flex;
   align-items: center;
@@ -435,6 +492,14 @@
   background: var(--nav-color-accent-soft);
   border-color: var(--nav-color-accent);
 }
+/* Status line under a control row — currently the on-device model's download
+   progress / unavailability (issue #165). Full width, no label column. */
+.nav-control-hint {
+  margin-top: -2px;
+  font-size: var(--nav-font-size-xs);
+  line-height: 1.4;
+  color: var(--nav-color-text-muted);
+}
 .nav-control-readout {
   min-width: 38px;
   text-align: right;
@@ -508,6 +573,42 @@
 /* NodeBadge */
 .nav-node-badge {
   cursor: default;
+  transition: transform var(--nav-transition);
+}
+
+/* The hide control (#167) sits at the node's top-right on every node, so on a
+   branch point the badge slides out of its way instead of the button moving.
+   20px = the badge's left edge (cx + NODE_RADIUS - 4) clearing the button's
+   right edge (cx + NODE_RADIUS + 14) plus a 2px gap. */
+.nav-node:hover .nav-node-badge {
+  transform: translateX(20px);
+}
+
+/* CollapsedRunButton — "+ n" pill on the spine (issue #167). Always visible:
+   it is the collapsed-state indicator, not a hover affordance. */
+.nav-collapsed-run {
+  cursor: pointer;
+  outline: none;
+}
+
+.nav-collapsed-run .nav-collapsed-run-pill {
+  fill: var(--nav-color-surface-2);
+  transition: fill var(--nav-transition);
+}
+
+.nav-collapsed-run .nav-collapsed-run-count {
+  fill: var(--nav-color-text-muted);
+  transition: fill var(--nav-transition);
+}
+
+.nav-collapsed-run:hover .nav-collapsed-run-pill,
+.nav-collapsed-run:focus-visible .nav-collapsed-run-pill {
+  fill: var(--nav-color-accent-soft);
+}
+
+.nav-collapsed-run:hover .nav-collapsed-run-count,
+.nav-collapsed-run:focus-visible .nav-collapsed-run-count {
+  fill: var(--nav-color-accent);
 }
 
 /* BookmarkButton (foreignObject + lucide icon) */
@@ -586,6 +687,39 @@
 }
 
 .nav-node-tag.is-open .nav-tag-btn {
+  color: var(--nav-color-accent);
+}
+
+/* HideButton (foreignObject + lucide Minus) — issue #167.
+   Unlike the bookmark/tag buttons this also gates pointer-events: a control
+   that removes the row from view must not be clickable while invisible. */
+.nav-node-hide {
+  opacity: 0;
+  pointer-events: none;
+  overflow: visible;
+  transition: opacity var(--nav-transition);
+}
+
+.nav-node:hover .nav-node-hide {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nav-hide-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--nav-radius-pill);
+  background: var(--nav-color-bg);
+  cursor: pointer;
+  color: var(--nav-color-text-muted);
+  transition: color var(--nav-transition);
+}
+
+.nav-hide-btn:hover {
   color: var(--nav-color-accent);
 }
 
@@ -895,4 +1029,406 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Sidebar mode (panelMode: 'sidebar')*/
+.nav-panel--sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  left: auto !important;
+  width: var(--panel-w);
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: var(--nav-border-radius) 0 0 var(--nav-border-radius);
+  animation: nav-slide-in-sidebar var(--nav-duration-base) ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes nav-slide-in-sidebar {
+  from  { transform: translateX(20px);  opacity: 0; }
+  to    { transform: translateX(0);     opacity: 1; }
+}
+
+/* Top: Tree map region: */
+.nav-sidebar-top {
+  flex-shrink: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Bottom: Interactive map region — display as a placeholder */
+.nav-sidebar-bottom {
+  flex: 1;
+  height: 200px;
+  border-top: var(--nav-border-width) solid var(--nav-color-divider);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--nav-spacing-3);
+  color: var(--nav-color-text-muted);
+  font-family: var(--nav-font-family);
+  font-size: var(--nav-font-size-sm);
+  background: var(--nav-color-surface-2);
+  overflow: visible;
+  position: relative;
+}
+
+/* Interactive Map — horizontal expand.
+   When expanded, the sidebar's bottom section (which contains the map)
+   breaks out horizontally to the left of the sidebar, overlaying the page. */
+.nav-sidebar-bottom.is-expanded {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: calc(var(--panel-w) + 480px);
+  height: 60%;
+  z-index: 5;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+}
+
+.nav-im-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  outline: none;
+}
+
+.nav-im-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Bottom-right controls (expand toggle + zoom) */
+.nav-im-expand-btn {
+  position: absolute;
+  right: 108px;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: var(--nav-color-bg);
+  border: 1px solid var(--nav-color-border);
+  border-radius: 8px;
+  color: var(--nav-color-text);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-im-zoom-control {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--nav-color-bg);
+  border: 1px solid var(--nav-color-border);
+  border-radius: 8px;
+  font-family: var(--nav-font-family);
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-color-text);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  user-select: none;
+}
+
+.nav-im-zoom-readout {
+  min-width: 40px;
+  text-align: center;
+}
+
+.nav-im-zoom-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: currentColor;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+/* Interactive Map — hover-only rewiring handles */
+.im-handle {
+  fill: var(--nav-color-node-fill);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1.5;
+  cursor: crosshair;
+  opacity: 0;
+  transition: opacity 120ms ease, fill 120ms ease, stroke 120ms ease;
+}
+
+.im-node:hover .im-handle {
+  opacity: 1;
+}
+
+/* Branch label — sticky-note style tag on branch-point nodes. */
+.im-branch-label rect {
+  fill: var(--nav-color-sticky-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 0.5;
+  cursor: text;
+}
+
+.im-branch-label text {
+  fill: var(--nav-color-text);
+  font-family: var(--nav-font-family);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.im-branch-input {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 3px 8px;
+  font-family: var(--nav-font-family);
+  font-size: 10px;
+  background: var(--nav-color-sticky-bg);
+  color: var(--nav-color-text);
+  border: 1px solid var(--nav-color-sticky-border);
+  border-radius: 4px;
+  outline: none;
+}
+
+/* Snap target — drag preview highlights the candidate parent's right
+   handle. Toggled via .classed('is-snap-target', ...) from the drag code. */
+.im-handle.is-snap-target {
+  fill: var(--nav-color-accent);
+  stroke: var(--nav-color-accent);
+  opacity: 1;
+}
+
+/* Drag preview edge — dashed bezier that follows the cursor. */
+.im-preview-edge {
+  fill: none;
+  stroke: var(--nav-color-edge);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+/* + label affordance — hover-only, only on branch nodes without a name. */
+.im-branch-add {
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.im-node:hover .im-branch-add {
+  opacity: 1;
+}
+
+/* Disconnect "x" on edge midpoints — hidden by default, shown only when
+   hovering the specific edge group (not the whole viewport). */
+.im-disconnect {
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+/* ─── Interactive Map — node, edge, disconnect shape styling ────────── */
+
+/* Nodes */
+.im-node {
+  cursor: pointer;
+}
+
+.im-node > rect {
+  fill: var(--nav-color-node-fill);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1.5;
+}
+
+.im-node > text {
+  fill: var(--nav-color-text);
+  font-size: 12px;
+  font-family: var(--nav-font-family);
+}
+
+/* Edges */
+.im-edge {
+  fill: none;
+  stroke: var(--nav-color-edge);
+  stroke-width: 1.5;
+}
+
+/* Disconnect "x" — inner shapes */
+.im-disconnect circle {
+  fill: var(--nav-color-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1;
+}
+
+.im-disconnect line {
+  stroke: var(--nav-color-text);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+/* + label affordance — dashed placeholder box */
+.im-branch-add rect {
+  fill: var(--nav-color-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 0.5;
+  stroke-dasharray: 3 2;
+}
+
+.im-branch-add text {
+  fill: var(--nav-color-text-muted);
+  font-family: var(--nav-font-family);
+  font-size: 10px;
+}
+
+.im-edge-group:hover .im-disconnect,
+.im-disconnect:hover {
+  opacity: 1;
+}
+
+/* ─── Interactive Map — summary activity strip (issue #165) ─────────── */
+
+/* Overlays the top of the map rather than displacing it: the map's height is
+   driven by .nav-sidebar-bottom, so a strip in the flow would resize the
+   graph every time the queue starts and stops. */
+.nav-im-activity {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--nav-spacing-4);
+  padding: var(--nav-spacing-3) var(--nav-spacing-5);
+  background: rgb(var(--nav-color-bg-rgb) / 0.92);
+  border-bottom: var(--nav-border-width) solid var(--nav-color-border);
+  font-family: var(--nav-font-family);
+  font-size: var(--nav-font-size-sm);
+  color: var(--nav-color-text-secondary);
+  pointer-events: none; /* never intercepts a pan that starts near the top edge */
+}
+
+.nav-im-activity-label {
+  color: var(--nav-color-text);
+}
+
+.nav-im-activity-elapsed {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums; /* digits must not jitter as it ticks */
+  color: var(--nav-color-text-secondary);
+}
+
+.nav-im-activity-pending {
+  color: var(--nav-color-text-muted);
+}
+
+/* Three-dot wave — the "model is thinking" signal. */
+.nav-im-activity-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.nav-im-activity-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--nav-color-accent);
+  animation: nav-im-dot-wave 1200ms ease-in-out infinite;
+}
+
+.nav-im-activity-dots i:nth-child(2) { animation-delay: 160ms; }
+.nav-im-activity-dots i:nth-child(3) { animation-delay: 320ms; }
+
+@keyframes nav-im-dot-wave {
+  0%, 60%, 100% { opacity: 0.25; }
+  30%           { opacity: 1; }
+}
+
+/* ─── Interactive Map — summary dropdown (issue #165) ───────────────── */
+
+/* Toggle sits on the box's bottom edge. Unlike the rewire handles it is
+   always visible, so it also reads as "this turn has a summary". */
+.im-summary-toggle {
+  cursor: pointer;
+}
+
+.im-summary-toggle circle {
+  fill: var(--nav-color-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1;
+}
+
+.im-summary-chevron {
+  fill: none;
+  stroke: var(--nav-color-text-muted);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* Rotated here rather than on .im-summary-toggle: a CSS transform on the
+     group would override its SVG translate() presentation attribute and snap
+     the toggle back to the map origin. The path carries no transform attr, and
+     its bbox is centred on (0,0), so this rotates in place. */
+  transform-origin: center;
+  transition: transform 120ms ease;
+}
+
+.im-summary-toggle:hover circle {
+  stroke: var(--nav-color-accent);
+}
+
+.im-summary-toggle:hover .im-summary-chevron {
+  stroke: var(--nav-color-accent);
+}
+
+/* Open state flips the chevron to point back at the node. */
+.im-summary-toggle.is-open .im-summary-chevron {
+  transform: rotate(180deg);
+}
+
+/* The panel body inside the foreignObject. Height is set on the
+   foreignObject from the measured content, so this scrolls only once the
+   content passes SUMMARY_PANEL_MAX_HEIGHT. */
+.im-summary-panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--nav-spacing-4) var(--nav-spacing-5);
+  background: var(--nav-color-bg);
+  border: var(--nav-border-width) solid var(--nav-color-border);
+  border-radius: var(--nav-radius-md);
+  box-shadow: var(--nav-panel-shadow);
+  font-family: var(--nav-font-family);
+  color: var(--nav-color-text);
+  overflow-wrap: break-word;
+}
+
+.im-summary-row + .im-summary-row {
+  margin-top: var(--nav-spacing-4);
+}
+
+.im-summary-label {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--nav-color-text-muted);
+  margin-bottom: 2px;
+}
+
+.im-summary-text {
+  font-size: 11px;
+  line-height: 1.45;
 }

@@ -1,24 +1,68 @@
 // src/shared/types.ts
 // MVP scope only. Do NOT add fields not listed here without team agreement.
-// Future Work (out of scope): summary, aiSummary, or any LLM-related fields.
 
 // ---------------------------------------------------------------------------
 // Node Metadata — per-node user data (bookmarks, tags). Issue #96.
 // Persisted in chrome.storage.local under STORAGE_KEYS.NODE_METADATA,
-// keyed as: NodeMetadataStore[sessionId][nodeId].
+// keyed as: NodeMetadataStore[sessionId].nodes[nodeId].
 // ---------------------------------------------------------------------------
+
+import type { NodeSummary } from './summary';
 
 export interface NodeMetadata {
   bookmarked: boolean;
   tags: string[];
+  hidden: boolean; // collapsed out of the tree map (issue #167)
+  parentOverride: string | null; // user-picked parent for the Interactive Map (Issue #164)
+  parentDisconnected: boolean; // user-marked as isolated root (new root! issue #164)
+  branchName: string | null; // sticky-style branch name
+}
+
+// Per-session envelope: node map + last-touched timestamp used by the orphaned-
+// metadata GC (issue #153). v1 stored the node map directly; metadata-storage.ts
+// migrates legacy entries on read.
+export interface SessionMetadata {
+  nodes: Record<string, NodeMetadata>;
+  lastUpdated: number;
 }
 
 // Full store shape written to chrome.storage.local
-export type NodeMetadataStore = Record<string, Record<string, NodeMetadata>>;
+export type NodeMetadataStore = Record<string, SessionMetadata>;
 
 export const DEFAULT_NODE_METADATA: NodeMetadata = {
   bookmarked: false,
   tags: [],
+  hidden: false,
+  parentOverride: null,
+  parentDisconnected: false,
+  branchName: null,
+};
+
+// Node Summary and Relevance Caching (issue #159). Stored in chrome.storage.local
+// under `nodeCache_<sessionId>` as a flat { [nodeId]: NodeCacheEntry } map — see
+// node-cache.ts. All fields optional: this is a rebuildable derived cache, not
+// user data, so summary (#160) and relevance (#161) can be filled independently.
+export interface NodeCacheEntry {
+  summary?: NodeSummary;
+  summaryFallback?: boolean; // true = truncated fallback (timeout/parse fail); re-summarize when possible (#160)
+  embedding?: number[];
+}
+
+// Live state of the summary drain (issue #165 follow-up). Published to
+// chrome.storage.local under STORAGE_KEYS.SUMMARY_STATUS by the background
+// queue and read by the panel — the queue runs in the SW, so storage is the
+// only channel the panel has. Not user data and not a cache: it is a status
+// flag whose only consumer is the map's "AI is working" indicator.
+export interface SummaryQueueStatus {
+  active: boolean;
+  startedAt: number; // Date.now() when the current run began; 0 when idle
+  pending: number;   // turns still queued behind the one being summarized
+}
+
+export const IDLE_SUMMARY_STATUS: SummaryQueueStatus = {
+  active: false,
+  startedAt: 0,
+  pending: 0,
 };
 
 export interface ChatboxNode {
@@ -51,7 +95,10 @@ export interface UserSettings {
   panelWidth: number; // px — panel width (resizable). See issue 02.
   themeMode: 'auto' | 'light' | 'dark'; // 'auto' follows the claude.ai theme. See issue 06.
   maxVisibleNodes: number; // maximum number of chat nodes visible on UI
+  notifyOnComplete: boolean; // blink the header message count when generation completes. See issue #166.
   language: Language; // UI language. Default 'en'. See issue #100.
+  cacheRetentionDays: number; // days before a cached tree is purged from chrome.storage.local (issue #153)
+  panelMode: 'popup' | 'sidebar'; // panel display option: docked sidebar provides more "embedded" interface. Default 'popup'
 }
 
 // Panel width bounds and default (used by the resize handle and width controls).
@@ -71,5 +118,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   panelWidth: PANEL_WIDTH_DEFAULT,
   themeMode: 'auto',
   maxVisibleNodes: MAX_VISIBLE_NODES,
+  notifyOnComplete: true,
   language: 'en',
+  cacheRetentionDays: 30,
+  panelMode: 'sidebar',
 };

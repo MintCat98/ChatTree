@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePanelStore } from '../store/panel-store';
 import { useMessages } from '../i18n';
 import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX } from '@shared/types';
+import { InteractiveMap } from './InteractiveMap';
 
 const PANEL_INITIAL_HEIGHT = 600; // Estimated panel height for bottom-anchor initial placement.
 const DRAG_BOTTOM_CLEARANCE = 100; // Minimum px above the viewport bottom edge during drag.
@@ -42,6 +43,7 @@ export function PanelShell({ children }: PanelShellProps) {
   const t = useMessages();
   const settings = usePanelStore((s) => s.settings);
   const width = settings.panelWidth;
+  const isSidebar = settings.panelMode === 'sidebar';
 
   const [position, setPosition] = useState<Position>(() =>
     getInitialPosition(settings.panelPosition, width),
@@ -111,6 +113,23 @@ export function PanelShell({ children }: PanelShellProps) {
     return () => window.removeEventListener('resize', handleWindowResize);
   }, [settings.panelPosition]);
 
+  // Sidebar mode: push claude.ai's main content to the left so the sidebar doesn't overlay the chat area.
+  useEffect(() => {
+    const container = document.querySelector('#root') as HTMLElement | null;
+    if (!container) return;
+
+    if (isSidebar) {
+      container.style.transition = 'margin-right 200ms ease';
+      container.style.marginRight = `${width}px`;
+    } else {
+      container.style.marginRight = '';
+    }
+
+    return () => {
+      container.style.marginRight = '';
+    };
+  }, [isSidebar, width]);
+
   // Triggered by children that opt-in via data-drag-handle="true" (the Header).
   function startDrag(e: React.MouseEvent) {
     dragOffsetRef.current = { x: e.clientX - position.x, y: e.clientY - position.y };
@@ -121,6 +140,39 @@ export function PanelShell({ children }: PanelShellProps) {
     e.stopPropagation();
     resizeRef.current = { startX: e.clientX, startWidth: width };
     document.body.style.userSelect = 'none';
+  }
+
+  // Sidebar mode
+  if (isSidebar) {
+    return (
+      <div
+        data-testid="panel-shell"
+        className="nav-panel nav-panel--sidebar"
+        style={{
+          '--panel-w': `${width}px`,
+          '--bg-alpha': settings.backgroundOpacity,
+        } as React.CSSProperties}
+      >
+        {/* Top: Tree-map components*/}
+        <div className="nav-sidebar-top">
+          {children}
+        </div>
+
+        {/* Bottom: Interactive Map*/}
+        <div className="nav-sidebar-bottom">
+          <InteractiveMap />
+        </div>
+
+        {/* left resize handle */}
+        <div
+          className="nav-resize-handle nav-resize-handle--sidebar"
+          onMouseDown={startResize}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={t.resizeAria}
+        />
+      </div>
+    );
   }
 
   const clampedLeft = Math.max(0, Math.min(window.innerWidth - width, position.x));

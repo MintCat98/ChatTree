@@ -4,8 +4,9 @@
 // single source of truth — no localStorage fallback.
 
 import { create } from 'zustand';
-import type { TreeData, UserSettings, NodeMetadata } from '@shared/types';
-import { DEFAULT_SETTINGS, DEFAULT_NODE_METADATA } from '@shared/types';
+import type { TreeData, UserSettings, NodeMetadata, SummaryQueueStatus } from '@shared/types';
+import type { NodeSummary } from '@shared/summary';
+import { DEFAULT_SETTINGS, DEFAULT_NODE_METADATA, IDLE_SUMMARY_STATUS } from '@shared/types';
 import { STORAGE_KEYS } from '@shared/constants';
 
 // Cursor position used to anchor the hover tooltip. Stored here because the
@@ -34,6 +35,13 @@ interface PanelState {
   // Per-node metadata for the current session, keyed by nodeId (issue #96).
   // Loaded from chrome.storage.local when the tree is hydrated.
   sessionMetadata:  Record<string, NodeMetadata>;
+  // Per-node summaries for the current session, keyed by nodeId (issue #165).
+  // Derived cache, not user data: loaded from the node cache on hydration and
+  // refreshed as the summary queue drains. A node with no entry has no summary.
+  sessionSummaries: Record<string, NodeSummary>;
+  // Live summary-drain state published by the background queue. Drives the
+  // map's "AI is working" indicator; not persisted by the panel.
+  summaryStatus:    SummaryQueueStatus;
   // Tag management state (issue #98) — all transient, not persisted.
   activeTagFilters: string[];      // tag names currently active as filters
   tagPanelOpen:     boolean;       // controls TagPanel visibility
@@ -41,6 +49,9 @@ interface PanelState {
   // Search state (issue #99) — transient, not persisted.
   searchPanelOpen:  boolean;
   searchQuery:      string;
+  // Response generation finished (issue #166) — transient, drives the header
+  // message-count blink. Set by the observer, cleared by the Header timer.
+  generationComplete: boolean;
 
   setTree:              (tree: TreeData | null) => void;
   updateSettings:       (patch: Partial<UserSettings>) => void;
@@ -59,8 +70,14 @@ interface PanelState {
   setTagEditNodeId:   (id: string | null) => void;
   toggleSearchPanel:  () => void;
   setSearchQuery:     (query: string) => void;
+  setGenerationComplete: (done: boolean) => void;
   // Replace the entire session metadata map (called when tree/session changes).
   setSessionMetadata:   (meta: Record<string, NodeMetadata>) => void;
+  // Replace the entire session summary map. Always a full replace: the node
+  // cache is the source of truth and a session switch must not leak the
+  // previous conversation's summaries onto position-based node IDs.
+  setSessionSummaries:  (summaries: Record<string, NodeSummary>) => void;
+  setSummaryStatus:     (status: SummaryQueueStatus) => void;
   // Optimistic local update for a single node (caller writes to chrome.storage).
   patchNodeMetadata:    (nodeId: string, patch: Partial<NodeMetadata>) => void;
 }
@@ -76,13 +93,34 @@ export const usePanelStore = create<PanelState>()(
     settingsOpen:        false,
     bookmarksOnlyFilter: false,
     sessionMetadata:     {},
+    sessionSummaries:    {},
+    summaryStatus:       IDLE_SUMMARY_STATUS,
     activeTagFilters:    [],
     tagPanelOpen:        false,
     tagEditNodeId:       null,
     searchPanelOpen:     false,
     searchQuery:         '',
+    generationComplete:  false,
 
-    setTree: (tree) => set({ tree, tagEditNodeId: null, activeTagFilters: [], searchQuery: '' }),
+    setTree: (tree) =>
+      set((s) => {
+        // Highlight fallback: keep the active node only while the incoming
+        // tree still contains it. Otherwise (conversation switch — position-
+        // based ids are per-conversation — or the node dropped by a branch
+        // switch) default to the newest message; the IntersectionObserver
+        // overrides as soon as it resolves the actual viewport.
+        const nodes = tree?.nodes ?? [];
+        const activeStillPresent = nodes.some((n) => n.id === s.activeNodeId);
+        return {
+          tree,
+          activeNodeId: activeStillPresent
+            ? s.activeNodeId
+            : nodes[nodes.length - 1]?.id ?? null,
+          tagEditNodeId: null,
+          activeTagFilters: [],
+          searchQuery: '',
+        };
+      }),
 
     updateSettings: (patch) =>
       set((s) => {
@@ -132,7 +170,13 @@ export const usePanelStore = create<PanelState>()(
       }),
     setSearchQuery:    (query) => set({ searchQuery: query }),
 
+    setGenerationComplete: (done) => set({ generationComplete: done }),
+
     setSessionMetadata: (meta) => set({ sessionMetadata: meta }),
+
+    setSessionSummaries: (summaries) => set({ sessionSummaries: summaries }),
+
+    setSummaryStatus: (status) => set({ summaryStatus: status }),
 
     patchNodeMetadata: (nodeId, patch) =>
       set((s) => ({

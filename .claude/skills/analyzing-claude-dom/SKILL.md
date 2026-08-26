@@ -1,6 +1,11 @@
+---
+name: analyzing-claude-dom
+description: Claude.ai DOM structure, selectors, chatbox ID assignment, and MutationObserver setup for the content script. Use when working on src/content/ DOM detection or scroll navigation, changing selectors, debugging chatbox tracking, or when claude.ai markup changes.
+---
+
 # Claude.ai DOM Analysis
 
-> **Target:** `claude.ai/chat/*`  
+> **Target:** `claude.ai/chat/*`
 > **Purpose:** DOM selector reference for chatbox detection, tracking, and branch detection in the Content Script
 
 ---
@@ -15,8 +20,8 @@
                  ├── div[data-testid="human-turn"]          ← user chatbox (N)
                  │    ├── div[data-testid="user-message"]   ← prompt text
                  │    └── div.branch-controls               ← branch navigator (on edit)
-                 └── div[data-testid="assistant-turn"]      ← AI response (N)
-                      └── div[data-testid="ai-response"]
+                 └── div.font-claude-response               ← AI response (N) — no testid
+                      └── div.standard-markdown             ← rendered answer text
 ```
 
 ---
@@ -50,16 +55,29 @@
 | Next branch button | `button[aria-label="Next edit"]` | `›` |
 | Current/total indicator | `span.branch-indicator` | `"2 / 3"` format |
 
-> ⚠️ **Note:** `branch-navigation` is only rendered when there are **2 or more branches**.  
+> ⚠️ **Note:** `branch-navigation` is only rendered when there are **2 or more branches**.
 > It does not exist on initial messages (no branch).
 
 ### 2-4. AI Response (Assistant Turn)
 
+> ⚠️ **claude.ai removed the `assistant-turn` / `ai-response` testids** (verified 0
+> matches, 2026-07, while building #160). There is **no data-testid for the response** —
+> anchor on the semantic class instead. This is the one sanctioned exception to the
+> "prefer `data-testid`, never hashed classes" rule: `.font-claude-response` /
+> `.standard-markdown` are semantic class names, not hashed Tailwind.
+
 | Role | Selector | Notes |
 |------|----------|-------|
-| AI turn wrapper | `[data-testid="assistant-turn"]` | Adjacent sibling immediately after human-turn |
-| Response body | `[data-testid="ai-response"]` | Markdown rendering container |
+| Response body (code: `SELECTORS.CLAUDE_RESPONSE`) | `.font-claude-response` | One per turn — the answer container |
+| Answer text (code: `SELECTORS.RESPONSE_MARKDOWN`) | `.standard-markdown` | Rendered markdown; a turn may contain several — concatenate their `textContent` |
 | Response loading | `[data-testid="streaming-indicator"]` | Presence indicates streaming |
+| Streaming flag (code: `SELECTORS.STREAMING_ATTR`) | `[data-is-streaming="true"]` | On an ancestor of the response; gate reads via `el.closest(...)` until it clears |
+
+**Pairing (summary pipeline, #160):** a user bubble carries no direct link to its
+answer. `scanMounted` collects `.font-claude-response` elements in mounted DOM order and
+pairs them to user bubbles by index (`answerTexts[domIndex]`). This is fragile at
+virtualization boundaries — see [messaging-and-storage](../messaging-and-storage/SKILL.md) §8
+for the pipeline and its known limitations.
 
 ### 2-5. Input Field (Composer)
 
@@ -106,8 +124,8 @@ Rules:
   sequentially after each merge.
 - Scanned turns accumulate in a per-session cache (`mergeMountedNodes`), so
   turns virtualized out of the DOM stay in the tree. The cache resets on
-  conversation change and invalidates past a divergence point (see
-  [`branch-detection.md`](./branch-detection.md) §5).
+  conversation change and invalidates past a divergence point (see the
+  [detecting-branches skill](../detecting-branches/SKILL.md) §5).
 - The turn's absolute `top` offset is cached alongside each node for
   scroll-navigation to unmounted turns (§5).
 
@@ -233,15 +251,15 @@ window.addEventListener('locationchange', () => {
 
 ---
 
-## 8. Periodic Validation Checklist
+## 8. Periodic Validation
 
-The DOM structure may change with Claude.ai deployments.  
-Check the following **monthly** or **when a malfunction report is received**.
+The DOM structure may change with Claude.ai deployments. Run the checklist in
+[validation-checklist.md](validation-checklist.md) **monthly** or **when a
+malfunction report is received**.
 
-- [ ] `[data-testid="conversation-container"]` exists
-- [ ] `[data-testid="human-turn"]` chatbox detection works correctly
-- [ ] `[data-testid="branch-navigation"]` branch detection works correctly
-- [ ] `span.branch-indicator` text parsing format (`"N / M"`)
-- [ ] `[data-index]` wrapper exists on turns with absolute `style.top` offset (virtualization identity, §3)
-- [ ] `[role="article"]` carries `aria-posinset` / `aria-setsize`
-- [ ] `scrollIntoView` works correctly
+---
+
+## References
+
+- [detecting-branches](../detecting-branches/SKILL.md) — branch detection logic built on these selectors
+- [messaging-and-storage](../messaging-and-storage/SKILL.md) — where detected changes are sent

@@ -12,7 +12,6 @@ Behavioral guidelines + project context for Claude Code.
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
 
-Before implementing:
 - State your assumptions explicitly. If uncertain, ask.
 - If multiple interpretations exist, present them — don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
@@ -22,49 +21,50 @@ Before implementing:
 
 **Minimum code that solves the problem. Nothing speculative.**
 
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" that wasn't requested.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: *"Would a senior engineer say this is overcomplicated?"* If yes, simplify.
+- No features beyond what was asked, no abstractions for single-use code,
+  no "flexibility" that wasn't requested.
+- Ask yourself: *"Would a senior engineer say this is overcomplicated?"* If yes, simplify.
 
 ### 3. Surgical Changes
 
 **Touch only what you must. Clean up only your own mess.**
 
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
+- Don't "improve" adjacent code, comments, or formatting. Match existing style.
 - If you notice unrelated dead code, **mention it — don't delete it.**
 - Remove imports/variables only if **your** changes made them unused.
-
-The test: every changed line should trace directly to the user's request.
+- The test: every changed line should trace directly to the user's request.
 
 ### 4. Goal-Driven Execution
 
 **Define success criteria. Loop until verified.**
 
-Transform tasks into verifiable goals:
-- "Add observer" → "MutationObserver fires on message add/edit, confirmed in console"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-
-For multi-step tasks, state a brief plan first:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
+- Transform tasks into verifiable goals: "fix the bug" → "write a test that
+  reproduces it, then make it pass".
+- For multi-step tasks, state a brief plan first: `[Step] → verify: [check]` per step.
 
 ---
 
-## PART 2. Keeping This Doc Current
+## PART 2. Documentation & Skill Maintenance
 
-**Before ending a task that changed behavior, contracts, or scope, check whether this file needs an update.**
+**Language rule: CLAUDE.md, all skills, and all agent-facing docs MUST be
+written in English**, regardless of the conversation language.
 
-- New/changed message types, core types, commands, constraints, or conventions → update the relevant section here.
-- Roadmap/phase status changed (a phase completed, started, or was reprioritized) → update the Roadmap table.
-- If you're unsure whether a change is significant enough to warrant an update, propose the specific edit to the user instead of silently skipping it or silently applying it.
+**Before finishing any task that changed behavior, contracts, or scope, run
+this three-point check and report the result:**
+
+1. **CLAUDE.md** — Did commands, core constraints, message contracts,
+   conventions, or roadmap status change? If yes, update the relevant section
+   (or propose the edit if the change is debatable).
+2. **Existing skill** — Did you find a skill (`.claude/skills/`) that was
+   wrong, incomplete, or missing a gotcha you had to discover yourself (e.g.,
+   a selector change on claude.ai)? Propose a specific edit to that SKILL.md.
+3. **New skill** — Did this task require non-obvious context that no skill
+   captures — a repeated workflow, domain knowledge you had to reconstruct, or
+   instructions the user had to spell out? Suggest a new skill (name +
+   one-line description). **Never create or modify a skill silently; propose
+   it and wait for approval.**
+
+If none apply, skip this — do not mention the check in your summary.
 
 ---
 
@@ -76,15 +76,22 @@ Chrome Extension (Manifest V3) that injects a floating tree-map navigation panel
 into **Claude.ai only (beta)**, allowing users to track and jump between chat messages.
 
 - Branch detection: MutationObserver + DOM snapshot diff
-- AI summarization: **Future Work (not yet implemented)**
+- On-device AI, both opt-in via `summaryEnabled` (default off, toggled in the
+  panel settings) and both fed by the same `SUMMARIZE_TURNS` message:
+  summarization via Gemini Nano (#160) and per-turn embeddings via a bundled
+  model in an offscreen document (#161). Summaries surface in the Interactive
+  Map as keyword labels + a Q&A dropdown (#165), with drain progress published
+  to `summaryStatus` and rendered as an activity strip; relevance is still
+  read-only (`GET_RELEVANCE`) with no layout consumer. See the
+  `running-on-device-ai` skill.
 
 ### Tech Stack
 
 | Role | Tool |
 |------|------|
 | Language | TypeScript (strict) |
-| UI | React 18 via Shadow DOM |
-| Tree rendering | D3.js (hierarchy layout) |
+| UI | React 19 via Shadow DOM |
+| Tree rendering | Hand-rolled SVG via `tree-layout.ts` (`TreeMapCanvas`, panel top); D3 `hierarchy`/`tree` + zoom (`InteractiveMap`, panel bottom) |
 | State management | Zustand (Panel), chrome.storage (Background) |
 | Bundler | Webpack 5 |
 | Test | Jest + ts-jest |
@@ -93,12 +100,17 @@ into **Claude.ai only (beta)**, allowing users to track and jump between chat me
 ### Key Commands
 
 ```bash
-npm run dev          # watch build → dist/
-npm run build        # production build
+npm run dev          # watch build → dist/   (runs fetch-model first)
+npm run build        # production build      (runs fetch-model first)
+npm run fetch-model  # download the embedding model + write its LICENSE into public/models/ (git-ignored)
 npm run typecheck    # tsc --noEmit
 npm run test         # jest
 npm run lint         # eslint src/**
 ```
+
+`dev` / `build` need network on a clean checkout: the ~113 MB embedding model is
+not committed and is fetched by the `predev` / `prebuild` hooks. See the
+`running-on-device-ai` skill §4.
 
 Load locally: `chrome://extensions/` → Developer mode → Load unpacked → `dist/`
 
@@ -106,126 +118,70 @@ Load locally: `chrome://extensions/` → Developer mode → Load unpacked → `d
 
 ```
 src/
-├── background/          # Service Worker — message relay only
-│   ├── index.ts
-│   └── message-handler.ts
-├── content/
-│   ├── index.ts             # Entry point
-│   ├── observer.ts          # MutationObserver
-│   ├── tracker.ts           # ChatBox data model + ID assignment
-│   ├── branch-detector.ts   # Branch detection logic
-│   ├── scroll-navigator.ts  # Scroll to node on click
-│   ├── active-node-tracker.ts # IntersectionObserver-based active node tracking
-│   ├── page-watcher.ts      # SPA URL change detection
-│   ├── ui-injector.ts       # Shadow DOM mount
-│   ├── message-bridge.ts    # Content ↔ Background communication
-│   └── panel/               # React Tree Map (Shadow DOM)
-│       ├── App.tsx
-│       ├── components/
-│       │   ├── PanelShell.tsx
-│       │   ├── Header.tsx
-│       │   ├── TreeMapCanvas.tsx  # D3 rendering
-│       │   ├── TreeNode.tsx
-│       │   ├── NodeBadge.tsx      # Branch badge (conditional)
-│       │   ├── TreeEdge.tsx
-│       │   ├── Tooltip.tsx        # Mouseover original prompt
-│       │   ├── ControlBar.tsx     # Direction/position/opacity/sort
-│       │   └── EmptyState.tsx
-│       ├── store/
-│       │   └── panel-store.ts     # Zustand store
-│       └── styles/
-│           └── panel.css          # Shadow DOM internal styles (--nav-* vars)
-├── popup/
-│   └── App.tsx
-└── shared/              # Types, constants, chrome.storage utils
-    ├── types.ts          # ChatboxNode, TreeData, UserSettings
-    ├── constants.ts
-    └── message-types.ts  # Message type enum
+├── background/      # Service Worker — message relay + tree cache (session-store)
+├── content/         # DOM observation, chatbox tracking, branch detection, scroll nav
+│   └── panel/       # React Tree Map in Shadow DOM (components/, store/, styles/)
+├── offscreen/       # Offscreen document — embedding inference (#161)
+├── popup/           # Extension popup (panel toggle, settings entry)
+└── shared/          # types.ts, constants.ts, message-types.ts, storage utils
 public/manifest.json
-agent_docs/              # ← task-specific docs, read before working on each area
-tests/
-└── unit/
+public/models/       # embedding model — git-ignored, fetched by predev/prebuild
+scripts/fetch-model.mjs
+tests/unit/
+.claude/skills/      # domain knowledge & workflows for Claude (see below)
 ```
 
-### Agent Docs (Progressive Disclosure)
+### Skills (Progressive Disclosure)
 
-Read only the files relevant to your current task:
+Domain knowledge lives in `.claude/skills/` and loads automatically when
+relevant — **do not duplicate its content here**. Skills are checked into git;
+changes go through normal PR review.
 
-| File | When to read |
-|------|-------------|
-| `agent_docs/dom-analysis.md` | Content script, selectors, MutationObserver |
-| `agent_docs/architecture.md` | Component communication, storage strategy |
-| `agent_docs/branch-detection.md` | Branch snapshot & diff logic |
-| `agent_docs/ui-panel.md` | Tree Map components, Shadow DOM |
+| Skill | Covers |
+|-------|--------|
+| `analyzing-claude-dom` | claude.ai selectors, chatbox ID strategy, MutationObserver, validation checklist |
+| `detecting-branches` | branch detection, tree building, reload strategy, edge cases |
+| `building-panel-ui` | panel components, SVG layout, Zustand store, `--nav-*` design tokens |
+| `messaging-and-storage` | message contracts/flow, tree cache, hydration, retention |
+| `running-on-device-ai` | summary + embedding queues, offscreen document, model delivery, bundling & storage budget |
+| `verifying-extension` | definition-of-done verification workflow |
 
-### Core Types (Quick Reference)
+### Core Types & Message Contracts
 
-> Full definitions: `src/shared/types.ts`
-
-```typescript
-interface ChatboxNode {
-  id: string;            // "chatbox-0", "chatbox-1", ...
-  index: number;
-  text: string;          // Full original prompt text
-  hasBranch: boolean;
-  branchCurrent: number;
-  branchTotal: number;
-  parentId: string | null;
-}
-
-interface TreeData {
-  sessionId: string;       // Conversation UUID extracted from the URL
-  nodes: ChatboxNode[];
-  activeBranchPath: string[];
-  lastUpdated: number;
-}
-
-interface UserSettings {
-  panelPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  backgroundOpacity: number;  // 0.0 ~ 1.0
-  sortOrder: 'asc' | 'desc';
-  panelVisible: boolean;
-}
-```
-
-> The `summary` field is **not yet implemented** (Future Work). Do not add it to the type.
-
-### Message Types (Quick Reference)
-
-> Full definitions: `src/shared/message-types.ts`  
-> Do not use raw string literals — use the enum
-
-| `type` | Direction | payload | Description |
-|--------|------|---------|------|
-| `CHATBOX_ADDED` | Content → BG | — | New chatbox DOM detected |
-| `BRANCH_CHANGED` | Content → BG | `{ navId, sessionId }` | Branch switch detected |
-| `CHAT_PAGE_ENTERED` | Content → BG | `{ url }` | Entered a new conversation URL |
-| `ACTIVE_NODE_CHANGED` | Content → BG | `{ navId }` | Active node in viewport changed |
-| `TREE_UPDATE` | Content → BG | `{ nodes, sessionId }` | Request full tree recalculation |
-| `GET_STORED_TREE` | Content → BG | `{ sessionId }` | Look up stored tree — request/response, for hydration (#152) |
-| `TREE_READY` | BG → Content/Panel | `{ tree }` | Push after tree data is ready |
-| `SCROLL_TO` | Panel → Content | `{ navId }` | Scroll request on node click |
-| `SETTINGS_UPDATED` | Popup → BG | `{ settings }` | Settings changed |
+- Full definitions: `src/shared/types.ts` (`ChatboxNode`, `TreeData`,
+  `UserSettings`) and `src/shared/message-types.ts`. **Read the source — do
+  not rely on copies in docs.**
+- Messages: use the `message-types.ts` enum, never raw string literals. Flow
+  and payload semantics: `messaging-and-storage` skill.
+- **Node summaries (#158) and per-turn embeddings (#161) live in `NodeCacheEntry`**
+  — a separate `chrome.storage.local` cache (`src/shared/node-cache.ts`, issue
+  #159), keyed by session + node. Relevance is derived on demand (cosine sim
+  between two nodes' embeddings), not stored. **Do not put `summary`/`embedding` on
+  `ChatboxNode`:** `session-store.updateTree` rebuilds the tree from the DOM on
+  every update and would wipe them. Embeddings are stored at reduced precision
+  and `setNodeCache` serializes its writes — see the `running-on-device-ai`
+  skill §6 before changing either.
 
 ### Coding Conventions
 
 | Item | Rule |
 |------|------|
 | Components | React function components + Hooks only |
-| CSS variables | `--nav-*` namespace — see `ui-panel.md` §8 |
+| CSS variables | `--nav-*` namespace — see `building-panel-ui` skill, `design-tokens.md` |
 | DOM selectors | Prefer `data-testid`; never reference hashed CSS class names directly |
 | Messages | Use the `message-types.ts` enum |
 | Commits | Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, ...) |
 
 ### Core Constraints
 
-- **Minimum permissions** — `storage` + `activeTab` only. Ask before adding any new permission.
+- **Minimum permissions** — `storage`, `activeTab`, `alarms`, `offscreen` only. Ask before adding any new permission.
+- **CSP** — `extension_pages` allows `'wasm-unsafe-eval'` (required by onnxruntime for the #161 embedding model). Do not widen it further.
 - **Shadow DOM required** — all UI injected into claude.ai must use `mode: 'closed'`.
 - **No external calls from Content Script** — route through Background SW via `chrome.runtime.sendMessage`.
-- **Storage** — `chrome.storage.session` for tree state, `chrome.storage.local` for user prefs only.
+- **Storage** — `chrome.storage.local` for the tree cache + user prefs; the cache is bounded by a retention policy (issue #153).
 - **MV3 Service Worker** — avoid long-lived `setTimeout`. Use `chrome.alarms` if needed.
-- **DOM stability** — Claude.ai Tailwind class names are unstable. Always use `data-testid`. See `dom-analysis.md`.
-- **Inactive branches are not in DOM** — only the active branch path is rendered. See `branch-detection.md` §2.
+- **DOM stability** — Claude.ai Tailwind class names are unstable. Always use `data-testid`. See the `analyzing-claude-dom` skill.
+- **Inactive branches are not in DOM** — only the active branch path is rendered. See the `detecting-branches` skill §2.
 
 ### Git Workflow
 
@@ -241,21 +197,14 @@ interface UserSettings {
 | **Phase 2** | Branch detection + branch node visualization | ✅ Done |
 | **Phase 3** | Settings UI (position / direction / opacity / sort) | ✅ Done |
 | **Beta** | Public beta hardening (caching, tagging, search, bug fixes) | 🚧 In progress |
-| **Future** | AI summarization, other platform support | 🔮 Out of scope |
-
-### Team
-
-| Role | Area |
-|------|------|
-| PM / Lead Dev | Architecture decisions, code review, release |
-| Frontend Dev | Panel UI (React + D3), Popup |
-| Content Dev | Content Script, DOM analysis, branch detection |
-| QA / Docs | Test authoring, agent_docs maintenance |
+| **Beta** | Interactive Map — keyword-box tree, viewport controls, edge rewiring (#162/#163/#164) | ✅ Done |
+| **Beta** | On-device node summarization pipeline (#159/#160) — opt-in | ✅ Done |
+| **Beta** | Summary rendering — keyword node labels + Q&A dropdown (#165) | ✅ Done |
+| **Beta** | Per-turn embeddings + on-demand relevance (#189/#161) — no consumer yet | 🚧 In progress |
+| **Future** | Relevance-driven map layout, other platforms | 🔮 Out of scope |
 
 ### Definition of Done
 
-A task is complete when:
-1. `npm run build` passes with no errors
-2. `npm run test` passes
-3. Manually verified on claude.ai (note Chrome version tested)
-4. Relevant `agent_docs/` updated if behavior or contracts changed
+A task is complete when `npm run build` and `npm run test` pass, the change is
+manually verified on claude.ai (note the Chrome version tested), and the
+PART 2 maintenance check has run. Full workflow: `verifying-extension` skill.

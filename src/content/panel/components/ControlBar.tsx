@@ -3,16 +3,47 @@
 // Every change is committed via store.updateSettings → persisted to localStorage +
 // mirrored to chrome.storage.local (so the popup stays in sync).
 
-import { type ChangeEvent } from 'react';
+import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import { usePanelStore } from '../store/panel-store';
 import { useMessages } from '../i18n';
 import type { UserSettings } from '@shared/types';
 import { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, MAX_VISIBLE_NODES, DEFAULT_SETTINGS } from '@shared/types';
+import { MessageType } from '@shared/message-types';
+import { requestFromBackground } from '../../message-bridge';
+import { rescanFromDom } from '../../observer';
+import { ensureSummaryModel, type SummaryModelStatus } from '../summary-model';
+
+// Cache retention choices in days (issue #153). Default: 30.
+const RETENTION_OPTIONS = [7, 30, 90] as const;
+
+// What the summary row reports under the toggle. 'idle' renders nothing —
+// either the user has not opted in this session, or the model was already
+// there and the On state says everything.
+type SummaryModelUiState =
+  | { status: 'idle' }
+  | { status: 'preparing' }
+  | { status: 'downloading'; percent: number }
+  | { status: SummaryModelStatus };
 
 export function ControlBar() {
   const t = useMessages();
   const settings = usePanelStore((s) => s.settings);
   const updateSettings = usePanelStore((s) => s.updateSettings);
+
+  // Two-step confirm for the destructive cache clear: first click arms the
+  // button, second click executes; arming times out after a few seconds.
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  // Transient, per-panel-mount: a status the user needs while the download runs,
+  // not a setting. Resets to idle on remount, when the toggle's own On/Off state
+  // is the honest signal again.
+  const [modelState, setModelState] = useState<SummaryModelUiState>({ status: 'idle' });
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    },
+    [],
+  );
 
   const handlePosition = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ panelPosition: e.target.value as UserSettings['panelPosition'] });
@@ -28,25 +59,91 @@ export function ControlBar() {
     updateSettings({ maxVisibleNodes: Number(e.target.value) });
   const handleLanguage = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ language: e.target.value as UserSettings['language'] });
+  const handleRetention = (e: ChangeEvent<HTMLSelectElement>) =>
+    updateSettings({ cacheRetentionDays: Number(e.target.value) });
+  const handleClearCache = () => {
+    if (!confirmingClear) {
+      setConfirmingClear(true);
+      confirmTimer.current = setTimeout(() => setConfirmingClear(false), 3000);
+      return;
+    }
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    setConfirmingClear(false);
+    // Clear all cached trees, then rescan the live DOM so the panel keeps
+    // showing (and re-persists) the current conversation instead of going blank.
+    requestFromBackground({ type: MessageType.CLEAR_TREE_CACHE })
+      .catch(() => {})
+      .finally(() => rescanFromDom());
+  };
+  const handleNotifyToggle = () =>
+    updateSettings({ notifyOnComplete: !settings.notifyOnComplete });
+  // Opt-in for the on-device pipeline (#160/#161) that feeds the Interactive
+  // Map's keyword labels and summary dropdowns (#165). Default stays off:
+  // turning it on runs Gemini Nano and the bundled embedding model locally.
+  //
+  // This click is also the pipeline's only user gesture, so it is where the
+  // Gemini Nano download gets kicked off — see summary-model.ts. ensureSummaryModel
+  // must be reached synchronously from here or the transient activation is gone.
+  const handleSummaryToggle = () => {
+    const enabling = !settings.summaryEnabled;
+    updateSettings({ summaryEnabled: enabling });
+    if (!enabling) {
+      setModelState({ status: 'idle' });
+      return;
+    }
+    setModelState({ status: 'preparing' });
+    void ensureSummaryModel((percent) => setModelState({ status: 'downloading', percent })).then(
+      (status) => setModelState({ status }),
+    );
+  };
+  const handlePanelMode = (e: ChangeEvent<HTMLSelectElement>) =>
+    updateSettings({ panelMode: e.target.value as UserSettings['panelMode'] });
   const handleReset = () => updateSettings(DEFAULT_SETTINGS);
+
+  // 'ready' says nothing the On toggle does not already say, so it stays quiet.
+  const summaryModelHint = (() => {
+    switch (modelState.status) {
+      case 'preparing':   return t.summaryModelPreparing;
+      case 'downloading': return t.summaryModelDownloading(modelState.percent);
+      case 'unavailable': return t.summaryModelUnavailable;
+      case 'unsupported': return t.summaryModelUnsupported;
+      default:            return null;
+    }
+  })();
 
   return (
     <div data-testid="control-bar" className="nav-control-bar">
-      {/* Position */}
+      {/* Panel mode */}
       <div className="nav-control-row">
-        <span className="nav-control-label">{t.position}</span>
+        <span className="nav-control-label">{t.panelMode}</span>
         <select
-          value={settings.panelPosition}
-          onChange={handlePosition}
+          value={settings.panelMode}
+          onChange={handlePanelMode}
           className="nav-control"
-          aria-label={t.positionAria}
+          aria-label={t.panelModeAria}
         >
-          <option value="top-left">{t.posTopLeft}</option>
-          <option value="top-right">{t.posTopRight}</option>
-          <option value="bottom-left">{t.posBottomLeft}</option>
-          <option value="bottom-right">{t.posBottomRight}</option>
+          <option value="popup">{t.panelModePopup}</option>
+          <option value="sidebar">{t.panelModeSidebar}</option>
         </select>
       </div>
+      {/* Position */}
+      {settings.panelMode === 'popup' && (
+        <div className="nav-control-row">
+          <span className="nav-control-label">{t.position}</span>
+          <select
+            value={settings.panelPosition}
+            onChange={handlePosition}
+            className="nav-control"
+            aria-label={t.positionAria}
+          >
+            <option value="top-left">{t.posTopLeft}</option>
+            <option value="top-right">{t.posTopRight}</option>
+            <option value="bottom-left">{t.posBottomLeft}</option>
+            <option value="bottom-right">{t.posBottomRight}</option>
+          </select>
+        </div>
+      )}
+      
 
       {/* Panel width (issue 02) */}
       <div className="nav-control-row">
@@ -124,6 +221,39 @@ export function ControlBar() {
         <span className="nav-control-readout">{settings.maxVisibleNodes}</span>
       </div>
 
+      {/* Generation-complete notification (issue #166) */}
+      <div className="nav-control-row">
+        <span className="nav-control-label">{t.notifyComplete}</span>
+        <button
+          type="button"
+          onClick={handleNotifyToggle}
+          aria-label={t.notifyCompleteAria}
+          aria-pressed={settings.notifyOnComplete}
+          className="nav-control nav-control-sort"
+        >
+          {settings.notifyOnComplete ? t.notifyOnLabel : t.notifyOffLabel}
+        </button>
+      </div>
+
+      {/* On-device node summaries (issues #160/#161, surfaced by #165) */}
+      <div className="nav-control-row">
+        <span className="nav-control-label">{t.summaryEnabled}</span>
+        <button
+          type="button"
+          onClick={handleSummaryToggle}
+          aria-label={t.summaryEnabledAria}
+          aria-pressed={settings.summaryEnabled}
+          className="nav-control nav-control-sort"
+        >
+          {settings.summaryEnabled ? t.summaryOnLabel : t.summaryOffLabel}
+        </button>
+      </div>
+      {summaryModelHint && (
+        <div className="nav-control-hint" role="status">
+          {summaryModelHint}
+        </div>
+      )}
+
       {/* Language (issue #100) */}
       <div className="nav-control-row">
         <span className="nav-control-label">{t.language}</span>
@@ -136,6 +266,35 @@ export function ControlBar() {
           <option value="en">{t.langEnglish}</option>
           <option value="ko">{t.langKorean}</option>
         </select>
+      </div>
+
+      {/* Cache retention (issue #153) */}
+      <div className="nav-control-row">
+        <span className="nav-control-label">{t.retention}</span>
+        <select
+          value={settings.cacheRetentionDays}
+          onChange={handleRetention}
+          className="nav-control"
+          aria-label={t.retentionAria}
+        >
+          {RETENTION_OPTIONS.map((days) => (
+            <option key={days} value={days}>
+              {t.retentionDays(days)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Clear cached trees (issue #153) */}
+      <div className="nav-control-row">
+        <button
+          type="button"
+          onClick={handleClearCache}
+          className="nav-control"
+          aria-label={t.clearCacheAria}
+        >
+          {confirmingClear ? t.clearCacheConfirm : t.clearCache}
+        </button>
       </div>
 
       {/* Reset to Default*/}

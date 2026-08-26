@@ -1,6 +1,6 @@
-# ChatTree (v1.0.2-beta)
+# ChatTree (v2.0.0-beta)
 
-> **Navigate your AI conversations like a map, not a scroll.**  
+> **Navigate your AI conversations like a map, not a scroll.**
 > A Chromium extension that visualizes your chat session as an interactive tree — so you never lose track of where you were.
 
 <div align="center">
@@ -13,7 +13,7 @@
 
 <div align="center">
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE) [![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)]() [![Platform](https://img.shields.io/badge/Platform-Chromium-yellow.svg)]() [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+[![License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE) [![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)]() [![Platform](https://img.shields.io/badge/Platform-Chromium-yellow.svg)]() [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
 
 🌐 [Chrome Web Store](https://chromewebstore.google.com/detail/chattree/flamopjfedkffcfofoibkgbhoajnopnc) · 🌐 [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/chattree/lcgceaigpbkibamcpfjbgedmijmilcmi) · 📖 [User Guide](./docs/USER_GUIDE.md) · 🤝 [Contributing](.github/CONTRIBUTING.md) · 👥 [Contributors](.github/CONTRIBUTORS.md)
 
@@ -97,5 +97,5 @@ See [CONTRIBUTORS.md](.github/CONTRIBUTORS.md) for the full list.
 
 ## 8. License
 
-This project is licensed under the **Apache License 2.0**.  
+This project is licensed under the **GNU Affero General Public License v3.0**.  
 See [LICENSE](./LICENSE) for details.

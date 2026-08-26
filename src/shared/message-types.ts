@@ -9,13 +9,21 @@ export const MessageType = {
   CHAT_PAGE_ENTERED:    'CHAT_PAGE_ENTERED',
   ACTIVE_NODE_CHANGED:  'ACTIVE_NODE_CHANGED',
   TREE_UPDATE:          'TREE_UPDATE',          // payload: { nodes: ChatboxNode[], sessionId: string }
+  SUMMARIZE_TURNS:      'SUMMARIZE_TURNS',      // payload: { sessionId: string, turns: Array<{ nodeId: string, question: string, answer: string }> }
   GET_STORED_TREE:      'GET_STORED_TREE',      // payload: { sessionId } — request/response; responds { tree: TreeData | null } (issue #152)
+  GET_RELEVANCE:        'GET_RELEVANCE',        // payload: { sessionId, nodeIdA, nodeIdB } — request/response; responds { relevance: number | null } (issue #189)
 
   // Background → Content / Panel
   TREE_READY:           'TREE_READY',
 
+  // Background → offscreen
+  OFFSCREEN_EMBED:      'OFFSCREEN_EMBED',      // payload: { text: string } — request/response; responds { vector: number[] } | { error: string } (issue #161)
+
   // Panel → Content (via Background)
   SCROLL_TO_NODE:       'SCROLL_TO_NODE',
+
+  // Panel → Background
+  CLEAR_TREE_CACHE:     'CLEAR_TREE_CACHE',     // no payload — request/response; removes all cached trees, responds { ok: boolean } (issue #153)
 
   // Popup → Background
   SETTINGS_CHANGE:      'SETTINGS_CHANGE',

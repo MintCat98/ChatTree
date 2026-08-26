@@ -1,0 +1,491 @@
+// Unit tests for the serial summary queue (issue #160): dedup against the
+// node-cache, availability gating / backlog retention, and drain termination.
+//
+// The queue keeps module-level state (`pending`, `draining`), so every case
+// re-imports the module through jest.isolateModulesAsync.
+
+import type { NodeCacheEntry, SummaryQueueStatus } from '@shared/types';
+import type { NodeSummary } from '@shared/summary';
+import { NODE_CACHE_KEY_PREFIX, STORAGE_KEYS } from '@shared/constants';
+
+jest.mock('@background/embed');
+import { embedViaOffscreen } from '@background/embed';
+const mockEmbed = embedViaOffscreen as jest.MockedFunction<typeof embedViaOffscreen>;
+
+type Queue = typeof import('@background/summary-queue');
+
+const SUMMARY: NodeSummary = { keyword: 'kw', question: 'q?', answer: 'a.' };
+const MODEL_JSON = JSON.stringify(SUMMARY);
+
+// --- chrome.storage.local fake (same shape as node-cache.test.ts) ---
+
+const mockStorage = new Map<string, unknown>();
+
+const mockLocalStorage = {
+  get: jest.fn(async (key: string | string[] | null) => {
+    if (key === null) return Object.fromEntries(mockStorage);
+    const keys = Array.isArray(key) ? key : [key];
+    const result: Record<string, unknown> = {};
+    for (const k of keys) {
+      if (mockStorage.has(k)) result[k] = mockStorage.get(k);
+    }
+    return result;
+  }),
+  set: jest.fn(async (items: Record<string, unknown>) => {
+    Object.entries(items).forEach(([k, v]) => mockStorage.set(k, v));
+  }),
+  remove: jest.fn(async (key: string | string[]) => {
+    const keys = Array.isArray(key) ? key : [key];
+    keys.forEach((k) => mockStorage.delete(k));
+  }),
+};
+
+function seedCache(sessionId: string, nodes: Record<string, NodeCacheEntry>): void {
+  mockStorage.set(`${NODE_CACHE_KEY_PREFIX}${sessionId}`, nodes);
+}
+
+function readCache(sessionId: string): Record<string, NodeCacheEntry> {
+  return (mockStorage.get(`${NODE_CACHE_KEY_PREFIX}${sessionId}`) ?? {}) as Record<
+    string,
+    NodeCacheEntry
+  >;
+}
+
+// --- LanguageModel fake ---
+
+interface ModelStub {
+  availability: jest.Mock;
+  create: jest.Mock;
+  prompts: string[];
+}
+
+function installModel(
+  availability: LanguageModelAvailability,
+  reply: string | Error = MODEL_JSON,
+): ModelStub {
+  const prompts: string[] = [];
+  const stub: ModelStub = {
+    availability: jest.fn(async () => availability),
+    create: jest.fn(async () => {
+      const child = {
+        prompt: jest.fn(async (input: string) => {
+          prompts.push(input);
+          if (reply instanceof Error) throw reply;
+          return reply;
+        }),
+        destroy: jest.fn(),
+      };
+      return {
+        prompt: jest.fn(),
+        clone: jest.fn(async () => child),
+        destroy: jest.fn(),
+      };
+    }),
+    prompts,
+  };
+  (globalThis as Record<string, unknown>).LanguageModel = stub;
+  return stub;
+}
+
+// Loads a fresh copy of the queue module (clean pending/draining state).
+async function loadQueue(): Promise<Queue> {
+  let mod!: Queue;
+  await jest.isolateModulesAsync(async () => {
+    mod = await import('@background/summary-queue');
+  });
+  return mod;
+}
+
+// The queue is fire-and-forget: enqueue returns before the async drain runs.
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+const turn = (nodeId: string) => ({ nodeId, question: `q-${nodeId}`, answer: `a-${nodeId}` });
+
+beforeEach(() => {
+  mockStorage.clear();
+  jest.clearAllMocks();
+  (globalThis as Record<string, unknown>).chrome = { storage: { local: mockLocalStorage } };
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
+  mockEmbed.mockReset();
+  mockEmbed.mockResolvedValue([0.1, 0.2, 0.3]);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  delete (globalThis as Record<string, unknown>).LanguageModel;
+});
+
+describe('enqueueSummaryTurns — happy path', () => {
+  it('summarizes a turn and writes it to the node-cache', async () => {
+    const model = installModel('available');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(model.create).toHaveBeenCalledTimes(1);
+    expect(readCache('sess-1')['chatbox-0']).toEqual({
+      summary: SUMMARY,
+      summaryFallback: false,
+      embedding: [0.1, 0.2, 0.3],
+    });
+  });
+
+  it('drains turns one at a time', async () => {
+    const model = installModel('available');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0'), turn('chatbox-2')]);
+    await settle();
+
+    expect(model.create).toHaveBeenCalledTimes(2);
+    expect(Object.keys(readCache('sess-1'))).toEqual(['chatbox-0', 'chatbox-2']);
+  });
+
+  it('flags a truncated fallback when the model never returns valid JSON', async () => {
+    installModel('available', new Error('QuotaExceededError'));
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    const entry = readCache('sess-1')['chatbox-0'];
+    expect(entry.summaryFallback).toBe(true);
+    expect(entry.summary?.answer).toBe('a-chatbox-0');
+  });
+});
+
+describe('dedup against the node-cache', () => {
+  it('skips a turn that already has a real summary', async () => {
+    seedCache('sess-1', { 'chatbox-0': { summary: SUMMARY } });
+    const model = installModel('available');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(model.create).not.toHaveBeenCalled();
+  });
+
+  it('re-summarizes a turn whose stored summary was a truncated fallback', async () => {
+    seedCache('sess-1', { 'chatbox-0': { summary: SUMMARY, summaryFallback: true } });
+    const model = installModel('available');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(model.create).toHaveBeenCalledTimes(1);
+    expect(readCache('sess-1')['chatbox-0'].summaryFallback).toBe(false);
+  });
+
+  it('keeps a sibling field written by another pipeline (#161)', async () => {
+    seedCache('sess-1', { 'chatbox-0': { embedding: [0.42, 0.1] } });
+    installModel('available');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readCache('sess-1')['chatbox-0'].embedding).toEqual([0.42, 0.1]);
+  });
+});
+
+describe('availability gating', () => {
+  it.each(['downloadable', 'downloading', 'unavailable'] as const)(
+    'does not create a session when availability is %s',
+    async (availability) => {
+      const model = installModel(availability);
+      const queue = await loadQueue();
+
+      queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+      await settle();
+
+      expect(model.create).not.toHaveBeenCalled();
+      // The embedding queue does not consult the Prompt API, so it still runs.
+      expect(readCache('sess-1')['chatbox-0']).toEqual({ embedding: [0.1, 0.2, 0.3] });
+    },
+  );
+
+  it('keeps the backlog and resumes once the model becomes available', async () => {
+    // The content script marks a node as sent for the whole visit, so dropping
+    // the backlog here would lose those turns until a reload.
+    const model = installModel('downloading');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0'), turn('chatbox-2')]);
+    await settle();
+    expect(model.create).not.toHaveBeenCalled();
+
+    // Download finished; the next completed turn re-triggers the drain.
+    model.availability.mockResolvedValue('available');
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-4')]);
+    await settle();
+
+    expect(Object.keys(readCache('sess-1'))).toEqual(['chatbox-0', 'chatbox-2', 'chatbox-4']);
+  });
+
+  it('caps the retained backlog, keeping the most recent turns', async () => {
+    const model = installModel('unavailable');
+    const queue = await loadQueue();
+
+    for (let i = 0; i < 60; i++) queue.enqueueSummaryTurns('sess-1', [turn(`chatbox-${i}`)]);
+    await settle();
+
+    model.availability.mockResolvedValue('available');
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-60')]);
+    await settle();
+
+    // The cap is per queue, and only the summary queue was ever held back — so
+    // the retained backlog is measured by what got summarized, not by cache keys
+    // (the embedding queue never stalled and wrote entries for its own turns).
+    const summarized = Object.entries(readCache('sess-1'))
+      .filter(([, entry]) => entry.summary)
+      .map(([id]) => id);
+    expect(summarized).toHaveLength(50);
+    expect(summarized).toContain('chatbox-60');
+    expect(summarized).not.toContain('chatbox-0'); // oldest evicted
+  });
+});
+
+describe('drain termination', () => {
+  it('stops instead of spinning when LanguageModel does not exist', async () => {
+    // Pre-138 / unsupported Chrome: the global is missing entirely. A drain
+    // that re-entered itself on the error path would loop forever here.
+    delete (globalThis as Record<string, unknown>).LanguageModel;
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    // Only the SUMMARY backlog is dead here — the turn is still embedded.
+    expect(readCache('sess-1')['chatbox-0']).toEqual({ embedding: [0.1, 0.2, 0.3] });
+    // Backlog dropped, so a later enqueue does not replay the dead turns.
+    const model = installModel('available');
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-2')]);
+    await settle();
+
+    expect(model.create).toHaveBeenCalledTimes(1);
+    expect(readCache('sess-1')['chatbox-0'].summary).toBeUndefined();
+    expect(readCache('sess-1')['chatbox-2'].summary).toEqual(SUMMARY);
+  });
+
+  it('stops when availability() itself rejects', async () => {
+    const model = installModel('available');
+    model.availability.mockRejectedValue(new Error('model host crashed'));
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(model.availability).toHaveBeenCalledTimes(1);
+    expect(model.create).not.toHaveBeenCalled();
+  });
+
+  it('keeps draining after one turn throws', async () => {
+    const model = installModel('available');
+    model.create
+      .mockRejectedValueOnce(new Error('session create failed'))
+      .mockResolvedValueOnce({
+        prompt: jest.fn(),
+        clone: jest.fn(async () => ({
+          prompt: jest.fn(async () => MODEL_JSON),
+          destroy: jest.fn(),
+        })),
+        destroy: jest.fn(),
+      });
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0'), turn('chatbox-2')]);
+    await settle();
+
+    expect(Object.keys(readCache('sess-1'))).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(readCache('sess-1')['chatbox-0'].summary).toBeUndefined();
+    expect(readCache('sess-1')['chatbox-2'].summary).toEqual(SUMMARY);
+  });
+});
+
+describe('embedding (#161)', () => {
+  it('computes and stores an embedding for a fresh turn', async () => {
+    installModel('available');
+    const queue = await loadQueue();
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(mockEmbed).toHaveBeenCalledWith(
+      expect.stringContaining('User Question:')   // question+answer 결합 텍스트
+    );
+    expect(readCache('sess-1')['chatbox-0'].embedding).toEqual([0.1, 0.2, 0.3]);
+  });
+
+  it('does not recompute when an embedding already exists (dedup)', async () => {
+    seedCache('sess-1', { 'chatbox-0': { embedding: [0.42, 0.1] } });
+    installModel('available');
+    const queue = await loadQueue();
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(mockEmbed).not.toHaveBeenCalled();
+    expect(readCache('sess-1')['chatbox-0'].embedding).toEqual([0.42, 0.1]);
+  });
+});
+
+// The embedding queue is split from the summary queue precisely so that neither
+// the Prompt API gate nor the summary dedup can suppress an embedding. Without
+// the split, every case below silently produced no embedding at all.
+describe('embedding is independent of the summary pipeline (#161)', () => {
+  it('embeds a turn on a Chrome that has no Prompt API at all', async () => {
+    delete (globalThis as Record<string, unknown>).LanguageModel;
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readCache('sess-1')['chatbox-0'].embedding).toEqual([0.1, 0.2, 0.3]);
+  });
+
+  it('backfills an embedding for a turn that was already summarized', async () => {
+    // Turns summarized before #161 shipped: the summary dedup skips them, but
+    // they still need an embedding or relevance stays null forever.
+    seedCache('sess-1', { 'chatbox-0': { summary: SUMMARY } });
+    const model = installModel('available');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(model.create).not.toHaveBeenCalled(); // summary dedup still holds
+    expect(readCache('sess-1')['chatbox-0']).toEqual({
+      summary: SUMMARY,
+      embedding: [0.1, 0.2, 0.3],
+    });
+  });
+
+  it('still summarizes when embedding fails', async () => {
+    mockEmbed.mockRejectedValue(new Error('offscreen document unavailable'));
+    installModel('available');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readCache('sess-1')['chatbox-0'].summary).toEqual(SUMMARY);
+    expect(readCache('sess-1')['chatbox-0'].embedding).toBeUndefined();
+  });
+
+  it('still embeds when summarization fails', async () => {
+    const model = installModel('available');
+    model.create.mockRejectedValue(new Error('session create failed'));
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readCache('sess-1')['chatbox-0']).toEqual({ embedding: [0.1, 0.2, 0.3] });
+  });
+});
+// ---------------------------------------------------------------------------
+// Drain status published to storage (issue #165 indicator)
+// ---------------------------------------------------------------------------
+//
+// The panel has no other view of the queue: it runs in the SW and a single turn
+// can take 30s, so "slow" and "broken" look identical without this. The tests
+// below pin the distinction — status is published ONLY around work that can
+// actually happen.
+
+function readStatus(): SummaryQueueStatus | undefined {
+  return mockStorage.get(STORAGE_KEYS.SUMMARY_STATUS) as SummaryQueueStatus | undefined;
+}
+
+describe('summary drain — status reporting', () => {
+  it('clears any stale status on module load', async () => {
+    // A SW terminated mid-drain leaves active:true behind with nobody to clear
+    // it; a cold start is proof no drain is in flight.
+    mockStorage.set(STORAGE_KEYS.SUMMARY_STATUS, {
+      active: true,
+      startedAt: 1,
+      pending: 7,
+    } satisfies SummaryQueueStatus);
+
+    await loadQueue();
+
+    expect(readStatus()).toEqual({ active: false, startedAt: 0, pending: 0 });
+  });
+
+  it('reports active while draining and idle once done', async () => {
+    installModel('available');
+    const queue = await loadQueue();
+
+    const seen: SummaryQueueStatus[] = [];
+    mockLocalStorage.set.mockImplementation(async (items: Record<string, unknown>) => {
+      Object.entries(items).forEach(([k, v]) => {
+        mockStorage.set(k, v);
+        if (k === STORAGE_KEYS.SUMMARY_STATUS) seen.push(v as SummaryQueueStatus);
+      });
+    });
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(seen.some((s) => s.active)).toBe(true);
+    expect(readStatus()?.active).toBe(false);
+  });
+
+  it('stamps one startedAt across the whole backlog, not per turn', async () => {
+    // The counter answers "how long has the AI been busy", so a 3-turn drain is
+    // one run — re-stamping per turn would reset the display to 0:00 each time.
+    installModel('available');
+    const queue = await loadQueue();
+
+    const active: SummaryQueueStatus[] = [];
+    mockLocalStorage.set.mockImplementation(async (items: Record<string, unknown>) => {
+      Object.entries(items).forEach(([k, v]) => {
+        mockStorage.set(k, v);
+        const status = v as SummaryQueueStatus;
+        if (k === STORAGE_KEYS.SUMMARY_STATUS && status.active) active.push(status);
+      });
+    });
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0'), turn('chatbox-1'), turn('chatbox-2')]);
+    await settle();
+
+    expect(active).toHaveLength(3);
+    expect(new Set(active.map((s) => s.startedAt)).size).toBe(1);
+    // Counts down as the backlog drains, so the UI can show "+n queued".
+    expect(active.map((s) => s.pending)).toEqual([2, 1, 0]);
+  });
+
+  it('never reports active when the Prompt API is missing', async () => {
+    // Backlog is dropped, nothing can run — an indicator here would be exactly
+    // the false "it's working" signal this feature exists to remove.
+    delete (globalThis as Record<string, unknown>).LanguageModel;
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readStatus()?.active).toBe(false);
+  });
+
+  it('never reports active while the model is still downloading', async () => {
+    // Backlog is KEPT here, but no turn is being summarized yet.
+    installModel('downloading');
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readStatus()?.active).toBe(false);
+  });
+
+  it('returns to idle when a turn throws mid-drain', async () => {
+    const model = installModel('available');
+    model.create.mockRejectedValue(new Error('session create failed'));
+    const queue = await loadQueue();
+
+    queue.enqueueSummaryTurns('sess-1', [turn('chatbox-0')]);
+    await settle();
+
+    expect(readStatus()?.active).toBe(false);
+  });
+});

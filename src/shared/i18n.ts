@@ -55,12 +55,34 @@ export interface Messages {
   themeDark: string;
   maxNodes: string;
   maxNodesAria: string;
+  notifyComplete: string;
+  notifyCompleteAria: string;
+  notifyOnLabel: string;
+  notifyOffLabel: string;
+  summaryEnabled: string;
+  summaryEnabledAria: string;
+  summaryOnLabel: string;
+  summaryOffLabel: string;
+  summaryModelPreparing: string;
+  summaryModelDownloading: (percent: number) => string;
+  summaryModelUnavailable: string;
+  summaryModelUnsupported: string;
   language: string;
   languageAria: string;
   langEnglish: string;
   langKorean: string;
+  retention: string;
+  retentionAria: string;
+  retentionDays: (n: number) => string;
+  clearCache: string;
+  clearCacheConfirm: string;
+  clearCacheAria: string;
   resetDefaults: string;
   resetAria: string;
+  panelMode: string;
+  panelModeAria: string;
+  panelModePopup: string;
+  panelModeSidebar: string;
 
   // SearchPanel
   searchPlaceholder: string;
@@ -87,8 +109,14 @@ export interface Messages {
   addBookmark: string;
   removeBookmark: string;
 
+  // HideButton
+  hideNode: string;
+
   // NodeBadge
   branchBadge: (current: number, total: number) => string;
+
+  // CollapsedRunButton
+  expandHidden: (n: number) => string;
 
   // TreeMapCanvas
   treeAria: string;
@@ -97,6 +125,14 @@ export interface Messages {
 
   // PanelShell
   resizeAria: string;
+
+  // InteractiveMap — summary dropdown (issue #165)
+  summaryQuestionLabel: string;
+  summaryAnswerLabel: string;
+  expandSummaryAria: string;
+  collapseSummaryAria: string;
+  summaryRunning: string;
+  summaryQueued: (n: number) => string;
 
   // Popup
   loading: string;
@@ -146,12 +182,34 @@ const en: Messages = {
   themeDark: 'Dark',
   maxNodes: 'Visible nodes',
   maxNodesAria: 'Max visible nodes',
+  notifyComplete: 'Completion alert',
+  notifyCompleteAria: 'Blink the message count when response generation completes',
+  notifyOnLabel: 'On',
+  notifyOffLabel: 'Off',
+  summaryEnabled: 'Node summaries',
+  summaryEnabledAria: 'Summarize each turn on-device to label map nodes by keyword',
+  summaryOnLabel: 'On',
+  summaryOffLabel: 'Off',
+  summaryModelPreparing: 'Preparing the on-device model…',
+  summaryModelDownloading: (percent) => `Downloading the on-device model… ${percent}%`,
+  summaryModelUnavailable: 'The on-device model is unavailable on this device.',
+  summaryModelUnsupported: 'This Chrome version has no built-in AI model.',
   language: 'Language',
   languageAria: 'Language',
   langEnglish: 'English',
   langKorean: '한국어',
+  retention: 'Keep cache',
+  retentionAria: 'Cache retention period',
+  retentionDays: (n) => `${n} days`,
+  clearCache: 'Clear cached trees',
+  clearCacheConfirm: 'Click again to confirm',
+  clearCacheAria: 'Clear all cached trees',
   resetDefaults: 'Reset to default',
   resetAria: 'Reset to default settings',
+  panelMode: 'Panel mode',
+  panelModeAria: 'Panel mode',
+  panelModePopup: 'Popup',
+  panelModeSidebar: 'Sidebar',
 
   // SearchPanel
   searchPlaceholder: 'Search messages...',
@@ -178,8 +236,14 @@ const en: Messages = {
   addBookmark: 'Add bookmark',
   removeBookmark: 'Remove bookmark',
 
+  // HideButton
+  hideNode: 'Hide this message',
+
   // NodeBadge
   branchBadge: (current, total) => `Branch ${current} of ${total}`,
+
+  // CollapsedRunButton
+  expandHidden: (n) => `Show ${n} hidden message${n === 1 ? '' : 's'}`,
 
   // TreeMapCanvas
   treeAria: 'Chat node tree',
@@ -188,6 +252,14 @@ const en: Messages = {
 
   // PanelShell
   resizeAria: 'Resize panel width',
+
+  // InteractiveMap — summary dropdown (issue #165)
+  summaryQuestionLabel: 'Question',
+  summaryAnswerLabel: 'Answer',
+  expandSummaryAria: 'Show summary',
+  collapseSummaryAria: 'Hide summary',
+  summaryRunning: 'Summarizing on-device',
+  summaryQueued: (n) => `+${n} queued`,
 
   // Popup
   loading: 'Loading…',
@@ -237,12 +309,34 @@ const ko: Messages = {
   themeDark: '다크',
   maxNodes: '노드 표시 수',
   maxNodesAria: '노드 표시 수',
+  notifyComplete: '완료 알림',
+  notifyCompleteAria: '응답 생성이 완료되면 메시지 개수를 깜빡여 알림',
+  notifyOnLabel: '켜짐',
+  notifyOffLabel: '꺼짐',
+  summaryEnabled: '노드 요약',
+  summaryEnabledAria: '각 대화를 온디바이스로 요약해 맵 노드를 키워드로 표시',
+  summaryOnLabel: '켜짐',
+  summaryOffLabel: '꺼짐',
+  summaryModelPreparing: '온디바이스 모델 준비 중…',
+  summaryModelDownloading: (percent) => `온디바이스 모델 다운로드 중… ${percent}%`,
+  summaryModelUnavailable: '이 기기에서는 온디바이스 모델을 사용할 수 없습니다.',
+  summaryModelUnsupported: '이 Chrome 버전에는 내장 AI 모델이 없습니다.',
   language: '언어',
   languageAria: '언어',
   langEnglish: 'English',
   langKorean: '한국어',
+  retention: '캐시 보관',
+  retentionAria: '캐시 보관 기간',
+  retentionDays: (n) => `${n}일`,
+  clearCache: '캐시된 트리 삭제',
+  clearCacheConfirm: '한 번 더 클릭하면 삭제',
+  clearCacheAria: '캐시된 트리 전체 삭제',
   resetDefaults: '기본값으로 설정',
   resetAria: '기본값으로 재설정',
+  panelMode: '패널 모드',
+  panelModeAria: '패널 모드',
+  panelModePopup: '팝업',
+  panelModeSidebar: '사이드바',
 
   // SearchPanel
   searchPlaceholder: '메시지 검색...',
@@ -269,8 +363,14 @@ const ko: Messages = {
   addBookmark: '북마크 추가',
   removeBookmark: '북마크 해제',
 
+  // HideButton
+  hideNode: '이 메시지 숨기기',
+
   // NodeBadge
   branchBadge: (current, total) => `브랜치 ${current}/${total}`,
+
+  // CollapsedRunButton
+  expandHidden: (n) => `숨긴 메시지 ${n}개 보기`,
 
   // TreeMapCanvas
   treeAria: '채팅 노드 트리',
@@ -279,6 +379,14 @@ const ko: Messages = {
 
   // PanelShell
   resizeAria: '패널 너비 조절',
+
+  // InteractiveMap — summary dropdown (issue #165)
+  summaryQuestionLabel: '질문',
+  summaryAnswerLabel: '답변',
+  expandSummaryAria: '요약 보기',
+  collapseSummaryAria: '요약 숨기기',
+  summaryRunning: '온디바이스 요약 중',
+  summaryQueued: (n) => `+${n}개 대기`,
 
   // Popup
   loading: '불러오는 중…',
