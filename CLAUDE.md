@@ -76,11 +76,13 @@ Chrome Extension (Manifest V3) that injects a floating tree-map navigation panel
 into **Claude.ai only (beta)**, allowing users to track and jump between chat messages.
 
 - Branch detection: MutationObserver + DOM snapshot diff
-- On-device AI, both opt-in via `summaryEnabled` (default off) and both fed by
-  the same `SUMMARIZE_TURNS` message: summarization via Gemini Nano (#160) and
-  per-turn embeddings via a bundled model in an offscreen document (#161).
-  **Neither is surfaced yet** — summary rendering is #165, relevance-driven
-  layout is #162/#164. See the `running-on-device-ai` skill.
+- On-device AI, both opt-in via `summaryEnabled` (default off, toggled in the
+  panel settings) and both fed by the same `SUMMARIZE_TURNS` message:
+  summarization via Gemini Nano (#160) and per-turn embeddings via a bundled
+  model in an offscreen document (#161). Summaries surface in the Interactive
+  Map as keyword labels + a Q&A dropdown (#165); relevance is still read-only
+  (`GET_RELEVANCE`) with no layout consumer. See the `running-on-device-ai`
+  skill.
 
 ### Tech Stack
 
@@ -194,9 +196,11 @@ changes go through normal PR review.
 | **Phase 2** | Branch detection + branch node visualization | ✅ Done |
 | **Phase 3** | Settings UI (position / direction / opacity / sort) | ✅ Done |
 | **Beta** | Public beta hardening (caching, tagging, search, bug fixes) | 🚧 In progress |
-| **Beta** | On-device node summarization pipeline (#159/#160) — opt-in, no UI yet | 🚧 In progress |
+| **Beta** | Interactive Map — keyword-box tree, viewport controls, edge rewiring (#162/#163/#164) | ✅ Done |
+| **Beta** | On-device node summarization pipeline (#159/#160) — opt-in | ✅ Done |
+| **Beta** | Summary rendering — keyword node labels + Q&A dropdown (#165) | ✅ Done |
 | **Beta** | Per-turn embeddings + on-demand relevance (#189/#161) — no consumer yet | 🚧 In progress |
-| **Future** | Summary rendering (#165), relevance-driven map layout (#162/#164), other platforms | 🔮 Out of scope |
+| **Future** | Relevance-driven map layout, other platforms | 🔮 Out of scope |
 
 ### Definition of Done
 
