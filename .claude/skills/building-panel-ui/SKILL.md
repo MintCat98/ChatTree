@@ -52,7 +52,12 @@ description: Tree map panel UI - component specs, SVG layout constants, Zustand 
     <ControlBar>               ← Settings panel (conditional)
     <TagPanel> / <SearchPanel> ← Collapsible panels below the canvas (conditional)
     <EmptyState>               ← Placeholder when no chatboxes exist
+    <InteractiveMap>           ← d3 keyword-box graph, sidebar mode ONLY (#162-#165)
 ```
+
+`InteractiveMap` is rendered by `PanelShell` into `.nav-sidebar-bottom`, and
+**only when `panelMode === 'sidebar'`** — popup mode has no map at all. Unlike
+everything above it, it is **imperative d3**, not React rendering: see §3-9.
 
 `TreeEdge.tsx` and `BranchLane.tsx` exist in the folder but are **dead code** —
 nothing imports them. Do not extend them.
@@ -278,6 +283,50 @@ interface TooltipProps {
 | Keep cache | Dropdown | 7 / 30 / 90 days (default 30) — tree-cache retention, issue #153 |
 | Clear cached trees | Button | Two-step confirm (re-click within 3 s); clears `tree_*` only, bookmarks/tags untouched |
 | Completion alert | Toggle | On / Off (default On) — blinks the header message count for ~3s when response generation completes (issue #166). Placed directly above Language. |
+| Node summaries | Toggle | On / Off (**default Off**) — opt-in for on-device summarization + embedding (#160/#161). This click is also what starts the Gemini Nano download; a `.nav-control-hint` line below the row reports progress / unavailability. See [messaging-and-storage](../messaging-and-storage/SKILL.md) §9. |
+
+---
+
+### 3-9. `<InteractiveMap>` — d3 inside SVG (#162-#165)
+
+The only imperative component in the panel. One `useEffect` tears the SVG down
+(`svg.selectAll('*').remove()`) and rebuilds it on every change, preserving the
+user's pan/zoom transform across the rebuild. **Anything that changes what is
+drawn must be in that effect's dep array** — tree, `sessionMetadata`,
+`sessionSummaries`, and each open/editing state id.
+
+Node labels come from `node-label.ts` (`nodeLabel`): the #158 summary keyword
+when the turn has one, the truncated prompt when it does not. `KEYWORD_MAX_LENGTH`
+is 20 but the 140px box fits ~18, so the clamp is render-side and applies to
+both sources. `parent-resolver.ts` and `node-label.ts` are split out of the
+component precisely so they can be tested without d3 or a DOM — keep new pure
+logic out of the `.tsx`.
+
+**Four traps, each of which cost real debugging:**
+
+1. **A CSS `transform` on an SVG element overrides its `transform` presentation
+   attribute.** The summary chevron is rotated via `.im-summary-chevron`, the
+   inner `<path>`, *not* the `g.im-summary-toggle` that carries
+   `translate(...)` — rotating the group snaps it to the map origin.
+2. **d3-zoom listens on `mousedown`, not `pointerdown`.** A `pointerdown`
+   `stopPropagation` does not stop a pan. Interactive overlays that are not
+   inside `g.im-node` need their own exclusion in the zoom `.filter()` — that
+   is what the `.im-summary-fo` clause is for. Without it, selecting text in
+   the summary dropdown pans the map and double-clicking a word zooms it.
+3. **`foreignObject` needs an explicit height.** Append at a provisional height,
+   let CSS cap the inner div at `max-height: 100%`, then read `offsetHeight` and
+   shrink to it. Use `offsetHeight` — `getBoundingClientRect()` reports screen px
+   and is wrong at any zoom but 100%, and `scrollHeight` omits the border.
+4. **Node IDs are position-based** (`chatbox-<absIndex>`), so `chatbox-3` exists
+   in most conversations. Any per-node UI state must be cleared on a
+   `sessionId` change or it reopens on an unrelated node in the next chat.
+
+Draw order is paint order: append overlays (the summary dropdown) **after** the
+node groups, since `V_GAP` is only 12px and an open panel always overlaps its
+neighbours.
+
+> Still undocumented here: the internals of viewport controls (#163) and edge
+> rewiring / branch naming (#164). Read `InteractiveMap.tsx` directly for those.
 
 ---
 

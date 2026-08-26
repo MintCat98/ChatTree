@@ -9,9 +9,10 @@
 // drain.
 //
 // This works only because the Prompt API turned out to be reachable from the
-// content script's isolated world (`typeof LanguageModel === 'function'`,
-// checked on claude.ai before this was written). An older or unsupported build
-// has no such global; that is reported as a status, not thrown.
+// content script's isolated world — `typeof LanguageModel === 'function'`,
+// checked on claude.ai in Chrome 151.0.7922.174 (arm64). That is not true of
+// every extension surface, so re-check before moving this code. An older or
+// unsupported build has no such global; that is reported as a status, not thrown.
 
 export type SummaryModelStatus =
   | 'ready' // model is loaded and the queue can summarize

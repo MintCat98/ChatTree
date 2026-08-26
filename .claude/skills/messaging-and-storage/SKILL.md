@@ -152,7 +152,7 @@ hydration source.
 | Key | Owner | Contents |
 |-----|-------|----------|
 | `tree_<sessionId>` | Background (`session-store.ts`) | Cached `TreeData` per conversation — subject to retention purge |
-| `nodeCache_<sessionId>` | `src/shared/node-cache.ts` | Computed per-node data — `summary` (#160), `embedding` (#161). Rebuildable; purged as soon as its `tree_` key is gone |
+| `nodeCache_<sessionId>` | `src/shared/node-cache.ts` | Computed per-node data — `summary` (#160), `embedding` (#161). Rebuildable; purged as soon as its `tree_` key is gone. Read back by the panel via `getSessionSummaries` — §9 |
 | `nodeMetadata` | `src/shared/metadata-storage.ts` | User data, **not** a rebuildable cache — 180-day orphan GC only |
 | `userSettings` | Panel store `mirrorToChromeStorage` | `UserSettings` — `chrome.storage.local`, no localStorage fallback |
 
@@ -206,8 +206,11 @@ per-node payloads: each keystroke-level change rewrites the entire store.
 
 On-device summarization (Gemini Nano) **and** embedding (bundled MiniLM in an
 offscreen document). Opt-in behind `UserSettings.summaryEnabled` (default
-`false`) — one message feeds both. Rendering summaries on nodes is **#165**;
-consuming relevance is **#162/#164**. Nothing is displayed yet.
+`false`, toggled in the panel settings) — one message feeds both.
+
+Summaries are consumed by the Interactive Map (#165): keyword node labels plus a
+Q&A dropdown — see §9. Relevance is still **produced but not consumed**;
+`GET_RELEVANCE` answers on demand and no layout reads it yet.
 
 > Model behavior, offscreen lifecycle, bundling, and the storage budget live in
 > [running-on-device-ai](../running-on-device-ai/SKILL.md). This section covers
@@ -292,8 +295,9 @@ is capped separately (`MAX_PENDING_TURNS`), evicting oldest first.
 > so there is no gap to cover — and on an error path that re-entry is an
 > infinite loop. Regression test: `tests/unit/summary-queue.test.ts`.
 
-No model **download** is triggered: `create()` cannot start one from the SW
-without a user gesture. That belongs with the toggle UI (#165).
+The drain itself triggers no model **download**: `create()` cannot start one
+from the SW without a user gesture. The download is kicked off from the settings
+toggle instead — see §9.
 
 ### Known limitations (follow-ups)
 
@@ -308,6 +312,67 @@ without a user gesture. That belongs with the toggle UI (#165).
   the summary.
 - **SW termination** drops the in-memory queue mid-drain. Self-heals on the next
   visit via node-cache dedup + content re-send.
+
+---
+
+## 9. Reading Summaries Back in the Panel (issue #165)
+
+The pipeline in §8 ends in `chrome.storage.local`. The panel reads it **without
+a message round-trip** — it runs in the content script and already talks to
+storage directly (`getSessionMetadata`, `mirrorToChromeStorage`), so summaries
+follow the same pattern.
+
+| Function (`src/shared/node-cache.ts`) | Use |
+|---|---|
+| `getSessionSummaries(sessionId)` | Hydrate on `TREE_READY`, next to `getSessionMetadata` |
+| `projectSummaries(cache)` | Project a raw session cache — used on the `onChanged` path |
+
+**Both go through the projection on purpose: it drops `embedding` and keeps only
+`summary`.** An embedding is ~2.8 KB per node (see `EMBEDDING_STORED_DECIMALS`)
+and the panel has no use for one. Store the projection in
+`panel-store.sessionSummaries`, never raw `NodeCacheEntry` values.
+
+Two hydration paths, because a summary can arrive either before or after the
+panel is looking at the conversation:
+
+1. **On `TREE_READY`** — `App.tsx` calls `getSessionSummaries` for summaries
+   computed on an earlier visit.
+2. **On `chrome.storage.onChanged`** for `nodeCache_<sessionId>` — this is the
+   only signal the panel gets while the queue drains, since the queue runs in
+   the SW and writes straight to storage. Project `change.newValue` directly
+   rather than re-reading. A **missing** `newValue` (cache clear, §5) must reset
+   the map, not be skipped.
+
+> **Known cost:** `onChanged` materializes the whole session cache — embeddings
+> included — into the content script on every write, i.e. once per completed
+> turn while `summaryEnabled` is on. Accepted over adding a `SUMMARY_READY`
+> broadcast plus a content relay, which would touch four files for the same
+> result. Revisit if the write rate ever stops being per-turn.
+
+`setSessionSummaries` **replaces, never merges.** Node IDs encode absolute turn
+position (`chatbox-<absIndex>`), so `chatbox-3` exists in most conversations and
+a merge would attach the previous conversation's summary to an unrelated node.
+The same hazard is why the Interactive Map clears its open-dropdown state on a
+`sessionId` change.
+
+### The model download lives on the toggle
+
+`summaryEnabled`'s toggle in `ControlBar` is the **only user gesture in the
+entire pipeline**, and Chrome will not start a Gemini Nano download without one.
+So `src/content/panel/summary-model.ts` runs `ensureSummaryModel()` from that
+click; the SW's queue then finds the model available on its next drain.
+
+- The Prompt API **is** reachable from the content script's isolated world
+  (`typeof LanguageModel === 'function'`, verified on claude.ai, Chrome
+  151.0.7922.174 arm64). That is what makes this possible at all — it is not
+  the case for every extension surface, so re-check before moving this code.
+- **Do not `await LanguageModel.availability()` before `create()`.** Awaiting
+  anything first risks spending the transient activation the download needs.
+  An already-available `create()` resolves immediately and the throwaway
+  session is destroyed at once — far cheaper than a lost download.
+- `ensureSummaryModel` never rejects. It resolves `'ready' | 'unavailable' |
+  'unsupported'` so the settings row can explain the outcome instead of
+  silently doing nothing.
 
 ---
 

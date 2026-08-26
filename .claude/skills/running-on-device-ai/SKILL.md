@@ -70,8 +70,10 @@ Other gating rules:
 - `typeof LanguageModel === 'undefined'` is permanent for the browser session →
   drop the summary backlog. Anything else non-`'available'` → stop but **keep**
   the backlog so a finished download resumes without a reload.
-- No model **download** is triggered: `create()` cannot start one from the SW
-  without a user gesture.
+- The drain triggers no model **download**: `create()` cannot start one from the
+  SW without a user gesture. The `summaryEnabled` toggle supplies that gesture
+  instead (`src/content/panel/summary-model.ts`) — see
+  [messaging-and-storage](../messaging-and-storage/SKILL.md) §9.
 - Every turn gets `TIMING.SUMMARY_TIMEOUT_MS` via `AbortSignal`; a failure still
   writes a truncated fallback flagged `summaryFallback: true`.
 
@@ -230,8 +232,10 @@ Embedding side:
   long-form, technical. The direction is unambiguous (0/4 → 3/4 on the
   retrieval probe), but the exact numbers would move on real conversation data.
 
-Summary side — all confirmed during the #158 evaluation and still open. #165
-(rendering) will hit these first:
+Summary side — all confirmed during the #158 evaluation and still open. These
+are now **user-visible**: #165 renders `keyword` as the node label and
+`question`/`answer` in the dropdown, so every item below shows up verbatim in
+the Interactive Map rather than only in storage.
 
 - **Tone drifts.** English output leans first person ("I can…"); Korean mixes
   `합니다체` and `-다체`. The prompt alone does not pin this down.
