@@ -59,6 +59,10 @@ export interface Messages {
   notifyCompleteAria: string;
   notifyOnLabel: string;
   notifyOffLabel: string;
+  summaryEnabled: string;
+  summaryEnabledAria: string;
+  summaryOnLabel: string;
+  summaryOffLabel: string;
   language: string;
   languageAria: string;
   langEnglish: string;
@@ -118,6 +122,12 @@ export interface Messages {
   // PanelShell
   resizeAria: string;
 
+  // InteractiveMap — summary dropdown (issue #165)
+  summaryQuestionLabel: string;
+  summaryAnswerLabel: string;
+  expandSummaryAria: string;
+  collapseSummaryAria: string;
+
   // Popup
   loading: string;
   unsupportedTitle: string;
@@ -170,6 +180,10 @@ const en: Messages = {
   notifyCompleteAria: 'Blink the message count when response generation completes',
   notifyOnLabel: 'On',
   notifyOffLabel: 'Off',
+  summaryEnabled: 'Node summaries',
+  summaryEnabledAria: 'Summarize each turn on-device to label map nodes by keyword',
+  summaryOnLabel: 'On',
+  summaryOffLabel: 'Off',
   language: 'Language',
   languageAria: 'Language',
   langEnglish: 'English',
@@ -229,6 +243,12 @@ const en: Messages = {
   // PanelShell
   resizeAria: 'Resize panel width',
 
+  // InteractiveMap — summary dropdown (issue #165)
+  summaryQuestionLabel: 'Question',
+  summaryAnswerLabel: 'Answer',
+  expandSummaryAria: 'Show summary',
+  collapseSummaryAria: 'Hide summary',
+
   // Popup
   loading: 'Loading…',
   unsupportedTitle: 'This page is not supported',
@@ -281,6 +301,10 @@ const ko: Messages = {
   notifyCompleteAria: '응답 생성이 완료되면 메시지 개수를 깜빡여 알림',
   notifyOnLabel: '켜짐',
   notifyOffLabel: '꺼짐',
+  summaryEnabled: '노드 요약',
+  summaryEnabledAria: '각 대화를 온디바이스로 요약해 맵 노드를 키워드로 표시',
+  summaryOnLabel: '켜짐',
+  summaryOffLabel: '꺼짐',
   language: '언어',
   languageAria: '언어',
   langEnglish: 'English',
@@ -339,6 +363,12 @@ const ko: Messages = {
 
   // PanelShell
   resizeAria: '패널 너비 조절',
+
+  // InteractiveMap — summary dropdown (issue #165)
+  summaryQuestionLabel: '질문',
+  summaryAnswerLabel: '답변',
+  expandSummaryAria: '요약 보기',
+  collapseSummaryAria: '요약 숨기기',
 
   // Popup
   loading: '불러오는 중…',

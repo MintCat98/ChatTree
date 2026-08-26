@@ -1281,3 +1281,79 @@
 .im-disconnect:hover {
   opacity: 1;
 }
+
+/* ─── Interactive Map — summary dropdown (issue #165) ───────────────── */
+
+/* Toggle sits on the box's bottom edge. Unlike the rewire handles it is
+   always visible, so it also reads as "this turn has a summary". */
+.im-summary-toggle {
+  cursor: pointer;
+}
+
+.im-summary-toggle circle {
+  fill: var(--nav-color-bg);
+  stroke: var(--nav-color-node-border);
+  stroke-width: 1;
+}
+
+.im-summary-chevron {
+  fill: none;
+  stroke: var(--nav-color-text-muted);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* Rotated here rather than on .im-summary-toggle: a CSS transform on the
+     group would override its SVG translate() presentation attribute and snap
+     the toggle back to the map origin. The path carries no transform attr, and
+     its bbox is centred on (0,0), so this rotates in place. */
+  transform-origin: center;
+  transition: transform 120ms ease;
+}
+
+.im-summary-toggle:hover circle {
+  stroke: var(--nav-color-accent);
+}
+
+.im-summary-toggle:hover .im-summary-chevron {
+  stroke: var(--nav-color-accent);
+}
+
+/* Open state flips the chevron to point back at the node. */
+.im-summary-toggle.is-open .im-summary-chevron {
+  transform: rotate(180deg);
+}
+
+/* The panel body inside the foreignObject. Height is set on the
+   foreignObject from the measured content, so this scrolls only once the
+   content passes SUMMARY_PANEL_MAX_HEIGHT. */
+.im-summary-panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--nav-spacing-4) var(--nav-spacing-5);
+  background: var(--nav-color-bg);
+  border: var(--nav-border-width) solid var(--nav-color-border);
+  border-radius: var(--nav-radius-md);
+  box-shadow: var(--nav-panel-shadow);
+  font-family: var(--nav-font-family);
+  color: var(--nav-color-text);
+  overflow-wrap: break-word;
+}
+
+.im-summary-row + .im-summary-row {
+  margin-top: var(--nav-spacing-4);
+}
+
+.im-summary-label {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--nav-color-text-muted);
+  margin-bottom: 2px;
+}
+
+.im-summary-text {
+  font-size: 11px;
+  line-height: 1.45;
+}

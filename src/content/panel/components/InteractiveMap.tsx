@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import type { ChatboxNode, NodeMetadata } from '@shared/types';
 import { usePanelStore } from '../store/panel-store';
+import { useMessages } from '../i18n';
 import { scrollToNode } from '../../scroll-navigator';
 import { nodeLabel } from './node-label';
 import { pickParent, wouldCreateCycle } from './parent-resolver';
@@ -28,6 +29,14 @@ const ZOOM_FINE_STEP = 0.05;
 
 const HANDLE_RADIUS = 5;
 const SNAP_RADIUS = 30;
+
+// Summary dropdown (issue #165). Wider than the node box — the Q&A text needs
+// the room the keyword does not. Height is measured from the content and capped
+// here, with the panel scrolling internally past the cap.
+const SUMMARY_TOGGLE_RADIUS = 7;
+const SUMMARY_PANEL_WIDTH = 240;
+const SUMMARY_PANEL_MAX_HEIGHT = 180;
+const SUMMARY_PANEL_GAP = 10; // clears the toggle, which straddles the box edge
 
 function nextLadderStep(current: number, direction: 1 | -1): number {
   if (direction === 1) {
@@ -75,6 +84,7 @@ function bezier(x1: number, y1: number, x2: number, y2: number): string {
 }
 
 export function InteractiveMap() {
+  const t = useMessages();
   const svgRef = useRef<SVGSVGElement | null>(null);
   const tree = usePanelStore((s) => s.tree);
   const sessionMetadata = usePanelStore((s) => s.sessionMetadata);
@@ -95,6 +105,9 @@ export function InteractiveMap() {
   const [zoomPercent, setZoomPercent] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+  // Summary dropdown (#165) — one open at a time. Clicking the same toggle
+  // closes it, clicking another node's switches.
+  const [expandedSummaryId, setExpandedSummaryId] = useState<string | null>(null);
 
   // Zoom helpers wrapped in useCallback so the listener effect has stable refs.
   const zoomTo = useCallback((percent: number) => {
@@ -241,7 +254,15 @@ export function InteractiveMap() {
         if (isSpacePressedRef.current && event.button === 0) return true;
         if (event.button === 0) {
           const target = event.target as Element;
-          return !target.closest('g.im-node') && !target.closest('.im-handle');
+          // .im-summary-fo is not inside g.im-node — it lives in the overlay
+          // position so it can paint over neighbours — so it needs its own
+          // exclusion, or selecting text in an open panel pans the map (and
+          // double-clicking a word zooms it).
+          return (
+            !target.closest('g.im-node') &&
+            !target.closest('.im-handle') &&
+            !target.closest('.im-summary-fo')
+          );
         }
         return false;
       })
@@ -368,7 +389,33 @@ export function InteractiveMap() {
       .attr('dominant-baseline', 'central')
       .text((d) => nodeLabel(d.data.text, sessionSummaries[d.data.id]));
 
-    
+    // Summary dropdown toggle (issue #165) — bottom-center of the box, the one
+    // edge midpoint nothing else claims: both rewire handles and both edge
+    // endpoints sit at NODE_HEIGHT / 2. Rendered only for summarized turns, so
+    // it doubles as the "this node has a summary" indicator.
+    nodeGroup
+      .filter((d) => Boolean(sessionSummaries[d.data.id]))
+      .append('g')
+      .attr('class', 'im-summary-toggle')
+      .classed('is-open', (d) => expandedSummaryId === d.data.id)
+      .attr('transform', `translate(${NODE_WIDTH / 2}, ${NODE_HEIGHT})`)
+      .attr('role', 'button')
+      .attr('aria-label', (d) =>
+        expandedSummaryId === d.data.id ? t.collapseSummaryAria : t.expandSummaryAria,
+      )
+      .on('click', function (event: MouseEvent, d) {
+        // The node body's click handler scrolls the conversation; #165 reserves
+        // that for the body, so the toggle must not bubble into it.
+        event.stopPropagation();
+        setExpandedSummaryId((current) => (current === d.data.id ? null : d.data.id));
+      })
+      .each(function () {
+        const sel = d3.select(this);
+        sel.append('circle').attr('r', SUMMARY_TOGGLE_RADIUS);
+        // Chevron points down when closed; panel.css rotates this path (not
+        // the group, whose transform attribute CSS would override) when open.
+        sel.append('path').attr('class', 'im-summary-chevron').attr('d', 'M-3,-1.5 L0,1.5 L3,-1.5');
+      });
 
     // Left handle (incoming edge target)
     // Connected node: "x" control, click to disconect the incoming edge
@@ -634,6 +681,62 @@ export function InteractiveMap() {
           .text(label);
       });
 
+    // Summary dropdown panel (issue #165). Appended last so it paints over
+    // neighbouring nodes — V_GAP is only 12px, so an open panel always overlaps
+    // whatever sits below it.
+    //
+    // Resolved against `drawable` rather than trusting the state directly: a
+    // branch switch or a hidden-node change can drop the open node from the
+    // tree, and this makes that close the panel instead of stranding it.
+    const openNode = expandedSummaryId
+      ? drawable.find((d) => d.data.id === expandedSummaryId)
+      : undefined;
+    const openSummary = openNode ? sessionSummaries[openNode.data.id] : undefined;
+
+    if (openNode && openSummary) {
+      const nodeX = (openNode.y ?? 0) - minY;
+      const nodeY = (openNode.x ?? 0) - minX;
+
+      // foreignObject rather than an HTML overlay: inside the zoom viewport it
+      // pans and scales with the map for free, the way the branch-name input
+      // above already does.
+      const fo = g
+        .append('foreignObject')
+        .attr('class', 'im-summary-fo')
+        .attr('x', nodeX - (SUMMARY_PANEL_WIDTH - NODE_WIDTH) / 2)
+        .attr('y', nodeY + NODE_HEIGHT + SUMMARY_PANEL_GAP)
+        .attr('width', SUMMARY_PANEL_WIDTH)
+        .attr('height', SUMMARY_PANEL_MAX_HEIGHT);
+
+      // Pan/zoom isolation is handled by the zoom filter's .im-summary-fo
+      // exclusion above, not by a stopPropagation here — the panel is not a
+      // descendant of g.im-node, so its clicks never reach the scroll-to
+      // handler in the first place.
+      const panel = fo.append('xhtml:div' as never).attr('class', 'im-summary-panel');
+
+      const rows: Array<[string, string]> = [
+        [t.summaryQuestionLabel, openSummary.question],
+        [t.summaryAnswerLabel, openSummary.answer],
+      ];
+      for (const [label, text] of rows) {
+        const row = panel.append('xhtml:div' as never).attr('class', 'im-summary-row');
+        row.append('xhtml:div' as never).attr('class', 'im-summary-label').text(label);
+        row.append('xhtml:div' as never).attr('class', 'im-summary-text').text(text);
+      }
+
+      // foreignObject needs an explicit height, so measure the laid-out panel
+      // and shrink to it. panel.css caps it at 100% of the provisional height
+      // set above, so offsetHeight is already clamped to the max and scrolls
+      // internally past it — no second Math.min needed.
+      //
+      // offsetHeight, not getBoundingClientRect: the latter reports screen px
+      // and would be wrong at any zoom level other than 100%. Not scrollHeight
+      // either — that excludes the border this box actually draws.
+      panel.each(function (this: HTMLDivElement) {
+        fo.attr('height', this.offsetHeight);
+      });
+    }
+
       // Detach any drag listeners still attached to window on unmount /
       // before the next effect run. Guards against the component being
       // torn down mid-drag (panel close, session switch).
@@ -643,7 +746,14 @@ export function InteractiveMap() {
         if (up) window.removeEventListener('pointerup', up);
         dragListenersRef.current = { move: null, up: null };
       };
-  }, [tree, sessionMetadata, sessionSummaries, editingLabelId]);
+  }, [tree, sessionMetadata, sessionSummaries, editingLabelId, expandedSummaryId, t]);
+
+  // Close the summary dropdown on a conversation switch. Node IDs encode
+  // absolute turn position, so "chatbox-3" exists in most conversations — the
+  // open panel would otherwise reappear on an unrelated node in the next one.
+  useEffect(() => {
+    setExpandedSummaryId(null);
+  }, [tree?.sessionId]);
 
   // Sync expand state to the parent sidebar-bottom container so it can
   // break out horizontally beyond the sidebar width.

@@ -63,9 +63,9 @@ export function ControlBar() {
   };
   const handleNotifyToggle = () =>
     updateSettings({ notifyOnComplete: !settings.notifyOnComplete });
-  // The control itself lands with the Interactive Map (#165) — the pipeline
-  // (#160) ships behind `summaryEnabled` with no UI to flip it yet.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // Opt-in for the on-device pipeline (#160/#161) that feeds the Interactive
+  // Map's keyword labels and summary dropdowns (#165). Default stays off:
+  // turning it on runs Gemini Nano and the bundled embedding model locally.
   const handleSummaryToggle = () => updateSettings({ summaryEnabled: !settings.summaryEnabled });
   const handlePanelMode = (e: ChangeEvent<HTMLSelectElement>) =>
     updateSettings({ panelMode: e.target.value as UserSettings['panelMode'] });
@@ -192,6 +192,20 @@ export function ControlBar() {
           className="nav-control nav-control-sort"
         >
           {settings.notifyOnComplete ? t.notifyOnLabel : t.notifyOffLabel}
+        </button>
+      </div>
+
+      {/* On-device node summaries (issues #160/#161, surfaced by #165) */}
+      <div className="nav-control-row">
+        <span className="nav-control-label">{t.summaryEnabled}</span>
+        <button
+          type="button"
+          onClick={handleSummaryToggle}
+          aria-label={t.summaryEnabledAria}
+          aria-pressed={settings.summaryEnabled}
+          className="nav-control nav-control-sort"
+        >
+          {settings.summaryEnabled ? t.summaryOnLabel : t.summaryOffLabel}
         </button>
       </div>
 
