@@ -63,6 +63,7 @@ this three-point check and report the result:**
    instructions the user had to spell out? Suggest a new skill (name +
    one-line description). **Never create or modify a skill silently; propose
    it and wait for approval.**
+4. **Markdown docs** - one sentence per line; never hard-wrap a sentence at a column width (tables and code blocks are exempt).
 
 If none apply, skip this — do not mention the check in your summary.
 
