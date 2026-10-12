@@ -29,7 +29,21 @@ function estimateTop(navId: string, container: HTMLElement): number | null {
   return (absIndex / setsize) * container.scrollHeight;
 }
 
-export function scrollToNode(navId: string): void {
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+async function waitForMount(n: number): Promise <Element | null>{
+  const start = performance.now();
+  while (performance.now() - start < 3000) { // wait mount until 3 secs
+    const mounted = document.querySelector(`[data-index="${n}"]`);
+    if(mounted) return mounted;
+    await nextFrame();
+  }
+  return null;
+}
+
+export async function scrollToNode(navId: string): Promise<void> {
   const el = document.querySelector(`[${SELECTORS.NAV_ID_ATTR}="${navId}"]`);
 
   if (el) {
@@ -63,6 +77,20 @@ export function scrollToNode(navId: string): void {
 
   scrollContainer.scrollTo({ top: Math.max(top - 24, 0), behavior: 'smooth' });
 
+  const n = absIndexFromNavId(navId);
+  if (n === null) {
+    console.warn(`[scroll-navigator] invalid navId: ${navId}`);
+    return;
+  }
+  const mountedElement = await waitForMount(n);
+  if (!mountedElement) {
+    console.warn(`[scroll-navigator] mount failed`);
+    return;
+  }
+  const delta = mountedElement.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top - 24;
+  if (Math.abs(delta) > 4) scrollContainer.scrollBy({ top: delta, behavior: 'smooth' });
+  highlight(mountedElement);
+  /*
   setTimeout(() => {
     const mounted = document.querySelector(`[${SELECTORS.NAV_ID_ATTR}="${navId}"]`);
     if (!mounted) return;
@@ -72,6 +100,7 @@ export function scrollToNode(navId: string): void {
     if (Math.abs(delta) > 4) scrollContainer.scrollBy({ top: delta, behavior: 'smooth' });
     highlight(mounted);
   }, TIMING.VIRTUAL_SCROLL_SETTLE);
+  */
 }
 
 // Jump to the very top of the conversation — used by the panel's
