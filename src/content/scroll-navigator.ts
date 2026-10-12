@@ -87,9 +87,10 @@ export async function scrollToNode(navId: string): Promise<void> {
     console.warn(`[scroll-navigator] mount failed`);
     return;
   }
-  const delta = mountedElement.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top - 24;
+  const target = mountedElement.querySelector(SELECTORS.USER_MESSAGE_BUBBLE) ?? mountedElement;
+  const delta = target.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top - 24;
   if (Math.abs(delta) > 4) scrollContainer.scrollBy({ top: delta, behavior: 'smooth' });
-  highlight(mountedElement);
+  highlight(target);
   /*
   setTimeout(() => {
     const mounted = document.querySelector(`[${SELECTORS.NAV_ID_ATTR}="${navId}"]`);
