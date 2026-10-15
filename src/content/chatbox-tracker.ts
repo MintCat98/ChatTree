@@ -18,6 +18,7 @@ export interface BranchInfo {
 interface MountedBubble {
   absIndex: number;
   top: number | null; // absolute scroll offset of the turn wrapper, if exposed
+  setsize: number | null; // total turn count from the turn's own article, if exposed
   text: string;
   branch: BranchInfo;
   answer: string | null; // AI response text, if mounted and not streaming
@@ -54,14 +55,28 @@ function getAbsolutePosition(el: HTMLElement): { absIndex: number | null; top: n
   return { absIndex: null, top: null };
 }
 
+// Total turn count exposed by the virtualized list on the turn's own
+// [role="article"] ancestor. Read per bubble, never document-wide: during an
+// SPA swap the first article in the document can belong to the previous
+// conversation's stale frame, and its setsize would prune this one's tail.
+function getArticleSetsize(el: HTMLElement): number | null {
+  const article = el.closest(SELECTORS.TURN_ARTICLE) as HTMLElement | null;
+  const setsize = parseInt(article?.getAttribute('aria-setsize') ?? '', 10);
+  return isNaN(setsize) || setsize <= 0 ? null : setsize;
+}
+
 // Scans currently mounted bubbles and (re)writes their data-nav-id attributes.
 function scanMounted(): MountedBubble[] {
   const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
   if (!container) return [];
 
-  const bubbles = container.querySelectorAll(SELECTORS.USER_MESSAGE_BUBBLE);
+  // Skip the stale-nav frame (issue #176): its turns belong to the previous
+  // conversation. Answers are filtered too — pairing below is by index, so a
+  // foreign answer would shift every bubble's answer.
+  const isLive = (el: Element): boolean => !el.closest(SELECTORS.INERT_FRAME);
+  const bubbles = [...container.querySelectorAll(SELECTORS.USER_MESSAGE_BUBBLE)].filter(isLive);
   const mounted: MountedBubble[] = [];
-  const answers = [...container.querySelectorAll(SELECTORS.CLAUDE_RESPONSE)];
+  const answers = [...container.querySelectorAll(SELECTORS.CLAUDE_RESPONSE)].filter(isLive);
   const answerTexts = answers.map((el) => {
     // Skip streaming responses
     if (el.closest(`[${SELECTORS.STREAMING_ATTR}="true"]`)) return null;
@@ -82,6 +97,7 @@ function scanMounted(): MountedBubble[] {
     mounted.push({
       absIndex: idx,
       top,
+      setsize: getArticleSetsize(el as HTMLElement),
       text: el.querySelector(SELECTORS.USER_MESSAGE)?.textContent ?? '',
       branch: detectBranch(el as HTMLElement),
       answer: answerTexts[domIndex] ?? null,
@@ -153,13 +169,11 @@ export function seedNodeCache(nodes: ChatboxNode[]): void {
   }
 }
 
-// Total turn count exposed by the virtualized list (aria-setsize on any
-// mounted article — same source scroll-navigator uses for offset estimates).
-// Returns null when the DOM does not expose it.
-function getTurnSetsize(): number | null {
-  const article = document.querySelector(`${SELECTORS.TURN_ARTICLE}[aria-setsize]`);
-  const setsize = parseInt(article?.getAttribute('aria-setsize') ?? '', 10);
-  return isNaN(setsize) || setsize <= 0 ? null : setsize;
+// Turn count of the conversation the scanned bubbles belong to. Null when
+// nothing is mounted or the DOM does not expose it — in both cases there is
+// no trustworthy bound to prune against.
+function getTurnSetsize(mounted: MountedBubble[]): number | null {
+  return mounted.find((m) => m.setsize !== null)?.setsize ?? null;
 }
 
 /**
@@ -177,7 +191,7 @@ export function mergeMountedNodes(): ChatboxNode[] {
   // conversation's still-mounted turns, or a tail from a longer branch. The
   // divergence rule below never catches them (their indices never mount in a
   // shorter conversation), so prune against the DOM's own turn count.
-  const setsize = getTurnSetsize();
+  const setsize = getTurnSetsize(mounted);
   if (setsize !== null) {
     for (const key of [...nodeCache.keys()]) {
       if (key >= setsize) nodeCache.delete(key);

@@ -16,21 +16,28 @@ import { SELECTORS } from '@shared/constants';
 
 // --- minimal DOM fakes ---
 
+type FakeArticle = { getAttribute: (k: string) => string | null };
+
 type FakeEl = {
   getAttribute: (k: string) => string | null;
   setAttribute: (k: string, v: string) => void;
   querySelector: (sel: string) => { textContent: string } | null;
   closest: (sel: string) => unknown;
   parentElement: null;
+  // The '[role="article"]' ancestor carrying aria-setsize — stamped by
+  // makeDocument, since the turn count belongs to the conversation.
+  article: FakeArticle | null;
 };
 
 // Bubble without virtualization ancestors — getAbsolutePosition falls back to
-// DOM order. Pass absIndex/top to fake the '[data-index]' wrapper.
+// DOM order. Pass absIndex/top to fake the '[data-index]' wrapper. `inert`
+// places the bubble inside the stale-nav frame (closest('[inert]') hits).
 function makeBubble(
   navId: string | null,
   text: string,
   absIndex?: number,
   top?: number,
+  opts: { inert?: boolean } = {},
 ): FakeEl {
   const attrs: Record<string, string> = navId ? { 'data-nav-id': navId } : {};
   const wrapper =
@@ -40,14 +47,21 @@ function makeBubble(
           getAttribute: (k: string) => (k === 'data-index' ? String(absIndex) : null),
           style: { top: top === undefined ? '' : `${top}px` },
         };
-  return {
+  const el: FakeEl = {
     getAttribute: (k) => attrs[k] ?? null,
     setAttribute: (k, v) => { attrs[k] = v; },
     querySelector: (sel) =>
       sel === '[data-testid="user-message"]' ? { textContent: text } : null,
-    closest: (sel) => (sel === '[data-index]' ? wrapper : null),
+    closest: (sel) => {
+      if (sel === '[data-index]') return wrapper;
+      if (sel === SELECTORS.TURN_ARTICLE) return el.article;
+      if (sel === SELECTORS.INERT_FRAME) return opts.inert ? {} : null;
+      return null;
+    },
     parentElement: null, // detectBranch sees no wrapper → hasBranch: false
+    article: null,
   };
+  return el;
 }
 
 // Assistant answer element (`.font-claude-response`). `texts` becomes the
@@ -58,10 +72,13 @@ type FakeAnswer = {
   querySelectorAll: (sel: string) => Array<{ textContent: string }>;
 };
 
-function makeAnswer(texts: string[], streaming = false): FakeAnswer {
+function makeAnswer(texts: string[], streaming = false, inert = false): FakeAnswer {
   return {
-    closest: (sel) =>
-      streaming && sel === `[${SELECTORS.STREAMING_ATTR}="true"]` ? {} : null,
+    closest: (sel) => {
+      if (streaming && sel === `[${SELECTORS.STREAMING_ATTR}="true"]`) return {};
+      if (inert && sel === SELECTORS.INERT_FRAME) return {};
+      return null;
+    },
     querySelectorAll: (sel) =>
       sel === SELECTORS.RESPONSE_MARKDOWN ? texts.map((t) => ({ textContent: t })) : [],
   };
@@ -80,13 +97,27 @@ function makeContainer(bubbles: FakeEl[], answers: FakeAnswer[]) {
   };
 }
 
-function makeDocument(bubbles: FakeEl[], setsize?: number, answers: FakeAnswer[] = []) {
+function makeArticle(setsize: number): FakeArticle {
+  return { getAttribute: (k) => (k === 'aria-setsize' ? String(setsize) : null) };
+}
+
+// `setsize` is the turn count of the conversation these bubbles belong to —
+// stamped onto each bubble's '[role="article"]' ancestor, which is where the
+// tracker reads it. `foreignSetsize` fakes an unrelated article elsewhere in
+// the document (the stale-nav frame during an SPA swap); the tracker must
+// never consult it.
+function makeDocument(
+  bubbles: FakeEl[],
+  setsize?: number,
+  answers: FakeAnswer[] = [],
+  foreignSetsize?: number,
+) {
+  for (const b of bubbles) b.article = setsize === undefined ? null : makeArticle(setsize);
   return {
     querySelector: (sel: string) => {
       if (sel === SELECTORS.CHAT_CONTAINER) return makeContainer(bubbles, answers);
-      // Fakes the '[role="article"][aria-setsize]' lookup in getTurnSetsize.
-      if (setsize !== undefined && sel === `${SELECTORS.TURN_ARTICLE}[aria-setsize]`) {
-        return { getAttribute: (k: string) => (k === 'aria-setsize' ? String(setsize) : null) };
+      if (foreignSetsize !== undefined && sel === `${SELECTORS.TURN_ARTICLE}[aria-setsize]`) {
+        return makeArticle(foreignSetsize);
       }
       return null;
     },
@@ -282,6 +313,59 @@ describe('mergeMountedNodes — setsize pruning (SPA cross-session contamination
     const nodes = mergeMountedNodes();
 
     expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2']);
+  });
+
+  it('never prunes against an article the mounted bubbles do not belong to (stale-nav frame)', () => {
+    // Hydrated long conversation; during an SPA swap the previous (short)
+    // conversation's frame is still in the document and exposes its own,
+    // smaller setsize.
+    seedNodeCache([
+      { id: 'chatbox-0', index: 0, text: 'q1', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+      { id: 'chatbox-40', index: 1, text: 'tail', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+    ]);
+
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0)],
+      undefined,
+      [],
+      4,
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-40']);
+  });
+
+  it('does not prune when nothing is mounted', () => {
+    seedNodeCache([
+      { id: 'chatbox-40', index: 0, text: 'tail', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+    ]);
+
+    (global as Record<string, unknown>).document = makeDocument([], undefined, [], 4);
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-40']);
+  });
+});
+
+describe('mergeMountedNodes — stale-nav frame (issue #176)', () => {
+  beforeEach(() => resetNodeCache());
+
+  it('skips bubbles and answers inside an inert frame', () => {
+    const stale = makeBubble(null, 'prev-conversation', 0, undefined, { inert: true });
+    const live = makeBubble(null, 'q1', 2);
+    (global as Record<string, unknown>).document = makeDocument(
+      [stale, live],
+      undefined,
+      [makeAnswer(['prev-answer'], false, true), makeAnswer(['a1'])],
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-2']);
+    // Answer pairing is by index — the foreign answer must not shift it.
+    expect(getCachedAnswer('chatbox-2')).toBe('a1');
+    // Not tagged either: a stale bubble must never become a scroll target.
+    expect(stale.getAttribute('data-nav-id')).toBeNull();
+    expect(live.getAttribute('data-nav-id')).toBe('chatbox-2');
   });
 });
 
