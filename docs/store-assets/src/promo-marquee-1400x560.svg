@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="1400" height="560" viewBox="0 0 1400 560" font-family="Inter, 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif">
+  <title>ChatTree — large promotional tile (1400x560)</title>
+  <desc>Placeholder large promotional tile (marquee) for the Microsoft Edge Add-ons / Chrome Web Store listing. Replace before submission.</desc>
+  <defs>
+    <filter id="soft-shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#3c2d1e" flood-opacity="0.10"/>
+    </filter>
+    <filter id="tight-shadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#3c2d1e" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+  <rect width="1400" height="560" fill="#f5f2ec"/>
+  <circle cx="1330" cy="-40" r="330" fill="#ffffff" opacity="0.55"/>
+  <circle cx="60" cy="540" r="200" fill="#d97757" opacity="0.06"/>
+  <image x="92" y="128" width="88" height="88" href="data:image/png;base64,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" xlink:href="data:image/png;base64,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"/>
+  <text x="204" y="200" font-size="76" font-weight="700" letter-spacing="-1.5" fill="#2a2723">ChatTree</text>
+  <rect x="206" y="222" width="104" height="5" rx="2.5" fill="#d97757"/>
+  <text x="92" y="292" font-size="32" fill="#57534e">Navigate your AI conversations</text>
+  <text x="92" y="332" font-size="32" fill="#57534e">like a map, not a scroll.</text>
+  <text x="92" y="366" font-size="18" fill="#8d8881">An interactive tree map for claude.ai, right inside the page.</text>
+  <g>
+    <rect x="92" y="386" width="196" height="40" rx="20.0" fill="#ffffff" stroke="#e9e5df"/>
+    <text x="190.0" y="411" font-size="15" fill="#57534e" text-anchor="middle">Tree-map navigator</text>
+  </g>
+  <g>
+    <rect x="300" y="386" width="168" height="40" rx="20.0" fill="#ffffff" stroke="#e9e5df"/>
+    <text x="384.0" y="411" font-size="15" fill="#57534e" text-anchor="middle">Hover preview</text>
+  </g>
+  <g>
+    <rect x="480" y="386" width="152" height="40" rx="20.0" fill="#ffffff" stroke="#e9e5df"/>
+    <text x="556.0" y="411" font-size="15" fill="#57534e" text-anchor="middle">Click to jump</text>
+  </g>
+  <g>
+    <rect x="92" y="438" width="176" height="40" rx="20.0" fill="#ffffff" stroke="#e9e5df"/>
+    <text x="180.0" y="463" font-size="15" fill="#57534e" text-anchor="middle">Branch tracking</text>
+  </g>
+  <g>
+    <rect x="280" y="438" width="218" height="40" rx="20.0" fill="#ffffff" stroke="#e9e5df"/>
+    <text x="389.0" y="463" font-size="15" fill="#57534e" text-anchor="middle">Search &#183; bookmark &#183; tag</text>
+  </g>
+  <g id="product-mock" transform="translate(772,96)">
+    <rect x="0" y="0" width="540" height="368" rx="18" fill="#ffffff" stroke="#e9e5df" filter="url(#soft-shadow)"/>
+    <path d="M0 44 H540" stroke="#efece7" stroke-width="1"/>
+    <circle cx="26" cy="22" r="4.5" fill="#d9d4cb"/>
+    <circle cx="42" cy="22" r="4.5" fill="#d9d4cb"/>
+    <circle cx="58" cy="22" r="4.5" fill="#d9d4cb"/>
+    <rect x="80" y="12" width="230" height="20" rx="10" fill="#f5f2ec"/>
+    <text x="94" y="26" font-size="10" fill="#8d8881">claude.ai/chat/&#8226;&#8226;&#8226;</text>
+    <rect x="28" y="70" width="250" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="90" width="196" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="124" width="210" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="144" width="264" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="164" width="176" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="200" width="236" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="220" width="190" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="254" width="258" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="274" width="214" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="294" width="168" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="328" width="240" height="10" rx="5.0" fill="#f7f5f1"/>
+    <rect x="28" y="112" width="4" height="72" rx="2" fill="#d97757" opacity="0.35"/>
+    <g id="panel" transform="translate(356,60)">
+      <rect x="0" y="0" width="160" height="284" rx="14" fill="#ffffff" stroke="#e9e5df" filter="url(#tight-shadow)"/>
+      <text x="14" y="24" font-size="11" font-weight="600" fill="#2a2723">ChatTree</text>
+      <rect x="112" y="12" width="34" height="16" rx="8" fill="#d97757" opacity="0.12"/>
+      <text x="129" y="24" font-size="9" fill="#d97757" text-anchor="middle">8</text>
+      <path d="M0 38 H160" stroke="#efece7"/>
+      <path d="M30 73 L30 89" stroke="#e4e0d9" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="30" cy="62" r="11" fill="#ffffff" stroke="#d9d4cb" stroke-width="2"/>
+      <text x="30" y="65.5" font-size="9" fill="#8d8881" text-anchor="middle">3</text>
+    <rect x="50" y="58" width="96" height="8" rx="4.0" fill="#f7f5f1"/>
+      <path d="M30 111 L30 127" stroke="#e4e0d9" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="30" cy="100" r="11" fill="#ffffff" stroke="#d9d4cb" stroke-width="2"/>
+      <text x="30" y="103.5" font-size="9" fill="#8d8881" text-anchor="middle">4</text>
+    <rect x="50" y="96" width="84" height="8" rx="4.0" fill="#f7f5f1"/>
+      <path d="M30 149 L30 165" stroke="#e4e0d9" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="30" cy="138" r="11" fill="#ffffff" stroke="#d9d4cb" stroke-width="2"/>
+      <text x="30" y="141.5" font-size="9" fill="#8d8881" text-anchor="middle">5</text>
+    <rect x="50" y="134" width="96" height="8" rx="4.0" fill="#f7f5f1"/>
+      <path d="M30 187 L30 203" stroke="#e4e0d9" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="30" cy="176" r="11" fill="#ffffff" stroke="#d9d4cb" stroke-width="2"/>
+      <text x="30" y="179.5" font-size="9" fill="#8d8881" text-anchor="middle">6</text>
+    <rect x="50" y="172" width="84" height="8" rx="4.0" fill="#f7f5f1"/>
+      <path d="M30 225 L30 241" stroke="#e4e0d9" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="30" cy="214" r="11" fill="#ffffff" stroke="#d9d4cb" stroke-width="2"/>
+      <text x="30" y="217.5" font-size="9" fill="#8d8881" text-anchor="middle">7</text>
+    <rect x="50" y="210" width="96" height="8" rx="4.0" fill="#f7f5f1"/>
+      <rect x="10" y="239" width="140" height="26" rx="8" fill="#d97757" opacity="0.10"/>
+      <circle cx="30" cy="252" r="11" fill="#d97757"/>
+      <text x="30" y="255.5" font-size="9" fill="#ffffff" text-anchor="middle">8</text>
+    <rect x="50" y="248" width="84" height="8" rx="4.0" fill="#f7f5f1"/>
+      <path d="M41 138 L62 138" stroke="#d97757" stroke-width="2" stroke-dasharray="3 3" opacity="0.8"/>
+    </g>
+  </g>
+  <!-- ↓↓↓ delete this group when the asset is final ↓↓↓ -->
+  <g id="placeholder-badge">
+    <rect x="92" y="496" width="250" height="30" rx="15.0" fill="none" stroke="#8d8881" stroke-dasharray="4 3"/>
+    <text x="217.0" y="515.0" font-size="10" letter-spacing="1.2" fill="#8d8881" text-anchor="middle">PLACEHOLDER &#183; NOT FOR SUBMISSION</text>
+  </g>
+  <!-- ↑↑↑ delete this group when the asset is final ↑↑↑ -->
+</svg>
