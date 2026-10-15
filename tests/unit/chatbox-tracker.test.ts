@@ -12,6 +12,7 @@ import {
   reloadFromNode,
   mutationsMountTurn,
   mountedDomMatchesCache,
+  detectBranch,
 } from '@content/chatbox-tracker';
 import type { ChatboxNode } from '@shared/types';
 import { SELECTORS } from '@shared/constants';
@@ -597,6 +598,47 @@ describe('seedNodeCache (issue #152 hydration)', () => {
 
     expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2']);
     expect(nodes[1].text).toBe('new-branch');
+  });
+});
+
+describe('detectBranch', () => {
+  // A bubble whose parent holds the "Message actions" wrapper. `indicator`
+  // is the BRANCH_INDICATOR element's text; `wrapperText` the wrapper's own
+  // textContent (what is left to read when the indicator class chain drifts).
+  function bubbleWith(wrapper: { indicator?: string; wrapperText?: string } | null): HTMLElement {
+    const wrapperEl =
+      wrapper === null
+        ? null
+        : {
+            textContent: wrapper.wrapperText ?? '',
+            querySelector: (sel: string) =>
+              sel === SELECTORS.BRANCH_INDICATOR && wrapper.indicator !== undefined
+                ? { textContent: wrapper.indicator }
+                : null,
+          };
+    return {
+      parentElement: {
+        querySelector: (sel: string) => (sel === SELECTORS.BRANCH_ACTIONS_WRAPPER ? wrapperEl : null),
+      },
+    } as unknown as HTMLElement;
+  }
+
+  it('reports no branch when the actions wrapper is absent', () => {
+    expect(detectBranch(bubbleWith(null))).toEqual({ hasBranch: false, current: 1, total: 1 });
+  });
+
+  it('parses the indicator element', () => {
+    expect(detectBranch(bubbleWith({ indicator: '2 / 3' }))).toEqual({ hasBranch: true, current: 2, total: 3 });
+  });
+
+  it('falls back to the wrapper text when the indicator class chain no longer matches', () => {
+    expect(detectBranch(bubbleWith({ wrapperText: 'Edit Copy ‹ 2 / 3 ›' }))).toEqual({
+      hasBranch: true, current: 2, total: 3,
+    });
+  });
+
+  it('reads a single branch when the wrapper carries no "N / M"', () => {
+    expect(detectBranch(bubbleWith({ wrapperText: 'Edit Copy' }))).toEqual({ hasBranch: true, current: 1, total: 1 });
   });
 });
 

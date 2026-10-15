@@ -304,15 +304,17 @@ export function detectBranch(el: HTMLElement): BranchInfo {
   const wrapper = el.parentElement?.querySelector(SELECTORS.BRANCH_ACTIONS_WRAPPER);
   if (!wrapper) return { hasBranch: false, current: 1, total: 1 };
 
-  // BRANCH_INDICATOR includes text like "[current branch #]/[Total # of branch]"
+  // The indicator reads "[current branch #] / [total # of branches]".
+  // BRANCH_INDICATOR is a Tailwind class chain that can drift, so it is only
+  // the first place to look — the wrapper's own text carries the same "N / M"
+  // and nothing else in the actions bar matches the pattern.
   const indicator = wrapper.querySelector(SELECTORS.BRANCH_INDICATOR);
-  const text = indicator?.textContent ?? ''; 
-  const [n, m] = text.split('/').map(Number);
+  const match = (indicator ?? wrapper).textContent?.match(/(\d+)\s*\/\s*(\d+)/);
 
   // There won't be any texts if this chat has single branch
-  if (!n || !m) return { hasBranch: true, current: 1, total: 1 };
+  if (!match) return { hasBranch: true, current: 1, total: 1 };
 
-  return { hasBranch: true, current: n, total: m };
+  return { hasBranch: true, current: Number(match[1]), total: Number(match[2]) };
 }
 
 /**
