@@ -121,6 +121,13 @@ The stored tree survives new windows, tab reloads, and browser restarts
 truncated. `CHAT_PAGE_ENTERED` must **not** clear the stored tree — it is the
 hydration source.
 
+**Nothing is persisted until the DOM is trusted.**
+Every dispatch after hydration is written back via `TREE_UPDATE`, so one scan of the wrong DOM overwrites the stored tree and the truncation survives reloads.
+After an SPA navigation the previous conversation's frame stays mounted and keeps mutating, so `observer.ts` scans only once `domTrusted` is restored: a live user bubble mounted (`mutationsMountTurn`), or — once `GET_STORED_TREE` settled — the mounted DOM does not contradict the seeded cache (`mountedDomMatchesCache`).
+The cache-match fallback must not run before hydration settles, because an empty cache vacuously matches the stale frame.
+Until trust is restored the panel is fed `getCachedNodes()`, never a scan.
+See [analyzing-claude-dom](../analyzing-claude-dom/SKILL.md) §3 and §7.
+
 ---
 
 ## 5. Retention & Cache Clear (issue #153)

@@ -32,7 +32,8 @@ description: Claude.ai DOM structure, selectors, chatbox ID assignment, and Muta
 
 | Role | Selector | Notes |
 |------|----------|-------|
-| Chat container (code: `SELECTORS.CHAT_CONTAINER`) | `#main-content, main` | Bootstrap wait + MutationObserver root. Two claude.ai variants coexist (2026-07 nav rework): legacy pages have `#main-content`; new pages dropped it and wrap turns in `[data-testid="chat-stale-nav-frame"]` under `<main>` |
+| Chat container (code: `SELECTORS.CHAT_CONTAINER`) | `#main-content, main` | Bootstrap wait + MutationObserver root. Two claude.ai variants coexist (2026-07 nav rework): legacy pages have `#main-content`; new pages dropped it and wrap turns in `[data-testid="chat-stale-nav-frame"]` under `<main>`. During an SPA swap the previous conversation's frame stays mounted under `<main>` — see §7 |
+| Stale frame (code: `SELECTORS.INERT_FRAME`) | `[inert]` | Subtree of the previous conversation kept during an SPA swap. `scanMounted` skips bubbles and answers inside it |
 | Scroll area | `div.overflow-y-auto` (first inside container) | `scrollIntoView` target |
 
 ### 2-2. User Chatbox (Human Turn)
@@ -126,6 +127,14 @@ Rules:
   turns virtualized out of the DOM stay in the tree. The cache resets on
   conversation change and invalidates past a divergence point (see the
   [detecting-branches skill](../detecting-branches/SKILL.md) §5).
+- Cached turns at indices `>= aria-setsize` are pruned as contamination.
+  The setsize is read from a scanned bubble's **own** `[role="article"]` ancestor, never document-wide: during an SPA swap the first article in the document can belong to the stale frame, and its smaller setsize would prune this conversation's tail.
+  With nothing mounted there is no trustworthy bound and nothing is pruned.
+- Bubbles and answers inside `SELECTORS.INERT_FRAME` are skipped.
+  Answers must be skipped too, because answer pairing is by mounted index and a foreign answer would shift every pairing.
+- After an SPA navigation the observer does not scan until the DOM is trusted (`observer.ts` `domTrusted`).
+  Trust comes from `mutationsMountTurn` (a live user bubble mounted) or, once hydration settled, from `mountedDomMatchesCache` (nothing mounted contradicts the hydrated cache).
+  A plain childList mutation is not proof: the stale frame keeps mutating after the URL flips.
 - The turn's absolute `top` offset is cached alongside each node for
   scroll-navigation to unmounted turns (§5).
 
@@ -244,6 +253,8 @@ window.addEventListener('locationchange', () => {
 |------|-------------|
 | **CSS class instability** | Tailwind-based hashed class names may change → prefer `data-testid` |
 | **Long conversations are virtualized** | Off-screen turns are removed from the DOM and remount as fresh elements — never persist references or reuse injected attributes across scans; derive identity from absolute position (§3) |
+| **Stale frame during SPA navigation** | The previous conversation's turns stay mounted under `<main>` while the next one renders, and keep producing mutations. Scanning them merges foreign turns, prunes against a foreign `aria-setsize`, and diverges the hydrated cache at index 0 — which then gets persisted. Skip `[inert]` subtrees and gate scanning on `domTrusted` (§3) |
+| **Actions bar is per turn** | `[aria-label="Message actions"]` exists on user *and* assistant turns of every mounted turn (verified 2026-10, no hover needed). Its text also carries the message date, so never regex the whole bar for `N / M` — read the indicator element, else the element after the "previous version" button |
 | **No direct branch access** | DOM for other branches is not rendered outside the active branch |
 | **DOM changes during streaming** | MutationObserver events fire excessively during AI response streaming → debouncing required |
 | **No Shadow DOM** | Claude.ai does not use Shadow DOM; standard selectors work |
