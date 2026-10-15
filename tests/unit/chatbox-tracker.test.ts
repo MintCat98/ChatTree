@@ -603,18 +603,26 @@ describe('seedNodeCache (issue #152 hydration)', () => {
 
 describe('detectBranch', () => {
   // A bubble whose parent holds the "Message actions" wrapper. `indicator`
-  // is the BRANCH_INDICATOR element's text; `wrapperText` the wrapper's own
-  // textContent (what is left to read when the indicator class chain drifts).
-  function bubbleWith(wrapper: { indicator?: string; wrapperText?: string } | null): HTMLElement {
+  // is the BRANCH_INDICATOR element's text; `afterPrevBtn` the text of the
+  // element following the "previous version" button (the fallback when the
+  // indicator class chain drifts); `wrapperText` the wrapper's own text.
+  function bubbleWith(
+    wrapper: { indicator?: string; afterPrevBtn?: string; wrapperText?: string } | null,
+  ): HTMLElement {
     const wrapperEl =
       wrapper === null
         ? null
         : {
             textContent: wrapper.wrapperText ?? '',
-            querySelector: (sel: string) =>
-              sel === SELECTORS.BRANCH_INDICATOR && wrapper.indicator !== undefined
-                ? { textContent: wrapper.indicator }
-                : null,
+            querySelector: (sel: string) => {
+              if (sel === SELECTORS.BRANCH_INDICATOR && wrapper.indicator !== undefined) {
+                return { textContent: wrapper.indicator };
+              }
+              if (sel === SELECTORS.BRANCH_PREV_BTN && wrapper.afterPrevBtn !== undefined) {
+                return { nextElementSibling: { textContent: wrapper.afterPrevBtn } };
+              }
+              return null;
+            },
           };
     return {
       parentElement: {
@@ -631,14 +639,18 @@ describe('detectBranch', () => {
     expect(detectBranch(bubbleWith({ indicator: '2 / 3' }))).toEqual({ hasBranch: true, current: 2, total: 3 });
   });
 
-  it('falls back to the wrapper text when the indicator class chain no longer matches', () => {
-    expect(detectBranch(bubbleWith({ wrapperText: 'Edit Copy ‹ 2 / 3 ›' }))).toEqual({
+  it('falls back to the element after the "previous version" button when the indicator class chain no longer matches', () => {
+    expect(detectBranch(bubbleWith({ afterPrevBtn: '2/3', wrapperText: 'Jul 1 ‹ 2/3 ›' }))).toEqual({
       hasBranch: true, current: 2, total: 3,
     });
   });
 
-  it('reads a single branch when the wrapper carries no "N / M"', () => {
-    expect(detectBranch(bubbleWith({ wrapperText: 'Edit Copy' }))).toEqual({ hasBranch: true, current: 1, total: 1 });
+  it('reads a single branch when neither indicator nor navigation buttons exist', () => {
+    expect(detectBranch(bubbleWith({ wrapperText: 'Edit Copy Jul 1' }))).toEqual({ hasBranch: true, current: 1, total: 1 });
+  });
+
+  it('never reads a slash-formatted message date in the wrapper as a branch', () => {
+    expect(detectBranch(bubbleWith({ wrapperText: 'Edit Copy 1/7/2026' }))).toEqual({ hasBranch: true, current: 1, total: 1 });
   });
 });
 

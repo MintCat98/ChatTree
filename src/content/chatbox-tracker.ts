@@ -306,10 +306,14 @@ export function detectBranch(el: HTMLElement): BranchInfo {
 
   // The indicator reads "[current branch #] / [total # of branches]".
   // BRANCH_INDICATOR is a Tailwind class chain that can drift, so it is only
-  // the first place to look — the wrapper's own text carries the same "N / M"
-  // and nothing else in the actions bar matches the pattern.
-  const indicator = wrapper.querySelector(SELECTORS.BRANCH_INDICATOR);
-  const match = (indicator ?? wrapper).textContent?.match(/(\d+)\s*\/\s*(\d+)/);
+  // the first place to look — the fallback is the element right after the
+  // "previous version" button (stable aria-label), which is where the
+  // indicator sits. Never the whole wrapper: it also carries the message
+  // date, which some locales format as "1/7".
+  const indicator =
+    wrapper.querySelector(SELECTORS.BRANCH_INDICATOR) ??
+    wrapper.querySelector(SELECTORS.BRANCH_PREV_BTN)?.nextElementSibling;
+  const match = indicator?.textContent?.match(/(\d+)\s*\/\s*(\d+)/);
 
   // There won't be any texts if this chat has single branch
   if (!match) return { hasBranch: true, current: 1, total: 1 };
