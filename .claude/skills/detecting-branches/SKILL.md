@@ -186,6 +186,18 @@ Turns *before* the switch point match their cached state, so they are
 effectively preserved; only the rewritten tail is replaced. The same
 divergence rule also covers message edits detected outside the branch watcher.
 
+**An unreadable state is not divergence.**
+Dropping the tail on every mismatch truncated the tree whenever a turn was merely unreadable, so two reads are treated as inconclusive and keep the cached values:
+
+- Empty `user-message` text — edit mode (textarea replaces the text) or mid-render.
+  Text diverges only when both the cached and the mounted text are non-empty and differ, and an empty read never overwrites a known text.
+- A `1 / 1` branch read while the cache holds `branchTotal > 1` — `detectBranch`'s no-indicator default.
+  claude.ai never collapses branches back to one, so this can only mean the indicator was not readable; the cached branch fields are kept.
+
+A real switch (`2 / 3 → 3 / 3`) or a newly created branch (`1 / 1 → 2 / 2`) still diverges.
+`detectBranch` itself reads the indicator element first and falls back to the element after the "previous version" button; it never regexes the whole actions bar, which also carries the message date.
+Regression tests: `tests/unit/chatbox-tracker.test.ts`, *"unreadable turn state is not divergence"* and *"detectBranch"*.
+
 > ⚠️ `reloadFromNode()` still exists in `chatbox-tracker.ts` but is legacy —
 > no production caller remains (only tests and `_test-tracker.ts`).
 

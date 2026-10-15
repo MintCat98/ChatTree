@@ -10,29 +10,52 @@ import {
   getCachedAnswer,
   absIndexFromNavId,
   reloadFromNode,
+  mutationsMountTurn,
+  mountedDomMatchesCache,
+  detectBranch,
 } from '@content/chatbox-tracker';
 import type { ChatboxNode } from '@shared/types';
 import { SELECTORS } from '@shared/constants';
 
 // --- minimal DOM fakes ---
 
+type FakeArticle = { getAttribute: (k: string) => string | null };
+
 type FakeEl = {
   getAttribute: (k: string) => string | null;
   setAttribute: (k: string, v: string) => void;
   querySelector: (sel: string) => { textContent: string } | null;
   closest: (sel: string) => unknown;
-  parentElement: null;
+  // detectBranch looks for the actions wrapper on the parent. null → no
+  // wrapper → hasBranch: false, 1 / 1.
+  parentElement: { querySelector: (sel: string) => unknown } | null;
+  // The '[role="article"]' ancestor carrying aria-setsize — stamped by
+  // makeDocument, since the turn count belongs to the conversation.
+  article: FakeArticle | null;
 };
 
 // Bubble without virtualization ancestors — getAbsolutePosition falls back to
-// DOM order. Pass absIndex/top to fake the '[data-index]' wrapper.
+// DOM order. Pass absIndex/top to fake the '[data-index]' wrapper. `inert`
+// places the bubble inside the stale-nav frame (closest('[inert]') hits).
+// `branch` is the indicator text ("2 / 3") shown in the actions wrapper.
 function makeBubble(
   navId: string | null,
   text: string,
   absIndex?: number,
   top?: number,
+  opts: { inert?: boolean; branch?: string } = {},
 ): FakeEl {
   const attrs: Record<string, string> = navId ? { 'data-nav-id': navId } : {};
+  const indicator = opts.branch === undefined ? null : { textContent: opts.branch };
+  const parentElement =
+    opts.branch === undefined
+      ? null
+      : {
+          querySelector: (sel: string) =>
+            sel === SELECTORS.BRANCH_ACTIONS_WRAPPER
+              ? { querySelector: (s: string) => (s === SELECTORS.BRANCH_INDICATOR ? indicator : null) }
+              : null,
+        };
   const wrapper =
     absIndex === undefined
       ? null
@@ -40,14 +63,21 @@ function makeBubble(
           getAttribute: (k: string) => (k === 'data-index' ? String(absIndex) : null),
           style: { top: top === undefined ? '' : `${top}px` },
         };
-  return {
+  const el: FakeEl = {
     getAttribute: (k) => attrs[k] ?? null,
     setAttribute: (k, v) => { attrs[k] = v; },
     querySelector: (sel) =>
       sel === '[data-testid="user-message"]' ? { textContent: text } : null,
-    closest: (sel) => (sel === '[data-index]' ? wrapper : null),
-    parentElement: null, // detectBranch sees no wrapper → hasBranch: false
+    closest: (sel) => {
+      if (sel === '[data-index]') return wrapper;
+      if (sel === SELECTORS.TURN_ARTICLE) return el.article;
+      if (sel === SELECTORS.INERT_FRAME) return opts.inert ? {} : null;
+      return null;
+    },
+    parentElement,
+    article: null,
   };
+  return el;
 }
 
 // Assistant answer element (`.font-claude-response`). `texts` becomes the
@@ -58,10 +88,13 @@ type FakeAnswer = {
   querySelectorAll: (sel: string) => Array<{ textContent: string }>;
 };
 
-function makeAnswer(texts: string[], streaming = false): FakeAnswer {
+function makeAnswer(texts: string[], streaming = false, inert = false): FakeAnswer {
   return {
-    closest: (sel) =>
-      streaming && sel === `[${SELECTORS.STREAMING_ATTR}="true"]` ? {} : null,
+    closest: (sel) => {
+      if (streaming && sel === `[${SELECTORS.STREAMING_ATTR}="true"]`) return {};
+      if (inert && sel === SELECTORS.INERT_FRAME) return {};
+      return null;
+    },
     querySelectorAll: (sel) =>
       sel === SELECTORS.RESPONSE_MARKDOWN ? texts.map((t) => ({ textContent: t })) : [],
   };
@@ -80,13 +113,27 @@ function makeContainer(bubbles: FakeEl[], answers: FakeAnswer[]) {
   };
 }
 
-function makeDocument(bubbles: FakeEl[], setsize?: number, answers: FakeAnswer[] = []) {
+function makeArticle(setsize: number): FakeArticle {
+  return { getAttribute: (k) => (k === 'aria-setsize' ? String(setsize) : null) };
+}
+
+// `setsize` is the turn count of the conversation these bubbles belong to —
+// stamped onto each bubble's '[role="article"]' ancestor, which is where the
+// tracker reads it. `foreignSetsize` fakes an unrelated article elsewhere in
+// the document (the stale-nav frame during an SPA swap); the tracker must
+// never consult it.
+function makeDocument(
+  bubbles: FakeEl[],
+  setsize?: number,
+  answers: FakeAnswer[] = [],
+  foreignSetsize?: number,
+) {
+  for (const b of bubbles) b.article = setsize === undefined ? null : makeArticle(setsize);
   return {
     querySelector: (sel: string) => {
       if (sel === SELECTORS.CHAT_CONTAINER) return makeContainer(bubbles, answers);
-      // Fakes the '[role="article"][aria-setsize]' lookup in getTurnSetsize.
-      if (setsize !== undefined && sel === `${SELECTORS.TURN_ARTICLE}[aria-setsize]`) {
-        return { getAttribute: (k: string) => (k === 'aria-setsize' ? String(setsize) : null) };
+      if (foreignSetsize !== undefined && sel === `${SELECTORS.TURN_ARTICLE}[aria-setsize]`) {
+        return makeArticle(foreignSetsize);
       }
       return null;
     },
@@ -283,6 +330,214 @@ describe('mergeMountedNodes — setsize pruning (SPA cross-session contamination
 
     expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2']);
   });
+
+  it('never prunes against an article the mounted bubbles do not belong to (stale-nav frame)', () => {
+    // Hydrated long conversation; during an SPA swap the previous (short)
+    // conversation's frame is still in the document and exposes its own,
+    // smaller setsize.
+    seedNodeCache([
+      { id: 'chatbox-0', index: 0, text: 'q1', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+      { id: 'chatbox-40', index: 1, text: 'tail', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+    ]);
+
+    (global as Record<string, unknown>).document = makeDocument(
+      [makeBubble(null, 'q1', 0)],
+      undefined,
+      [],
+      4,
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-40']);
+  });
+
+  it('does not prune when nothing is mounted', () => {
+    seedNodeCache([
+      { id: 'chatbox-40', index: 0, text: 'tail', hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null },
+    ]);
+
+    (global as Record<string, unknown>).document = makeDocument([], undefined, [], 4);
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-40']);
+  });
+});
+
+describe('mergeMountedNodes — unreadable turn state is not divergence', () => {
+  beforeEach(() => resetNodeCache());
+
+  const ids = (nodes: ChatboxNode[]) => nodes.map((n) => n.id);
+
+  function scanThree(branchAt2?: string) {
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'q1', 0),
+      makeBubble(null, 'q2', 2, undefined, { branch: branchAt2 }),
+      makeBubble(null, 'q3', 4),
+    ]);
+    return mergeMountedNodes();
+  }
+
+  it('keeps the cached text and tail when a turn reads empty (edit mode / mid-render)', () => {
+    scanThree();
+
+    (global as Record<string, unknown>).document = makeDocument([makeBubble(null, '', 2)]);
+    const nodes = mergeMountedNodes();
+
+    expect(ids(nodes)).toEqual(['chatbox-0', 'chatbox-2', 'chatbox-4']);
+    expect(nodes[1].text).toBe('q2');
+  });
+
+  it('does not diverge when a turn first read empty and then readable', () => {
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, '', 0),
+      makeBubble(null, 'q2', 2),
+    ]);
+    mergeMountedNodes();
+
+    (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'q1', 0)]);
+    const nodes = mergeMountedNodes();
+
+    expect(ids(nodes)).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(nodes[0].text).toBe('q1');
+  });
+
+  it('keeps the cached branch state and tail when the indicator is missing (hover-only actions bar)', () => {
+    scanThree('2 / 3');
+
+    // Same turn remounts without its actions wrapper → detectBranch reads 1 / 1.
+    (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'q2', 2)]);
+    const nodes = mergeMountedNodes();
+
+    expect(ids(nodes)).toEqual(['chatbox-0', 'chatbox-2', 'chatbox-4']);
+    expect(nodes[1]).toMatchObject({ hasBranch: true, branchCurrent: 2, branchTotal: 3 });
+  });
+
+  it('still drops the tail on a real branch switch', () => {
+    scanThree('2 / 3');
+
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'q2', 2, undefined, { branch: '3 / 3' }),
+    ]);
+    const nodes = mergeMountedNodes();
+
+    expect(ids(nodes)).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(nodes[1]).toMatchObject({ branchCurrent: 3, branchTotal: 3 });
+  });
+
+  it('still drops the tail when an edit creates the first branch (1 / 1 → 2 / 2)', () => {
+    scanThree();
+
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'q2-edited', 2, undefined, { branch: '2 / 2' }),
+    ]);
+    const nodes = mergeMountedNodes();
+
+    expect(ids(nodes)).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(nodes[1]).toMatchObject({ text: 'q2-edited', branchCurrent: 2, branchTotal: 2 });
+  });
+});
+
+describe('mergeMountedNodes — stale-nav frame (issue #176)', () => {
+  beforeEach(() => resetNodeCache());
+
+  it('skips bubbles and answers inside an inert frame', () => {
+    const stale = makeBubble(null, 'prev-conversation', 0, undefined, { inert: true });
+    const live = makeBubble(null, 'q1', 2);
+    (global as Record<string, unknown>).document = makeDocument(
+      [stale, live],
+      undefined,
+      [makeAnswer(['prev-answer'], false, true), makeAnswer(['a1'])],
+    );
+    const nodes = mergeMountedNodes();
+
+    expect(nodes.map((n) => n.id)).toEqual(['chatbox-2']);
+    // Answer pairing is by index — the foreign answer must not shift it.
+    expect(getCachedAnswer('chatbox-2')).toBe('a1');
+    // Not tagged either: a stale bubble must never become a scroll target.
+    expect(stale.getAttribute('data-nav-id')).toBeNull();
+    expect(live.getAttribute('data-nav-id')).toBe('chatbox-2');
+  });
+});
+
+// The observer's post-navigation trust signals (observer.ts domTrusted).
+describe('post-navigation DOM trust', () => {
+  beforeEach(() => resetNodeCache());
+
+  // Added node fake: an element that is / contains a user bubble, optionally
+  // inside the inert stale frame. `nodeType: 3` fakes a text node.
+  function addedEl(opts: { bubble?: boolean; inert?: boolean; nodeType?: number } = {}) {
+    return {
+      nodeType: opts.nodeType ?? 1,
+      matches: (sel: string) => sel === SELECTORS.USER_MESSAGE_BUBBLE && opts.bubble === true,
+      querySelector: () => null,
+      closest: (sel: string) => (sel === SELECTORS.INERT_FRAME && opts.inert ? {} : null),
+    };
+  }
+  function record(...added: unknown[]): MutationRecord {
+    return { addedNodes: added } as unknown as MutationRecord;
+  }
+
+  describe('mutationsMountTurn', () => {
+    it('is true when a live user bubble is added', () => {
+      expect(mutationsMountTurn([record(addedEl(), addedEl({ bubble: true }))])).toBe(true);
+    });
+
+    it('is true when an added subtree contains a user bubble', () => {
+      const wrapper = { ...addedEl(), querySelector: (sel: string) => (sel === SELECTORS.USER_MESSAGE_BUBBLE ? {} : null) };
+      expect(mutationsMountTurn([record(wrapper)])).toBe(true);
+    });
+
+    it('is false for unrelated elements and text nodes', () => {
+      expect(mutationsMountTurn([record(addedEl(), addedEl({ nodeType: 3 }))])).toBe(false);
+      expect(mutationsMountTurn([record()])).toBe(false);
+    });
+
+    it('ignores a bubble mounted inside the inert stale frame', () => {
+      expect(mutationsMountTurn([record(addedEl({ bubble: true, inert: true }))])).toBe(false);
+    });
+  });
+
+  describe('mountedDomMatchesCache', () => {
+    function stored(id: string, text: string): ChatboxNode {
+      return { id, index: 0, text, hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null };
+    }
+
+    it('is vacuously true with an empty cache', () => {
+      (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'anything', 0)]);
+      expect(mountedDomMatchesCache()).toBe(true);
+    });
+
+    it('is vacuously true when nothing is mounted', () => {
+      seedNodeCache([stored('chatbox-0', 'q1')]);
+      (global as Record<string, unknown>).document = makeDocument([]);
+      expect(mountedDomMatchesCache()).toBe(true);
+    });
+
+    it('is true when mounted turns match the hydrated cache', () => {
+      seedNodeCache([stored('chatbox-0', 'q1'), stored('chatbox-2', 'q2')]);
+      (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'q2', 2)]);
+      expect(mountedDomMatchesCache()).toBe(true);
+    });
+
+    it('is false when a mounted turn contradicts the hydrated cache (previous conversation still mounted)', () => {
+      seedNodeCache([stored('chatbox-0', 'q1'), stored('chatbox-2', 'q2')]);
+      (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'foreign', 2)]);
+      expect(mountedDomMatchesCache()).toBe(false);
+    });
+
+    it('treats an empty text read as inconclusive', () => {
+      seedNodeCache([stored('chatbox-2', 'q2')]);
+      (global as Record<string, unknown>).document = makeDocument([makeBubble(null, '', 2)]);
+      expect(mountedDomMatchesCache()).toBe(true);
+    });
+
+    it('does not modify the cache', () => {
+      seedNodeCache([stored('chatbox-0', 'q1')]);
+      (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'foreign', 0)]);
+      mountedDomMatchesCache();
+      expect(getCachedNodes().map((n) => n.text)).toEqual(['q1']);
+    });
+  });
 });
 
 describe('seedNodeCache (issue #152 hydration)', () => {
@@ -343,6 +598,59 @@ describe('seedNodeCache (issue #152 hydration)', () => {
 
     expect(nodes.map((n) => n.id)).toEqual(['chatbox-0', 'chatbox-2']);
     expect(nodes[1].text).toBe('new-branch');
+  });
+});
+
+describe('detectBranch', () => {
+  // A bubble whose parent holds the "Message actions" wrapper. `indicator`
+  // is the BRANCH_INDICATOR element's text; `afterPrevBtn` the text of the
+  // element following the "previous version" button (the fallback when the
+  // indicator class chain drifts); `wrapperText` the wrapper's own text.
+  function bubbleWith(
+    wrapper: { indicator?: string; afterPrevBtn?: string; wrapperText?: string } | null,
+  ): HTMLElement {
+    const wrapperEl =
+      wrapper === null
+        ? null
+        : {
+            textContent: wrapper.wrapperText ?? '',
+            querySelector: (sel: string) => {
+              if (sel === SELECTORS.BRANCH_INDICATOR && wrapper.indicator !== undefined) {
+                return { textContent: wrapper.indicator };
+              }
+              if (sel === SELECTORS.BRANCH_PREV_BTN && wrapper.afterPrevBtn !== undefined) {
+                return { nextElementSibling: { textContent: wrapper.afterPrevBtn } };
+              }
+              return null;
+            },
+          };
+    return {
+      parentElement: {
+        querySelector: (sel: string) => (sel === SELECTORS.BRANCH_ACTIONS_WRAPPER ? wrapperEl : null),
+      },
+    } as unknown as HTMLElement;
+  }
+
+  it('reports no branch when the actions wrapper is absent', () => {
+    expect(detectBranch(bubbleWith(null))).toEqual({ hasBranch: false, current: 1, total: 1 });
+  });
+
+  it('parses the indicator element', () => {
+    expect(detectBranch(bubbleWith({ indicator: '2 / 3' }))).toEqual({ hasBranch: true, current: 2, total: 3 });
+  });
+
+  it('falls back to the element after the "previous version" button when the indicator class chain no longer matches', () => {
+    expect(detectBranch(bubbleWith({ afterPrevBtn: '2/3', wrapperText: 'Jul 1 ‹ 2/3 ›' }))).toEqual({
+      hasBranch: true, current: 2, total: 3,
+    });
+  });
+
+  it('reads a single branch when neither indicator nor navigation buttons exist', () => {
+    expect(detectBranch(bubbleWith({ wrapperText: 'Edit Copy Jul 1' }))).toEqual({ hasBranch: true, current: 1, total: 1 });
+  });
+
+  it('never reads a slash-formatted message date in the wrapper as a branch', () => {
+    expect(detectBranch(bubbleWith({ wrapperText: 'Edit Copy 1/7/2026' }))).toEqual({ hasBranch: true, current: 1, total: 1 });
   });
 });
 

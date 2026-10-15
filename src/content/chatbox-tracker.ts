@@ -18,6 +18,7 @@ export interface BranchInfo {
 interface MountedBubble {
   absIndex: number;
   top: number | null; // absolute scroll offset of the turn wrapper, if exposed
+  setsize: number | null; // total turn count from the turn's own article, if exposed
   text: string;
   branch: BranchInfo;
   answer: string | null; // AI response text, if mounted and not streaming
@@ -54,14 +55,28 @@ function getAbsolutePosition(el: HTMLElement): { absIndex: number | null; top: n
   return { absIndex: null, top: null };
 }
 
+// Total turn count exposed by the virtualized list on the turn's own
+// [role="article"] ancestor. Read per bubble, never document-wide: during an
+// SPA swap the first article in the document can belong to the previous
+// conversation's stale frame, and its setsize would prune this one's tail.
+function getArticleSetsize(el: HTMLElement): number | null {
+  const article = el.closest(SELECTORS.TURN_ARTICLE) as HTMLElement | null;
+  const setsize = parseInt(article?.getAttribute('aria-setsize') ?? '', 10);
+  return isNaN(setsize) || setsize <= 0 ? null : setsize;
+}
+
 // Scans currently mounted bubbles and (re)writes their data-nav-id attributes.
 function scanMounted(): MountedBubble[] {
   const container = document.querySelector(SELECTORS.CHAT_CONTAINER);
   if (!container) return [];
 
-  const bubbles = container.querySelectorAll(SELECTORS.USER_MESSAGE_BUBBLE);
+  // Skip the stale-nav frame (issue #176): its turns belong to the previous
+  // conversation. Answers are filtered too — pairing below is by index, so a
+  // foreign answer would shift every bubble's answer.
+  const isLive = (el: Element): boolean => !el.closest(SELECTORS.INERT_FRAME);
+  const bubbles = [...container.querySelectorAll(SELECTORS.USER_MESSAGE_BUBBLE)].filter(isLive);
   const mounted: MountedBubble[] = [];
-  const answers = [...container.querySelectorAll(SELECTORS.CLAUDE_RESPONSE)];
+  const answers = [...container.querySelectorAll(SELECTORS.CLAUDE_RESPONSE)].filter(isLive);
   const answerTexts = answers.map((el) => {
     // Skip streaming responses
     if (el.closest(`[${SELECTORS.STREAMING_ATTR}="true"]`)) return null;
@@ -82,6 +97,7 @@ function scanMounted(): MountedBubble[] {
     mounted.push({
       absIndex: idx,
       top,
+      setsize: getArticleSetsize(el as HTMLElement),
       text: el.querySelector(SELECTORS.USER_MESSAGE)?.textContent ?? '',
       branch: detectBranch(el as HTMLElement),
       answer: answerTexts[domIndex] ?? null,
@@ -153,13 +169,11 @@ export function seedNodeCache(nodes: ChatboxNode[]): void {
   }
 }
 
-// Total turn count exposed by the virtualized list (aria-setsize on any
-// mounted article — same source scroll-navigator uses for offset estimates).
-// Returns null when the DOM does not expose it.
-function getTurnSetsize(): number | null {
-  const article = document.querySelector(`${SELECTORS.TURN_ARTICLE}[aria-setsize]`);
-  const setsize = parseInt(article?.getAttribute('aria-setsize') ?? '', 10);
-  return isNaN(setsize) || setsize <= 0 ? null : setsize;
+// Turn count of the conversation the scanned bubbles belong to. Null when
+// nothing is mounted or the DOM does not expose it — in both cases there is
+// no trustworthy bound to prune against.
+function getTurnSetsize(mounted: MountedBubble[]): number | null {
+  return mounted.find((m) => m.setsize !== null)?.setsize ?? null;
 }
 
 /**
@@ -177,7 +191,7 @@ export function mergeMountedNodes(): ChatboxNode[] {
   // conversation's still-mounted turns, or a tail from a longer branch. The
   // divergence rule below never catches them (their indices never mount in a
   // shorter conversation), so prune against the DOM's own turn count.
-  const setsize = getTurnSetsize();
+  const setsize = getTurnSetsize(mounted);
   if (setsize !== null) {
     for (const key of [...nodeCache.keys()]) {
       if (key >= setsize) nodeCache.delete(key);
@@ -186,11 +200,32 @@ export function mergeMountedNodes(): ChatboxNode[] {
 
   for (const m of mounted) {
     const cached = nodeCache.get(m.absIndex);
+
+    // An unreadable state is not a change — treating it as one drops every
+    // turn after it. An empty user-message means edit mode or mid-render
+    // (an attachment-only turn is empty too and simply never text-diverges).
+    // A "1 / 1" read while N > 1 is cached is detectBranch's no-indicator
+    // default (hover-only actions bar, class drift): claude.ai never
+    // collapses branches back to one, so keep the cached branch state.
+    const text = m.text || cached?.node.text || '';
+    const branchUnreadable =
+      cached !== undefined &&
+      cached.node.branchTotal > 1 &&
+      m.branch.total === 1 &&
+      m.branch.current === 1;
+    const branch: BranchInfo = branchUnreadable
+      ? {
+          hasBranch: cached.node.hasBranch,
+          current: cached.node.branchCurrent,
+          total: cached.node.branchTotal,
+        }
+      : m.branch;
+
     if (
       cached &&
-      (cached.node.text !== m.text ||
-        cached.node.branchCurrent !== m.branch.current ||
-        cached.node.branchTotal !== m.branch.total)
+      ((cached.node.text !== '' && m.text !== '' && cached.node.text !== m.text) ||
+        cached.node.branchCurrent !== branch.current ||
+        cached.node.branchTotal !== branch.total)
     ) {
       for (const key of [...nodeCache.keys()]) {
         if (key > m.absIndex) nodeCache.delete(key);
@@ -202,10 +237,10 @@ export function mergeMountedNodes(): ChatboxNode[] {
       node: {
         id: `chatbox-${m.absIndex}`,
         index: 0, // reassigned below
-        text: m.text,
-        hasBranch: m.branch.hasBranch,
-        branchCurrent: m.branch.current,
-        branchTotal: m.branch.total,
+        text,
+        hasBranch: branch.hasBranch,
+        branchCurrent: branch.current,
+        branchTotal: branch.total,
         parentId: null,
       },
       answer: m.answer ?? cached?.answer ?? null,
@@ -213,6 +248,41 @@ export function mergeMountedNodes(): ChatboxNode[] {
   }
 
   return cachedNodeList();
+}
+
+// ---------------------------------------------------------------------------
+// post-navigation DOM trust (observer.ts domTrusted)
+//
+// After an SPA navigation the previous conversation's stale frame keeps
+// mutating under <main>, so a childList change alone does not prove the new
+// conversation rendered. Two signals do.
+// ---------------------------------------------------------------------------
+
+// A user bubble of the live conversation mounted in this mutation batch.
+export function mutationsMountTurn(mutations: MutationRecord[]): boolean {
+  for (const mutation of mutations) {
+    for (const node of Array.from(mutation.addedNodes)) {
+      if (node.nodeType !== 1) continue; // Node.ELEMENT_NODE
+      const el = node as Element;
+      if (el.closest(SELECTORS.INERT_FRAME)) continue;
+      if (el.matches(SELECTORS.USER_MESSAGE_BUBBLE) || el.querySelector(SELECTORS.USER_MESSAGE_BUBBLE)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Nothing mounted contradicts the cache: every mounted bubble whose absolute
+// index is cached carries the same text (empty reads are inconclusive, not
+// contradictions). Vacuously true with an empty cache or nothing mounted —
+// there is nothing hydrated to destroy, so trusting the DOM is harmless.
+// Only meaningful once hydration settled; before that the cache is empty.
+export function mountedDomMatchesCache(): boolean {
+  return scanMounted().every((m) => {
+    const cached = nodeCache.get(m.absIndex);
+    return !cached || !cached.node.text || !m.text || cached.node.text === m.text;
+  });
 }
 
 // Cache contents as a display list, WITHOUT scanning the DOM. Used right after
@@ -234,15 +304,21 @@ export function detectBranch(el: HTMLElement): BranchInfo {
   const wrapper = el.parentElement?.querySelector(SELECTORS.BRANCH_ACTIONS_WRAPPER);
   if (!wrapper) return { hasBranch: false, current: 1, total: 1 };
 
-  // BRANCH_INDICATOR includes text like "[current branch #]/[Total # of branch]"
-  const indicator = wrapper.querySelector(SELECTORS.BRANCH_INDICATOR);
-  const text = indicator?.textContent ?? ''; 
-  const [n, m] = text.split('/').map(Number);
+  // The indicator reads "[current branch #] / [total # of branches]".
+  // BRANCH_INDICATOR is a Tailwind class chain that can drift, so it is only
+  // the first place to look — the fallback is the element right after the
+  // "previous version" button (stable aria-label), which is where the
+  // indicator sits. Never the whole wrapper: it also carries the message
+  // date, which some locales format as "1/7".
+  const indicator =
+    wrapper.querySelector(SELECTORS.BRANCH_INDICATOR) ??
+    wrapper.querySelector(SELECTORS.BRANCH_PREV_BTN)?.nextElementSibling;
+  const match = indicator?.textContent?.match(/(\d+)\s*\/\s*(\d+)/);
 
   // There won't be any texts if this chat has single branch
-  if (!n || !m) return { hasBranch: true, current: 1, total: 1 };
+  if (!match) return { hasBranch: true, current: 1, total: 1 };
 
-  return { hasBranch: true, current: n, total: m };
+  return { hasBranch: true, current: Number(match[1]), total: Number(match[2]) };
 }
 
 /**

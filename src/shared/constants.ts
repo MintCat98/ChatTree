@@ -15,6 +15,10 @@ export const SELECTORS = {
   // absolute `top` offset; TURN_ARTICLE carries aria-posinset as a fallback.
   TURN_INDEX_WRAPPER:     '[data-index]',
   TURN_ARTICLE:           '[role="article"]',
+  // During an SPA swap claude.ai keeps the previous conversation's frame
+  // mounted and inert (chat-stale-nav-*, issue #176). Turns inside it belong
+  // to the conversation we just left and must never be scanned.
+  INERT_FRAME:            '[inert]',
   SCROLL_CONTAINER:       '[data-autoscroll-container="true"]',
   STREAMING_ATTR:         'data-is-streaming',
   STREAMING_INDICATOR:    '[data-testid="streaming-indicator"]',
