@@ -229,6 +229,41 @@ export function mergeMountedNodes(): ChatboxNode[] {
   return cachedNodeList();
 }
 
+// ---------------------------------------------------------------------------
+// post-navigation DOM trust (observer.ts domTrusted)
+//
+// After an SPA navigation the previous conversation's stale frame keeps
+// mutating under <main>, so a childList change alone does not prove the new
+// conversation rendered. Two signals do.
+// ---------------------------------------------------------------------------
+
+// A user bubble of the live conversation mounted in this mutation batch.
+export function mutationsMountTurn(mutations: MutationRecord[]): boolean {
+  for (const mutation of mutations) {
+    for (const node of Array.from(mutation.addedNodes)) {
+      if (node.nodeType !== 1) continue; // Node.ELEMENT_NODE
+      const el = node as Element;
+      if (el.closest(SELECTORS.INERT_FRAME)) continue;
+      if (el.matches(SELECTORS.USER_MESSAGE_BUBBLE) || el.querySelector(SELECTORS.USER_MESSAGE_BUBBLE)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Nothing mounted contradicts the cache: every mounted bubble whose absolute
+// index is cached carries the same text (empty reads are inconclusive, not
+// contradictions). Vacuously true with an empty cache or nothing mounted —
+// there is nothing hydrated to destroy, so trusting the DOM is harmless.
+// Only meaningful once hydration settled; before that the cache is empty.
+export function mountedDomMatchesCache(): boolean {
+  return scanMounted().every((m) => {
+    const cached = nodeCache.get(m.absIndex);
+    return !cached || !cached.node.text || !m.text || cached.node.text === m.text;
+  });
+}
+
 // Cache contents as a display list, WITHOUT scanning the DOM. Used right after
 // an SPA navigation while the previous conversation's DOM may still be mounted
 // — scanning it would merge foreign turns and prune against a foreign

@@ -10,6 +10,8 @@ import {
   getCachedAnswer,
   absIndexFromNavId,
   reloadFromNode,
+  mutationsMountTurn,
+  mountedDomMatchesCache,
 } from '@content/chatbox-tracker';
 import type { ChatboxNode } from '@shared/types';
 import { SELECTORS } from '@shared/constants';
@@ -366,6 +368,87 @@ describe('mergeMountedNodes — stale-nav frame (issue #176)', () => {
     // Not tagged either: a stale bubble must never become a scroll target.
     expect(stale.getAttribute('data-nav-id')).toBeNull();
     expect(live.getAttribute('data-nav-id')).toBe('chatbox-2');
+  });
+});
+
+// The observer's post-navigation trust signals (observer.ts domTrusted).
+describe('post-navigation DOM trust', () => {
+  beforeEach(() => resetNodeCache());
+
+  // Added node fake: an element that is / contains a user bubble, optionally
+  // inside the inert stale frame. `nodeType: 3` fakes a text node.
+  function addedEl(opts: { bubble?: boolean; inert?: boolean; nodeType?: number } = {}) {
+    return {
+      nodeType: opts.nodeType ?? 1,
+      matches: (sel: string) => sel === SELECTORS.USER_MESSAGE_BUBBLE && opts.bubble === true,
+      querySelector: () => null,
+      closest: (sel: string) => (sel === SELECTORS.INERT_FRAME && opts.inert ? {} : null),
+    };
+  }
+  function record(...added: unknown[]): MutationRecord {
+    return { addedNodes: added } as unknown as MutationRecord;
+  }
+
+  describe('mutationsMountTurn', () => {
+    it('is true when a live user bubble is added', () => {
+      expect(mutationsMountTurn([record(addedEl(), addedEl({ bubble: true }))])).toBe(true);
+    });
+
+    it('is true when an added subtree contains a user bubble', () => {
+      const wrapper = { ...addedEl(), querySelector: (sel: string) => (sel === SELECTORS.USER_MESSAGE_BUBBLE ? {} : null) };
+      expect(mutationsMountTurn([record(wrapper)])).toBe(true);
+    });
+
+    it('is false for unrelated elements and text nodes', () => {
+      expect(mutationsMountTurn([record(addedEl(), addedEl({ nodeType: 3 }))])).toBe(false);
+      expect(mutationsMountTurn([record()])).toBe(false);
+    });
+
+    it('ignores a bubble mounted inside the inert stale frame', () => {
+      expect(mutationsMountTurn([record(addedEl({ bubble: true, inert: true }))])).toBe(false);
+    });
+  });
+
+  describe('mountedDomMatchesCache', () => {
+    function stored(id: string, text: string): ChatboxNode {
+      return { id, index: 0, text, hasBranch: false, branchCurrent: 1, branchTotal: 1, parentId: null };
+    }
+
+    it('is vacuously true with an empty cache', () => {
+      (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'anything', 0)]);
+      expect(mountedDomMatchesCache()).toBe(true);
+    });
+
+    it('is vacuously true when nothing is mounted', () => {
+      seedNodeCache([stored('chatbox-0', 'q1')]);
+      (global as Record<string, unknown>).document = makeDocument([]);
+      expect(mountedDomMatchesCache()).toBe(true);
+    });
+
+    it('is true when mounted turns match the hydrated cache', () => {
+      seedNodeCache([stored('chatbox-0', 'q1'), stored('chatbox-2', 'q2')]);
+      (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'q2', 2)]);
+      expect(mountedDomMatchesCache()).toBe(true);
+    });
+
+    it('is false when a mounted turn contradicts the hydrated cache (previous conversation still mounted)', () => {
+      seedNodeCache([stored('chatbox-0', 'q1'), stored('chatbox-2', 'q2')]);
+      (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'foreign', 2)]);
+      expect(mountedDomMatchesCache()).toBe(false);
+    });
+
+    it('treats an empty text read as inconclusive', () => {
+      seedNodeCache([stored('chatbox-2', 'q2')]);
+      (global as Record<string, unknown>).document = makeDocument([makeBubble(null, '', 2)]);
+      expect(mountedDomMatchesCache()).toBe(true);
+    });
+
+    it('does not modify the cache', () => {
+      seedNodeCache([stored('chatbox-0', 'q1')]);
+      (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'foreign', 0)]);
+      mountedDomMatchesCache();
+      expect(getCachedNodes().map((n) => n.text)).toEqual(['q1']);
+    });
   });
 });
 

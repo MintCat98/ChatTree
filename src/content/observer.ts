@@ -6,6 +6,8 @@ import {
   resetNodeCache,
   seedNodeCache,
   buildTree,
+  mutationsMountTurn,
+  mountedDomMatchesCache,
 } from './chatbox-tracker';
 import { watchBranchChanges } from './branch-change-watcher';
 import { sendToBackground, requestFromBackground } from './message-bridge';
@@ -35,10 +37,14 @@ let currentSessionId: string | null = null;
 let persistReady = false;
 // Whether the currently mounted DOM is known to belong to this conversation.
 // After an SPA navigation the previous conversation's turns can still be
-// mounted (the URL flips before React swaps the view), so scanning — merging
-// foreign turns, honoring a foreign aria-setsize — would corrupt the hydrated
-// cache. The first mutation after startObserving is the render activity of the
-// new conversation and restores trust.
+// mounted (the URL flips before React swaps the view, and the stale frame
+// keeps mutating under <main>), so scanning — merging foreign turns, dropping
+// hydrated turns past a false divergence — would corrupt the cache and then
+// persist the wreck. Trust is restored when a live user turn mounts
+// (mutationsMountTurn) or, once hydration settled, when the mounted DOM does
+// not contradict the hydrated cache (mountedDomMatchesCache). A conversation
+// that truly diverged elsewhere and swapped in before we started observing
+// regains trust on its next turn mount (scrolling is enough).
 let domTrusted = true;
 
 let summaryEnabled = DEFAULT_SETTINGS.summaryEnabled;
@@ -143,8 +149,11 @@ function hydrateFromStoredTree(): void {
       persistReady = true;
       // Re-dispatch now that persistence is open, so the merged tree (seeded
       // or plain initial scan) reaches storage exactly once hydration settled.
-      // While the mounted DOM may still belong to the previous conversation,
-      // dispatch the seeded cache as-is instead of scanning.
+      // A conversation that was already rendered before we started observing
+      // never produces a turn-mount mutation — this is where it earns trust.
+      // While the mounted DOM still contradicts the seeded cache (previous
+      // conversation's frame), dispatch the cache as-is instead of scanning.
+      if (!domTrusted) domTrusted = mountedDomMatchesCache();
       currentNodes = domTrusted ? mergeMountedNodes() : getCachedNodes();
       dispatchTree(buildTree(currentNodes));
     });
@@ -212,12 +221,13 @@ export function startObserving(options?: { trustExistingDom?: boolean }): void {
         }
       }
     }
-    if (domChanged) {
-      // Render activity after (re)start — the mounted DOM is now this
-      // conversation's; scanning is safe again.
-      domTrusted = true;
-      handleDOMChange();
+    if (!domChanged) return;
+    // The cache-match fallback is only meaningful after hydration settled —
+    // before that the cache is empty and would vacuously match a stale frame.
+    if (!domTrusted) {
+      domTrusted = mutationsMountTurn(mutations) || (persistReady && mountedDomMatchesCache());
     }
+    if (domTrusted) handleDOMChange();
   });
 
   observer.observe(container, {
