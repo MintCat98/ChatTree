@@ -200,11 +200,32 @@ export function mergeMountedNodes(): ChatboxNode[] {
 
   for (const m of mounted) {
     const cached = nodeCache.get(m.absIndex);
+
+    // An unreadable state is not a change — treating it as one drops every
+    // turn after it. An empty user-message means edit mode or mid-render
+    // (an attachment-only turn is empty too and simply never text-diverges).
+    // A "1 / 1" read while N > 1 is cached is detectBranch's no-indicator
+    // default (hover-only actions bar, class drift): claude.ai never
+    // collapses branches back to one, so keep the cached branch state.
+    const text = m.text || cached?.node.text || '';
+    const branchUnreadable =
+      cached !== undefined &&
+      cached.node.branchTotal > 1 &&
+      m.branch.total === 1 &&
+      m.branch.current === 1;
+    const branch: BranchInfo = branchUnreadable
+      ? {
+          hasBranch: cached.node.hasBranch,
+          current: cached.node.branchCurrent,
+          total: cached.node.branchTotal,
+        }
+      : m.branch;
+
     if (
       cached &&
-      (cached.node.text !== m.text ||
-        cached.node.branchCurrent !== m.branch.current ||
-        cached.node.branchTotal !== m.branch.total)
+      ((cached.node.text !== '' && m.text !== '' && cached.node.text !== m.text) ||
+        cached.node.branchCurrent !== branch.current ||
+        cached.node.branchTotal !== branch.total)
     ) {
       for (const key of [...nodeCache.keys()]) {
         if (key > m.absIndex) nodeCache.delete(key);
@@ -216,10 +237,10 @@ export function mergeMountedNodes(): ChatboxNode[] {
       node: {
         id: `chatbox-${m.absIndex}`,
         index: 0, // reassigned below
-        text: m.text,
-        hasBranch: m.branch.hasBranch,
-        branchCurrent: m.branch.current,
-        branchTotal: m.branch.total,
+        text,
+        hasBranch: branch.hasBranch,
+        branchCurrent: branch.current,
+        branchTotal: branch.total,
         parentId: null,
       },
       answer: m.answer ?? cached?.answer ?? null,

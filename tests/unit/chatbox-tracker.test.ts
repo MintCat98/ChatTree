@@ -25,7 +25,9 @@ type FakeEl = {
   setAttribute: (k: string, v: string) => void;
   querySelector: (sel: string) => { textContent: string } | null;
   closest: (sel: string) => unknown;
-  parentElement: null;
+  // detectBranch looks for the actions wrapper on the parent. null → no
+  // wrapper → hasBranch: false, 1 / 1.
+  parentElement: { querySelector: (sel: string) => unknown } | null;
   // The '[role="article"]' ancestor carrying aria-setsize — stamped by
   // makeDocument, since the turn count belongs to the conversation.
   article: FakeArticle | null;
@@ -34,14 +36,25 @@ type FakeEl = {
 // Bubble without virtualization ancestors — getAbsolutePosition falls back to
 // DOM order. Pass absIndex/top to fake the '[data-index]' wrapper. `inert`
 // places the bubble inside the stale-nav frame (closest('[inert]') hits).
+// `branch` is the indicator text ("2 / 3") shown in the actions wrapper.
 function makeBubble(
   navId: string | null,
   text: string,
   absIndex?: number,
   top?: number,
-  opts: { inert?: boolean } = {},
+  opts: { inert?: boolean; branch?: string } = {},
 ): FakeEl {
   const attrs: Record<string, string> = navId ? { 'data-nav-id': navId } : {};
+  const indicator = opts.branch === undefined ? null : { textContent: opts.branch };
+  const parentElement =
+    opts.branch === undefined
+      ? null
+      : {
+          querySelector: (sel: string) =>
+            sel === SELECTORS.BRANCH_ACTIONS_WRAPPER
+              ? { querySelector: (s: string) => (s === SELECTORS.BRANCH_INDICATOR ? indicator : null) }
+              : null,
+        };
   const wrapper =
     absIndex === undefined
       ? null
@@ -60,7 +73,7 @@ function makeBubble(
       if (sel === SELECTORS.INERT_FRAME) return opts.inert ? {} : null;
       return null;
     },
-    parentElement: null, // detectBranch sees no wrapper → hasBranch: false
+    parentElement,
     article: null,
   };
   return el;
@@ -346,6 +359,80 @@ describe('mergeMountedNodes — setsize pruning (SPA cross-session contamination
     const nodes = mergeMountedNodes();
 
     expect(nodes.map((n) => n.id)).toEqual(['chatbox-40']);
+  });
+});
+
+describe('mergeMountedNodes — unreadable turn state is not divergence', () => {
+  beforeEach(() => resetNodeCache());
+
+  const ids = (nodes: ChatboxNode[]) => nodes.map((n) => n.id);
+
+  function scanThree(branchAt2?: string) {
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'q1', 0),
+      makeBubble(null, 'q2', 2, undefined, { branch: branchAt2 }),
+      makeBubble(null, 'q3', 4),
+    ]);
+    return mergeMountedNodes();
+  }
+
+  it('keeps the cached text and tail when a turn reads empty (edit mode / mid-render)', () => {
+    scanThree();
+
+    (global as Record<string, unknown>).document = makeDocument([makeBubble(null, '', 2)]);
+    const nodes = mergeMountedNodes();
+
+    expect(ids(nodes)).toEqual(['chatbox-0', 'chatbox-2', 'chatbox-4']);
+    expect(nodes[1].text).toBe('q2');
+  });
+
+  it('does not diverge when a turn first read empty and then readable', () => {
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, '', 0),
+      makeBubble(null, 'q2', 2),
+    ]);
+    mergeMountedNodes();
+
+    (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'q1', 0)]);
+    const nodes = mergeMountedNodes();
+
+    expect(ids(nodes)).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(nodes[0].text).toBe('q1');
+  });
+
+  it('keeps the cached branch state and tail when the indicator is missing (hover-only actions bar)', () => {
+    scanThree('2 / 3');
+
+    // Same turn remounts without its actions wrapper → detectBranch reads 1 / 1.
+    (global as Record<string, unknown>).document = makeDocument([makeBubble(null, 'q2', 2)]);
+    const nodes = mergeMountedNodes();
+
+    expect(ids(nodes)).toEqual(['chatbox-0', 'chatbox-2', 'chatbox-4']);
+    expect(nodes[1]).toMatchObject({ hasBranch: true, branchCurrent: 2, branchTotal: 3 });
+  });
+
+  it('still drops the tail on a real branch switch', () => {
+    scanThree('2 / 3');
+
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'q2', 2, undefined, { branch: '3 / 3' }),
+    ]);
+    const nodes = mergeMountedNodes();
+
+    expect(ids(nodes)).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(nodes[1]).toMatchObject({ branchCurrent: 3, branchTotal: 3 });
+  });
+
+  it('still drops the tail when an edit creates the first branch (1 / 1 → 2 / 2)', () => {
+    scanThree();
+
+    (global as Record<string, unknown>).document = makeDocument([
+      makeBubble(null, 'q2-edited', 2, undefined, { branch: '2 / 2' }),
+    ]);
+    const nodes = mergeMountedNodes();
+
+    expect(ids(nodes)).toEqual(['chatbox-0', 'chatbox-2']);
+    expect(nodes[1]).toMatchObject({ text: 'q2-edited', branchCurrent: 2, branchTotal: 2 });
   });
 });
 
